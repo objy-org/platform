@@ -1,39 +1,105 @@
 var SPOO = require('./spoo.js');
-var MAPPER = require('./storageMappers/localStorageMapper.js');
+//var MAPPER = require('./storageMappers/localStorageMapper.js');
 var PROCESSOR = require('./processorMappers/processorMapper.js');
+//var OBSERVER = require('./observerMappers/observerMapper.js');
 
+var LOWDBMAPPER = require('./storageMappers/lowDBMapper.js');
 
+var lowDBMapper = new LOWDBMAPPER(null, function(data) {
+
+}, function(error) {
+
+});
+
+var cronObserver;// = new ScheduledObserver('connectionString');
+
+/*
 SPOO.define({
     name: "SensorItem",
     pluralName: 'SensorItems',
     storage: new MAPPER(),
     processor: new PROCESSOR()
-})
+})*/
 
 SPOO.define({
     name: "Object",
     pluralName: 'Objects',
-    storage: new MAPPER(),
-    processor: new PROCESSOR()
+    multitenancy: 'database',
+    storage: lowDBMapper,
+    multitenancy: "database",
+    processor: new PROCESSOR(),
+    observer: cronObserver
 })
 
+/*
 SPOO.define({
     authable: true,
     name: "User",
     pluralName: 'Users',
     storage: new MAPPER(),
     processor: new PROCESSOR()
-})
+})*/
+
+
+//i9mJ9GWlgRKhIBKdGKdSzcWkP
+
+            
+            var obj = new SPOO.Object("i9mJ9GWlgRKhIBKdGKdSzcWkP").addProperty({hallo21: "marco"});
+
+            console.log(obj);
+
+            obj.addProperty({hallo2: "marco"});
+
+            console.log(obj);
+
+            /*.update(function(data)
+            {
+                console.log("updated!");
+            }, function(err)
+            {
+
+            }, 'spoo');*/
+
+ 
+
+  return;
+
+var user = new SPOO.Object({name : "HALLO"}).add(function(data)
+    {
+        //console.log(data);
+
+
+        SPOO.Object(data).addProperty({hallo: "marco"}).update(function(data)
+            {
+                console.log("updated!");
+            }, function(err)
+            {
+
+            }, 'spoo');
+
+        /*SPOO.Object(data._id).get(function(data)
+        {
+            console.log("--------------");
+             console.log(data);
+        }, function(err)
+        {
+
+        }, 'spoo')*/
+       
+    }, function(err)
+    {
+        console.log(err);
+    }, 'spoo');
 
 
 
-var user = new SPOO.User({});
+return;
 
-user.addProperty({test: "124"}).addProperty({event: {type: "event", action:"23"}});
+user.addProperty({ test: "124" }).addProperty({ action: { type: "action", value: "23" } });
 
-console.log(user);
+user.getProperty("action").call(function(message) {
+    console.log(message);
+}, 'spoo');
 
-
-user.getProperty("event").call();
 
 user.update();

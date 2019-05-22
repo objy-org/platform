@@ -1,4 +1,4 @@
-var moment = require('./moment.js');
+var moment = require('moment');
 var shortid = require('shortid');
 
 var CONSTANTS = {
@@ -241,16 +241,17 @@ var SPOO = {
             return new SPOO.Objs(objs, params.name);
         }
 
-        this.plugInMapper(params.name.toLowerCase(), params.storage);
+        this.plugInMapper(params.name.toLowerCase(), params.storage, params.multitenancy);
 
         this.plugInProcessor(params.name.toLowerCase(), params.processor);
     },
 
     mappers: {},
 
-    plugInMapper: function(name, mapper) {
+    plugInMapper: function(name, mapper, multitenancy) {
         if (!name) throw new Error("No mapper name provided");
         this.mappers[name] = mapper;
+        this.mappers[name].setMultiTenancy(multitenancy || "tenantIdentifier");
     },
 
     processors: {},
@@ -607,18 +608,18 @@ var SPOO = {
 
     },
 
-    addObject: function(obj, success, error, constrains, client) {
+    addObject: function(obj, success, error, client) {
         this.mappers[obj.role].addObj(obj, function(data) {
             success(data);
 
         }, function(err) {
             error('Error - Could not add object');
-        }, constrains, client);
+        }, client);
 
     },
 
 
-    update: function(obj, success, error, constrains, client) {
+    update: function(obj, success, error, client) {
         var propKeys = Object.keys(obj.properties);
 
 
@@ -649,46 +650,43 @@ var SPOO = {
             })
         }
 
-        this.updateObject(obj, success, error, constrains, client);
+        this.updateObject(obj, success, error, client);
 
 
         // ADD TENANT AND APPLICATION!!!
     },
 
-    updateObject: function(obj, success, error, constrains, client) {
+    updateObject: function(obj, success, error, client) {
         this.mappers[obj.role].updateObj(obj, function(data) {
             success(data);
 
         }, function(err) {
             error('Error - Could not update object');
-        }, constrains, client);
+        }, client);
     },
 
-    getObjectById: function(role, id, success, error, constrains, client) {
+    getObjectById: function(role, id, success, error, client) {
+
 
         this.mappers[role].getObjById(id, function(data) {
+
+             console.log("---" + data)
+
             if (data == null) {
                 error('Error - object not found');
                 return;
             }
+            
+            success(SPOO.Obj(data));
 
-            new SPOO.Obj(data).get(function(data) {
-
-                    success(data);
-                    return;
-                },
-                function(err) {
-                    error(err);
-                    return;
-                }, client);
 
 
         }, function(err) {
             error('Error - Could get object: ' + err);
-        }, constrains, client);
+        }, client);
     },
 
-    findObjects: function(role, criteria, success, error, constrains, client, flags, all) {
+    findObjects: function(role, criteria, success, error, client, flags) {
         var templatesCache = [];
         var objectsCache = [];
         this.mappers[role].getObjsByCriteria(criteria, function(data) {
@@ -710,11 +708,11 @@ var SPOO = {
 
         }, function(err) {
             error('Error - Could get object: ' + err);
-        }, constrains, client, flags, all);
+        }, client, flags);
     },
 
-    findAllObjects: function(role, criteria, success, error, constrains, client, flags) {
-        this.findObjects(role, criteria, success, error, constrains, client, flags, true);
+    findAllObjects: function(role, criteria, success, error, client, flags) {
+        this.findObjects(role, criteria, success, error, client, flags, true);
     },
 
 
@@ -1068,7 +1066,7 @@ var SPOO = {
 
         if (propertyToReturn.type == "action") {
             propertyToReturn.call = function(callback, client) {
-                thisRef.execProcessorAction(propertyToReturn.action, obj, propertyToReturn, {}, callback, client, {});
+                thisRef.execProcessorAction(propertyToReturn.value, obj, propertyToReturn, {}, callback, client, {});
             }
         }
 
@@ -1104,11 +1102,11 @@ var SPOO = {
 
 
 
-    PropertyCreateWrapper: function(obj, property, isBag, constrains, client) {
+    PropertyCreateWrapper: function(obj, property, isBag, client) {
 
         property = Object.assign({}, property);
 
-
+        
         var propertyKey = Object.keys(property)[0];
 
         if (typeof property !== 'object')
@@ -1123,21 +1121,21 @@ var SPOO = {
 
             obj.properties[propertyKey] = property[propertyKey];
 
-            return;
+            //return;
 
-            if (typeof property[propertyKey].value === 'string') {
+            /*if (typeof property[propertyKey].value === 'string') {
                 if (property[propertyKey].value.length <= 255) property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_SHORTTEXT;
                 else property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_LONGTEXT;
             } else if (typeof property[propertyKey].value === 'boolean')
                 property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_BOOLEAN;
-            else property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_SHORTTEXT;
+            else property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_SHORTTEXT;*/
         }
 
-
+      
         try {
             existing = obj.properties[propertyKey]
-            console.debug(obj.properties);
-            console.debug(property);
+            console.log(obj.properties);
+            console.log(property);
         } catch (e) {}
 
         if (existing) throw new DuplicatePropertyException(propertyKey);
@@ -2369,7 +2367,7 @@ var SPOO = {
             return this;
         };
 
-        this.addProperty = function(property, constrains, client) {
+        this.addProperty = function(property, client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -2384,7 +2382,7 @@ var SPOO = {
                 return;
             }
 
-            new SPOO.PropertyCreateWrapper(this, property, false, constrains, client);
+            new SPOO.PropertyCreateWrapper(this, property, false, client);
 
             return this;
         };
@@ -2879,13 +2877,13 @@ var SPOO = {
             return this;
         };
 
-        this.addPropertyToBag = function(bag, property, constrains, client) {
+        this.addPropertyToBag = function(bag, property, client) {
 
 
             var tmpBag = this.getProperty(bag);
             if (tmpBag.template) tmpBag.overwritten = true;
 
-            new SPOO.PropertyCreateWrapper(tmpBag, property, true, constrains, client);
+            new SPOO.PropertyCreateWrapper(tmpBag, property, true, client);
 
             return this;
         };
@@ -3024,8 +3022,10 @@ var SPOO = {
 
             aggregateAllEvents(this.properties);
 
+            if(!this._id) this._id = SPOO.ID();
 
             SPOO.add(this, function(data) {
+                    
                     this._id = data._id;
 
                     //if(this.role == 'template') this.inherit();
@@ -3049,7 +3049,7 @@ var SPOO = {
             return this;
         };
 
-        this.update = function(success, error, constrains, client) {
+        this.update = function(success, error, client) {
 
             this.lastModified = moment().toDate().toISOString();
 
@@ -3130,7 +3130,7 @@ var SPOO = {
                 function(err) {
                     error(err);
                     //throw new CallbackErrorException(err);
-                }, constrains, client);
+                }, client);
 
             return this;
         };
