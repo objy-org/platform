@@ -619,7 +619,7 @@ var SPOO = {
     },
 
 
-    update: function(obj, success, error, client) {
+    updateO: function(obj, success, error, client) {
         var propKeys = Object.keys(obj.properties);
 
 
@@ -670,14 +670,14 @@ var SPOO = {
 
         this.mappers[role].getObjById(id, function(data) {
 
-             console.log("---" + data)
+             //console.log("---" + data)
 
             if (data == null) {
                 error('Error - object not found');
                 return;
             }
             
-            success(SPOO.Obj(data));
+            success(data);
 
 
 
@@ -1117,31 +1117,39 @@ var SPOO = {
         }
 
 
-        if (!property[propertyKey].type) {
+       
 
-            obj.properties[propertyKey] = property[propertyKey];
+     
 
-            //return;
-
-            /*if (typeof property[propertyKey].value === 'string') {
-                if (property[propertyKey].value.length <= 255) property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_SHORTTEXT;
-                else property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_LONGTEXT;
-            } else if (typeof property[propertyKey].value === 'boolean')
-                property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_BOOLEAN;
-            else property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_SHORTTEXT;*/
-        }
-
-      
         try {
             existing = obj.properties[propertyKey]
             console.log(obj.properties);
             console.log(property);
         } catch (e) {}
 
+         /*iif (!property[propertyKey].type) {
+
+            obj.properties[propertyKey] = property[propertyKey];
+
+           
+
+            f (typeof property[propertyKey].value === 'string') {
+                if (property[propertyKey].value.length <= 255) property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_SHORTTEXT;
+                else property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_LONGTEXT;
+            } else if (typeof property[propertyKey].value === 'boolean')
+                property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_BOOLEAN;
+            else property[propertyKey].type = CONSTANTS.PROPERTY.TYPE_SHORTTEXT;
+        }*/
+
+
         if (existing) throw new DuplicatePropertyException(propertyKey);
 
-        console.debug(property);
+        //console.debug(property);
         switch (property[propertyKey].type) {
+            case undefined:
+                obj.properties[propertyKey] = property[propertyKey];
+                break;
+
             case CONSTANTS.PROPERTY.TYPE_SHORTTEXT:
                 obj.properties[propertyKey] = property[propertyKey];
                 SPOO.ValuePropertyMetaSubstituter(obj.properties[propertyKey]);
@@ -1349,6 +1357,8 @@ var SPOO = {
             default:
                 throw new InvalidTypeException(property[propertyKey].type);
         }
+
+
 
     },
 
@@ -3051,6 +3061,8 @@ var SPOO = {
 
         this.update = function(success, error, client) {
 
+            console.log("------")
+
             this.lastModified = moment().toDate().toISOString();
 
             var thisRef = this;
@@ -3111,10 +3123,13 @@ var SPOO = {
                 })
             }
 
-            aggregateAllEvents(this.properties);
+            //aggregateAllEvents(this.properties);
+
+console.log(this)
+
+            SPOO.updateO(this, function(data) {
 
 
-            SPOO.update(this, function(data) {
 
                     //if (this.role == 'template') this.inherit();
                     success(data);
@@ -3178,7 +3193,12 @@ var SPOO = {
             }
             // arrayDeserialize(this);
 
-             SPOO.getObjectById(this.role, this._id, function(data) { success(data) }, function(err) { error(err) }, client);
+             SPOO.getObjectById(this.role, this._id, function(data) { 
+
+                console.log(thisRef)
+                success(data) 
+
+            }, function(err) { error(err) }, client);
              return;
 
             if (this.inherits.length == 0) {

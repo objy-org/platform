@@ -22,8 +22,8 @@ SPOO.define({
 })*/
 
 SPOO.define({
-    name: "Object",
-    pluralName: 'Objects',
+    name: "Nicole",
+    pluralName: 'Nicoles',
     multitenancy: 'database',
     storage: lowDBMapper,
     multitenancy: "database",
@@ -44,13 +44,13 @@ SPOO.define({
 //i9mJ9GWlgRKhIBKdGKdSzcWkP
 
             
-            var obj = new SPOO.Object("i9mJ9GWlgRKhIBKdGKdSzcWkP").addProperty({hallo21: "marco"});
+            //var obj = new SPOO.Object("i9mJ9GWlgRKhIBKdGKdSzcWkP").addProperty({hallo21: "marco"});
 
-            console.log(obj);
+            //console.log(obj);
 
-            obj.addProperty({hallo2: "marco"});
+            //obj.addProperty({hallo2: "marco"});
 
-            console.log(obj);
+            //console.log(obj);
 
             /*.update(function(data)
             {
@@ -60,6 +60,24 @@ SPOO.define({
 
             }, 'spoo');*/
 
+            //SPOO.Nicole({_id: "i9mJ9GWlgRKhIBKdGKdSzcWkP"}).add(function(){},function(){},'spoo');
+            
+
+new SPOO.Nicole("i9mJ9GWlgRKhIBKdGKdSzcWkP").get(function(data)
+{   
+    SPOO.Nicole(data).addProperty({hallo2:2323}).update(function()
+    {
+
+    }, function()
+
+    {
+
+    }, 'spoo')
+
+}, function(err)
+{
+
+}, 'spoo')
  
 
   return;
