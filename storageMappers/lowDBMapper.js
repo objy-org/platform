@@ -17,8 +17,6 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     this.connectionString = connectionString;
 
-    this.objects = {};
-
     this.multitenancy = CONSTANTS.MULTITENANCY.TENANTIDENTIFIER;
 
     var dbConMain = {};
@@ -27,29 +25,32 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     };
 
+     this.connectInit(connectionSuccess, connectionError);
+
     this.setMultiTenancy = function(value) {
         this.multitenancy = value;
     };
-
-    this.connectInit(connectionSuccess, connectionError);
 
 
     this.closeConnection = function() {
 
     };
 
-
-    this.getObjById = function(id, success, error, client) {
-
-        var db;
+    this.getDBByMultitenancy = function(client)
+    {
 
         if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER) {
             const adapter = new FileSync('db.json')
-            db = low(adapter)
+            return low(adapter)
         } else if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
-            const adapter = new FileSync('db' + client + '.json')
-            db = low(adapter)
+             const adapter = new FileSync('db' + client + '.json')
+            return low(adapter)
         }
+    };
+
+    this.getObjById = function(id, success, error, client) {
+
+        var db = this.getDBByMultitenancy(client);
 
         success(db.get('objects')
             .find({ _id: id })
@@ -59,15 +60,8 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
 
     this.getObjsByCriteria = function(criteria, success, error, client, flags) {
-        var db;
 
-        if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER) {
-            const adapter = new FileSync('db.json')
-            db = low(adapter)
-        } else if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
-            const adapter = new FileSync('db' + client + '.json')
-            db = low(adapter)
-        }
+         var db = this.getDBByMultitenancy(client);
 
         // flags contain thigs lik $sort or $page
 
@@ -79,15 +73,8 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     this.aggregateObjsByCriteria = function(aggregation, criteria, success, error, client, flags) {
 
-        var db;
+        var db = this.getDBByMultitenancy(client);
 
-        if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER) {
-            const adapter = new FileSync('db.json')
-            db = low(adapter)
-        } else if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
-            const adapter = new FileSync('db' + client + '.json')
-            db = low(adapter)
-        }
 
         switch (aggregation) {
             case 'count':
@@ -107,15 +94,8 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     this.updateObj = function(spooElement, success, error, client) {
 
-        var db;
+        var db = this.getDBByMultitenancy(client);
 
-        if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER) {
-            const adapter = new FileSync('db.json')
-            db = low(adapter)
-        } else if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
-            const adapter = new FileSync('db' + client + '.json')
-            db = low(adapter)
-        }
 
         success(db.get('objects')
             .find({ _id: spooElement._id })
@@ -126,16 +106,8 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     this.addObj = function(spooElement, success, error, client) {
 
-        var db;
+         var db = this.getDBByMultitenancy(client);
 
-
-        if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER) {
-            const adapter = new FileSync('db.json')
-            db = low(adapter)
-        } else if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
-            const adapter = new FileSync('db' + client + '.json')
-            db = low(adapter)
-        }
 
 
         db.defaults({ objects: [] })
@@ -153,15 +125,8 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     this.removeObj = function(spooElement, success, error, client) {
 
-        var db;
+         var db = this.getDBByMultitenancy(client);
 
-        if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER) {
-            const adapter = new FileSync('db.json')
-            db = low(adapter)
-        } else if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
-            const adapter = new FileSync('db' + client + '.json')
-            db = low(adapter)
-        }
 
         success(db.get('objects')
             .remove({ _id: spooElement._id })

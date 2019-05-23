@@ -65,7 +65,7 @@ SPOO.define({
 
 SPOO.Nicole("i9mJ9GWlgRKhIBKdGKdSzcWkP").get(function(data)
 {   
-    data.addProperty({hallo23:2323}).update(function()
+    data.addProperty({hallo232f:2323}).update(function()
     {
 
     }, function()
