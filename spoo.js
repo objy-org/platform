@@ -196,6 +196,8 @@ var SPOO = {
 
         this[params.name] = function(obj) {
 
+
+
             if(params.authable)
             {
                 obj.username = obj.username || null;
@@ -231,7 +233,7 @@ var SPOO = {
                 };
             }
 
-            return new SPOO.Obj(obj, params.name.toLowerCase());
+            return new SPOO.Obj(obj, params.name);
         }
 
         this[params.pluralName] = function(objs) {
@@ -241,9 +243,9 @@ var SPOO = {
             return new SPOO.Objs(objs, params.name);
         }
 
-        this.plugInMapper(params.name.toLowerCase(), params.storage, params.multitenancy);
+        this.plugInMapper(params.name, params.storage, params.multitenancy);
 
-        this.plugInProcessor(params.name.toLowerCase(), params.processor);
+        this.plugInProcessor(params.name, params.processor);
     },
 
     mappers: {},
@@ -258,7 +260,7 @@ var SPOO = {
 
     plugInProcessor: function(name, processor) {
         if (!name) throw new Error("No mapper name provided");
-        this.processors[name.toLowerCase()] = processor;
+        this.processors[name] = processor;
     },
 
     ConditionsChecker: function(property, value) {
@@ -2292,7 +2294,7 @@ var SPOO = {
 
         var i;
         for (i = 0; i < objs.length; i++) {
-            objs[i] = new SPOO.Obj(objs[i], role.toLowerCase());
+            objs[i] = new SPOO.Obj(objs[i], role);
         }
 
         return objs;
@@ -3195,8 +3197,8 @@ console.log(this)
 
              SPOO.getObjectById(this.role, this._id, function(data) { 
 
-                console.log(thisRef)
-                success(data) 
+                
+                success(SPOO[thisRef.role](data)) 
 
             }, function(err) { error(err) }, client);
              return;

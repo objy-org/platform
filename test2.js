@@ -61,11 +61,11 @@ SPOO.define({
             }, 'spoo');*/
 
             //SPOO.Nicole({_id: "i9mJ9GWlgRKhIBKdGKdSzcWkP"}).add(function(){},function(){},'spoo');
-            
 
-new SPOO.Nicole("i9mJ9GWlgRKhIBKdGKdSzcWkP").get(function(data)
+
+SPOO.Nicole("i9mJ9GWlgRKhIBKdGKdSzcWkP").get(function(data)
 {   
-    SPOO.Nicole(data).addProperty({hallo2:2323}).update(function()
+    data.addProperty({hallo23:2323}).update(function()
     {
 
     }, function()
