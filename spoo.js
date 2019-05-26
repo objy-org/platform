@@ -188,6 +188,38 @@ var SPOO = {
 
     self: this,
 
+    instance: this,
+
+    activeTenant:null,
+
+    activeUser:null,
+
+    activeApp:null,
+
+    tenant: function(tenant)
+    {
+        if(!tenant) throw new Error("No tenant specified");
+        this.activeTenant = tenant;
+
+        return this;
+    },
+
+    user: function(user)
+    {
+        if(!user) throw new Error("No user specified");
+        this.activeUser = user;
+
+        return this;
+    },
+
+    app: function(app)
+    {
+        if(!app) throw new Error("No app specified");
+        this.activeApp = app;
+
+        return this;
+    },
+
     define: function(params) {
 
         if (!params.name || !params.storage || !params.pluralName || !params.processor) {
@@ -195,8 +227,6 @@ var SPOO = {
         }
 
         this[params.name] = function(obj) {
-
-
 
             if(params.authable)
             {
@@ -233,19 +263,27 @@ var SPOO = {
                 };
             }
 
-            return new SPOO.Obj(obj, params.name);
+            return new SPOO.Obj(obj, params.name, this);
         }
 
         this[params.pluralName] = function(objs) {
 
-            if (!Array.isArray(objs)) throw new Error("Not an array");
+            
+            if (!objs) throw new Error("No params defined");
 
-            return new SPOO.Objs(objs, params.name);
+            return new SPOO.Objs(objs, params.name, this);
+
+            
         }
 
         this.plugInMapper(params.name, params.storage, params.multitenancy);
 
         this.plugInProcessor(params.name, params.processor);
+    },
+    
+    ObjectFamily: function(params)
+    {
+        this.define(params);
     },
 
     mappers: {},
@@ -576,22 +614,23 @@ var SPOO = {
         }
     },
 
-    remove: function(obj, success, error, constrains, client) {
+    remove: function(obj, success, error, app, client) {
 
-        this.removeObject(obj, success, error, constrains, client);
+        this.removeObject(obj, success, error, app, client);
 
     },
 
-    removeObject: function(obj, success, error, constrains, client) {
+    removeObject: function(obj, success, error, app, client) {
 
         this.mappers[obj.role].removeObj(obj, function(data) {
             success(data);
         }, function(err) {
             error('Error - Could not remove object');
-        }, {}, client);
+        }, app, client);
     },
 
-    add: function(obj, success, error, constrains, client) {
+    add: function(obj, success, error, app, client) {
+
         var propKeys = Object.keys(obj.properties);
 
         propKeys.forEach(function(property) {
@@ -606,17 +645,20 @@ var SPOO = {
         })
 
 
-        this.addObject(obj, success, error, constrains, client);
+        this.addObject(obj, success, error, app, client);
 
     },
 
-    addObject: function(obj, success, error, client) {
+    addObject: function(obj, success, error, app, client) {
+
+        console.log("##" + client); 
+
         this.mappers[obj.role].addObj(obj, function(data) {
             success(data);
 
         }, function(err) {
             error('Error - Could not add object');
-        }, client);
+        }, app, client);
 
     },
 
@@ -645,7 +687,6 @@ var SPOO = {
                 var k;
                 for (k = 0; k < obj.privileges[app].length; k++) {
 
-                    if (obj.privileges[app][k].template) obj.privileges[app].splice(k, 1);
                 }
 
                 if (obj.privileges[app].length == 0) delete obj.privileges[app];
@@ -667,7 +708,7 @@ var SPOO = {
         }, client);
     },
 
-    getObjectById: function(role, id, success, error, client) {
+    getObjectById: function(role, id, success, error, app, client) {
 
 
         this.mappers[role].getObjById(id, function(data) {
@@ -685,18 +726,28 @@ var SPOO = {
 
         }, function(err) {
             error('Error - Could get object: ' + err);
-        }, client);
+        }, app, client);
     },
 
-    findObjects: function(role, criteria, success, error, client, flags) {
+    findObjects: function(criteria, role,  success, error, app, client, flags) {
+
+
         var templatesCache = [];
         var objectsCache = [];
         this.mappers[role].getObjsByCriteria(criteria, function(data) {
             var counter = 0;
             var num = data.length;
             if (num == 0) success([]);
-            data.forEach(function(obj, i) {
-                new SPOO.Obj(obj).get(function(ob) {
+
+            success(data);
+
+
+            /*data.forEach(function(obj, i) {
+
+                counter++;
+                if (counter == data.length) success(data);
+
+                /*new SPOO.Obj(obj).get(function(ob) {
                         counter++;
                         data[i] = ob
 
@@ -704,13 +755,13 @@ var SPOO = {
                     },
                     function(err) {
                         error(err);
-                    }, client);
-            })
+                    }, client);*
+            })*/
 
 
         }, function(err) {
             error('Error - Could get object: ' + err);
-        }, client, flags);
+        }, app, client, flags);
     },
 
     findAllObjects: function(role, criteria, success, error, client, flags) {
@@ -1005,7 +1056,7 @@ var SPOO = {
 
     },
 
-    PropertyBagItemRemover: function(obj, propertyName, constrains, client) {
+    PropertyBagItemRemover: function(obj, propertyName,  client) {
         var allProperties = obj.properties; //obj.getProperties();
         var thisRef = this;
 
@@ -1083,7 +1134,7 @@ var SPOO = {
     },
 
 
-    ActionCreateWrapper: function(obj, action, constrains, client) {
+    ActionCreateWrapper: function(obj, action,  client) {
         console.debug(obj);
         console.log("pppa");
         console.debug(action);
@@ -1761,7 +1812,7 @@ var SPOO = {
     },
 
 
-    PropertySetWrapper: function(obj, propertyKey, newValue, constrains, client, notPermitted) {
+    PropertySetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
 
 
         function setValue(obj, access, value) {
@@ -1833,7 +1884,7 @@ var SPOO = {
         }*/
     },
 
-    EventIntervalSetWrapper: function(obj, propertyKey, newValue, constrains, client, notPermitted) {
+    EventIntervalSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
 
 
         var prop = obj.getProperty(propertyKey);
@@ -1883,7 +1934,7 @@ var SPOO = {
 
     },
 
-    EventTriggeredSetWrapper: function(obj, propertyKey, newValue, constrains, client, notPermitted) {
+    EventTriggeredSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
 
         var prop = obj.getProperty(propertyKey);
 
@@ -1930,7 +1981,7 @@ var SPOO = {
     },
 
 
-    EventLastOccurenceSetWrapper: function(obj, propertyKey, newValue, constrains, client, notPermitted) {
+    EventLastOccurenceSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
 
         var prop = obj.getProperty(propertyKey);
 
@@ -1979,7 +2030,7 @@ var SPOO = {
 
     },
 
-    EventReminderSetWrapper: function(obj, propertyKey, reminder, constrains, client, notPermitted) {
+    EventReminderSetWrapper: function(obj, propertyKey, reminder,  client, notPermitted) {
 
 
         var prop = obj.getProperty(propertyKey);
@@ -2030,7 +2081,7 @@ var SPOO = {
     },
 
 
-    EventReminderRemover: function(obj, propertyKey, reminder, constrains, client, notPermitted) {
+    EventReminderRemover: function(obj, propertyKey, reminder,  client, notPermitted) {
 
 
         var prop = obj.getProperty(propertyKey);
@@ -2083,7 +2134,7 @@ var SPOO = {
     },
 
 
-    EventDateSetWrapper: function(obj, propertyKey, newValue, constrains, client, notPermitted) {
+    EventDateSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
 
 
         function setValue(obj, access, value) {
@@ -2128,7 +2179,7 @@ var SPOO = {
 
     },
 
-    EventActionSetWrapper: function(obj, propertyKey, newValue, constrains, client, notPermitted) {
+    EventActionSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
 
         function setValue(obj, access, value) {
             if (typeof(access) == 'string') {
@@ -2289,18 +2340,80 @@ var SPOO = {
         return privilege;
     },
 
-    Objs: function(objs, role) {
+    Objs: function(objs, role, instance) {
         var self = this;
 
-        var i;
-        for (i = 0; i < objs.length; i++) {
-            objs[i] = new SPOO.Obj(objs[i], role);
+        if(typeof objs === "object")
+        {
+
+            this.get = function(success, error) {
+
+            var client = instance.activeTenant;
+            var app = instance.activeApp;
+            
+            var thisRef = this;
+            var counter = 0;
+
+            var flags = {} // TODO!!!
+
+
+             SPOO.findObjects(objs, role, function(data) { 
+                success(data);
+
+            }, function(err) { error(err) }, app, client, flags);
+             return;
+
+            if (this.inherits.length == 0) {
+                success(thisRef);
+                return this;
+            }
+
+
+            this.inherits.forEach(function(template) {
+
+                if (thisRef._id != template) {
+
+                    SPOO.getTemplateFieldsForObject(thisRef, template, function() {
+                            counter++;
+                            if (counter == thisRef.inherits.length) {
+                                success(thisRef);
+                                return this;
+                            }
+                        },
+                        function(err) {
+
+                            success(thisRef);
+                            return this;
+                        }, client)
+                } else {
+                    if (thisRef.inherits.length == 1) {
+                        success(thisRef);
+                        return this;
+                    } else {
+                        counter++;
+                        return;
+                    }
+                }
+            });
+
+
+           
         }
 
-        return objs;
+
+        } else if(Array.isArray(objs))
+        {
+            var i;
+            for (i = 0; i < objs.length; i++) {
+                objs[i] = new SPOO.Obj(objs[i], role);
+            }
+
+            return objs;
+        }
+        
     },
 
-    Obj: function(obj, role) {
+    Obj: function(obj, role, instance) {
 
         if (typeof obj === "string") {
             this._id = obj;
@@ -2389,7 +2502,7 @@ var SPOO = {
                 var newProp = {};
                 newProp[newProKey] = property[propertyKey];
 
-                this.addPropertyToBag(bag, newProp, constrains, client);
+                this.addPropertyToBag(bag, newProp,  client);
 
                 return;
             }
@@ -2442,7 +2555,7 @@ var SPOO = {
             return this;
         };
 
-        this.setPropertyValue = function(property, value, constrains, client) {
+        this.setPropertyValue = function(property, value,  client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -2450,17 +2563,17 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.setBagPropertyValue(bag, newProKey, value, constrains, client);
+                this.setBagPropertyValue(bag, newProKey, value,  client);
                 return;
             }
 
             new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.PropertySetWrapper(this, property, value, constrains, client, ['addObject']);
+            new SPOO.PropertySetWrapper(this, property, value,  client, ['addObject']);
             return this;
         };
 
-        this.setEventDate = function(property, value, constrains, client) {
+        this.setEventDate = function(property, value,  client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -2468,16 +2581,16 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.setBagEventDate(bag, newProKey, value, constrains, client);
+                this.setBagEventDate(bag, newProKey, value,  client);
                 return;
             }
 
 
-            new SPOO.EventDateSetWrapper(this, property, value, constrains, client, ['addObject']);
+            new SPOO.EventDateSetWrapper(this, property, value,  client, ['addObject']);
             return this;
         };
 
-        this.setEventAction = function(property, value, constrains, client) {
+        this.setEventAction = function(property, value,  client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -2485,35 +2598,17 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.setBagEventAction(bag, newProKey, value, constrains, client);
-                return;
-            }
-
-            // new SPOO.ConditionsChecker(this.getProperty(property), value);
-
-            new SPOO.EventActionSetWrapper(this, property, value, constrains, client, ['addObject']);
-            return this;
-        };
-
-        this.setEventTriggered = function(property, value, constrains, client) {
-
-            var propertyKey = Object.keys(property)[0];
-            if (propertyKey.indexOf('.') != -1) {
-                var lastDot = propertyKey.lastIndexOf(".");
-                var bag = propertyKey.substring(0, lastDot);
-                var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
-                var newProp = {};
-                this.setBagEventTriggered(bag, newProKey, value, constrains, client);
+                this.setBagEventAction(bag, newProKey, value,  client);
                 return;
             }
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.EventTriggeredSetWrapper(this, property, value, constrains, client, ['addObject']);
+            new SPOO.EventActionSetWrapper(this, property, value,  client, ['addObject']);
             return this;
         };
 
-        this.setEventLastOccurence = function(property, value, constrains, client) {
+        this.setEventTriggered = function(property, value,  client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -2521,18 +2616,17 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.setBagEventLastOccurence(bag, newProKey, value, constrains, client);
+                this.setBagEventTriggered(bag, newProKey, value,  client);
                 return;
             }
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-
-            new SPOO.EventLastOccurenceSetWrapper(this, property, value, constrains, client, ['addObject']);
+            new SPOO.EventTriggeredSetWrapper(this, property, value,  client, ['addObject']);
             return this;
         };
 
-        this.setEventInterval = function(property, value, constrains, client) {
+        this.setEventLastOccurence = function(property, value,  client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -2540,17 +2634,18 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.setBagEventInterval(bag, newProKey, value, constrains, client);
+                this.setBagEventLastOccurence(bag, newProKey, value,  client);
                 return;
             }
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.EventIntervalSetWrapper(this, property, value, constrains, client, ['addObject']);
+
+            new SPOO.EventLastOccurenceSetWrapper(this, property, value,  client, ['addObject']);
             return this;
         };
 
-        this.addEventReminder = function(property, reminder, constrains, client) {
+        this.setEventInterval = function(property, value,  client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -2558,13 +2653,31 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.addBagEventReminder(bag, newProKey, reminder, constrains, client);
+                this.setBagEventInterval(bag, newProKey, value,  client);
                 return;
             }
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.EventReminderSetWrapper(this, property, reminder, constrains, client, ['addObject']);
+            new SPOO.EventIntervalSetWrapper(this, property, value,  client, ['addObject']);
+            return this;
+        };
+
+        this.addEventReminder = function(property, reminder,  client) {
+
+            var propertyKey = Object.keys(property)[0];
+            if (propertyKey.indexOf('.') != -1) {
+                var lastDot = propertyKey.lastIndexOf(".");
+                var bag = propertyKey.substring(0, lastDot);
+                var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
+                var newProp = {};
+                this.addBagEventReminder(bag, newProKey, reminder,  client);
+                return;
+            }
+
+            // new SPOO.ConditionsChecker(this.getProperty(property), value);
+
+            new SPOO.EventReminderSetWrapper(this, property, reminder,  client, ['addObject']);
             return this;
         };
 
@@ -2588,7 +2701,7 @@ var SPOO = {
             return this;
         };
 
-        this.pushToArray = function(array, value, constrains, client) {
+        this.pushToArray = function(array, value,  client) {
 
             var propKey = Object.keys(value)[0];
             var tmpProp = {};
@@ -2597,7 +2710,7 @@ var SPOO = {
 
             tmpProp[tmpName] = value[propKey];
             console.log(tmpProp);
-            this.addPropertyToBag(array, tmpProp, constrains, client);
+            this.addPropertyToBag(array, tmpProp,  client);
         };
 
         this.setPropertyPermission = function(property, permission) {
@@ -2854,37 +2967,37 @@ var SPOO = {
             return this;
         };
 
-        this.setBagPropertyValue = function(bag, property, value, constrains, client) {
+        this.setBagPropertyValue = function(bag, property, value,  client) {
             new SPOO.PropertySetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.setBagEventDate = function(bag, property, value, constrains, client) {
+        this.setBagEventDate = function(bag, property, value,  client) {
             new SPOO.EventDateSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.setBagEventAction = function(bag, property, value, constrains, client) {
+        this.setBagEventAction = function(bag, property, value,  client) {
             new SPOO.EventActionSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.setBagEventInterval = function(bag, property, value, constrains, client) {
+        this.setBagEventInterval = function(bag, property, value,  client) {
             new SPOO.EventIntervalSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.setBagEventTriggered = function(bag, property, value, constrains, client) {
+        this.setBagEventTriggered = function(bag, property, value,  client) {
             new SPOO.EventTriggeredSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.setBagEventLastOccurence = function(bag, property, value, constrains, client) {
+        this.setBagEventLastOccurence = function(bag, property, value,  client) {
             new SPOO.EventLastOccurenceSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.addBagEventReminder = function(bag, property, value, constrains, client) {
+        this.addBagEventReminder = function(bag, property, value,  client) {
             new SPOO.EventReminderSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
@@ -2900,10 +3013,10 @@ var SPOO = {
             return this;
         };
 
-        this.removePropertyFromBag = function(property, constrains, client) {
+        this.removePropertyFromBag = function(property,  client) {
             var bag = this.getProperty(property);
 
-            new SPOO.PropertyBagItemRemover(this, property, constrains, client);
+            new SPOO.PropertyBagItemRemover(this, property,  client);
             return this;
         };
 
@@ -2914,10 +3027,10 @@ var SPOO = {
             return this;
         };
 
-        this.removeProperty = function(propertyName, constrains, client) {
+        this.removeProperty = function(propertyName,  client) {
 
             if (propertyName.indexOf('.') != -1) {
-                this.removePropertyFromBag(propertyName, constrains, client);
+                this.removePropertyFromBag(propertyName,  client);
                 return;
             } else {
                 if (!this.properties[propertyName]) throw new NoSuchPropertyException(propertyName);
@@ -2968,8 +3081,10 @@ var SPOO = {
             return this.properties;
         };
 
-        this.add = function(success, error, constrains, client) {
-
+        this.add = function(success, error) {
+            
+            var client = instance.activeTenant;
+            var app = instance.activeApp;
 
             this.created = moment().toDate().toISOString();
             this.lastModified = moment().toDate().toISOString();
@@ -3036,6 +3151,11 @@ var SPOO = {
 
             if(!this._id) this._id = SPOO.ID();
 
+            if(app)
+                if(this.applications.indexOf(app) == -1) this.applications.push(app);
+
+            delete this.instance;
+
             SPOO.add(this, function(data) {
                     
                     this._id = data._id;
@@ -3056,14 +3176,17 @@ var SPOO = {
                 function(err) {
                     error(err);
                     //throw new CallbackErrorException(error);
-                }, constrains, client);
+                }, app, client);
 
             return this;
         };
 
-        this.update = function(success, error, client) {
+        this.update = function(success, error) {
 
-            console.log("------")
+            var client = instance.activeTenant;
+            var app = instance.activeApp;
+
+            console.log("--- " + client);
 
             this.lastModified = moment().toDate().toISOString();
 
@@ -3127,7 +3250,6 @@ var SPOO = {
 
             //aggregateAllEvents(this.properties);
 
-console.log(this)
 
             SPOO.updateO(this, function(data) {
 
@@ -3147,12 +3269,15 @@ console.log(this)
                 function(err) {
                     error(err);
                     //throw new CallbackErrorException(err);
-                }, client);
+                }, app, client);
 
             return this;
         };
 
-        this.remove = function(success, error, constrains, client) {
+        this.remove = function(success, error) {
+
+            var client = instance.activeTenant;
+            var app = instance.activeApp;
 
             /*
                         Call event Aggregator
@@ -3160,18 +3285,17 @@ console.log(this)
                             -> remove all events
                     */
 
-
-            return SPOO.remove(this, success, error, constrains, client);
+            return SPOO.remove(this, success, error, app, client);
         };
 
 
-        this.get = function(success, error, client) {
+        this.get = function(success, error) {
+
+            var client = instance.activeTenant;
+            var app = instance.activeApp;
+            
             var thisRef = this;
             var counter = 0;
-
-            console.log("GET: ");
-            console.log(arguments);
-
 
             function arrayDeserialize(obj, parentArray) {
 
@@ -3200,7 +3324,7 @@ console.log(this)
                 
                 success(SPOO[thisRef.role](data)) 
 
-            }, function(err) { error(err) }, client);
+            }, function(err) { error(err) }, app, client);
              return;
 
             if (this.inherits.length == 0) {
@@ -3251,4 +3375,4 @@ console.log(this)
 
 
 module.exports = SPOO;
-//asf
+

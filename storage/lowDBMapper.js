@@ -48,7 +48,7 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
         }
     };
 
-    this.getObjById = function(id, success, error, client) {
+    this.getObjById = function(id, success, error, app, client) {
 
         var db = this.getDBByMultitenancy(client);
 
@@ -59,19 +59,19 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
     }
 
 
-    this.getObjsByCriteria = function(criteria, success, error, client, flags) {
+    this.getObjsByCriteria = function(criteria, success, error, app, client, flags) {
 
          var db = this.getDBByMultitenancy(client);
 
         // flags contain thigs lik $sort or $page
 
         success(db.get('objects')
-            .find(criteria)
+            .filter(criteria)
             .value())
     }
 
 
-    this.aggregateObjsByCriteria = function(aggregation, criteria, success, error, client, flags) {
+    this.aggregateObjsByCriteria = function(aggregation, criteria, success, error, app, client, flags) {
 
         var db = this.getDBByMultitenancy(client);
 
@@ -82,7 +82,7 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
                 // flags contain thigs lik $sort or $page
 
                 success(db.get('objects')
-                    .find(criteria)
+                    .filter(criteria)
                     .value().length)
 
                 break;
@@ -92,7 +92,7 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     }
 
-    this.updateObj = function(spooElement, success, error, client) {
+    this.updateObj = function(spooElement, success, error, app, client) {
 
         var db = this.getDBByMultitenancy(client);
 
@@ -104,10 +104,9 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     };
 
-    this.addObj = function(spooElement, success, error, client) {
+    this.addObj = function(spooElement, success, error, app, client) {
 
-         var db = this.getDBByMultitenancy(client);
-
+        var db = this.getDBByMultitenancy(client);
 
 
         db.defaults({ objects: [] })
@@ -123,7 +122,7 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     };
 
-    this.removeObj = function(spooElement, success, error, client) {
+    this.removeObj = function(spooElement, success, error, app, client) {
 
          var db = this.getDBByMultitenancy(client);
 
