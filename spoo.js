@@ -209,6 +209,13 @@ function InvalidHandlerException(message) {
     this.name = 'InvalidHandlerException';
 }
 
+function LackOfPermissionsException(message) {
+    this.message = "No permissions to perform this operation";
+    this.name = 'LackOfPermissionsException';
+}
+
+
+
 
 
 var SPOO = {
@@ -224,6 +231,7 @@ var SPOO = {
     activeApp:null,
 
     handlerSequence:[],
+    permissionSequence:[],
 
     tenant: function(tenant)
     {
@@ -247,6 +255,101 @@ var SPOO = {
         this.activeApp = app;
 
         return this;
+    },
+
+
+    checkPermissions: function(user, app, obj, permission)
+    {
+
+        console.log("arguments p");
+        console.log(arguments);
+        console.log(privileges);
+        var result = false;
+        // if (privileges === undefined) result = false;
+
+        var privileges = user.privileges;
+        var permissions = obj.permissions;
+
+        if(!privileges) throw new LackOfPermissionsException();
+       
+
+        if (app) {
+            console.log("privofapp");
+            console.log(app);
+            console.log(privileges);
+            if (privileges[app]) {
+                var privArr = [];
+                privileges[app].forEach(function(p) {
+                    privArr.push(p.name);
+                })
+                privileges = privArr;
+                console.log("PRIVILEGES CHECK");
+                console.log(privileges);
+            } else {
+                return false;
+            }
+        }
+
+
+        if (permissions === undefined && privileges !== undefined) result = true;
+        if (permissions !== undefined) {
+            //if (!typeof privileges === 'array') result = false;
+            console.log("PRIVVV");
+            console.log(permissions);
+            var i;
+            for (i = 0; i < privileges.length; i++) {
+                console.log("priv name: ");
+                console.log(JSON.stringify(privileges[i]));
+                if (permissions[privileges[i]]) {
+                    //console.log("dsfdsfdsfdsfdsfdsf");
+                    //console.log(permissions);
+                    //var cloned = JSON.parse(JSON.stringify(permissions[privileges[i]]));
+                    console.log("permissions[privileges[i]]");
+                    console.log(permissions[privileges[i]]);
+
+                    if (permissions[privileges[i]].hasOwnProperty('value')) {
+                        if (permissions[privileges[i]].value == "*") return true;
+
+                        if (permissions[privileges[i]].value.indexOf(permission) != -1) return true;
+                    } else {
+                        if (permissions[privileges[i]] == "*") return true;
+
+                        if (permissions[privileges[i]].indexOf(permission) != -1) return true;
+                    }
+
+
+
+                    // if (permissions[privileges[i]].value.indexOf(permission) != -1) return true;
+                }
+            }
+
+            try {
+                if (permissions['*']) {
+                    if (permissions['*'].hasOwnProperty('value')) {
+                        if (permissions['*'].value == "*") return true;
+
+                        if (permissions['*'].value.indexOf(permission) != -1) return true;
+                    } else {
+                        if (permissions['*'] == "*") return true;
+
+                        if (permissions['*'].indexOf(permission) != -1) return true;
+                    }
+                }
+            } catch (e) {
+
+            }
+
+        }
+
+        if (Object.keys(permissions).length == 0) result = true;
+        //console.log("perm length: " + Object.keys(permissions).length);
+        //console.log(privileges + " " + permissions + " " + permission + " " + result);
+
+        //console.log("res: " + result);
+
+        if(result == false) throw new LackOfPermissionsException();
+        return result;
+
     },
 
     define: function(params) {
@@ -2604,7 +2707,11 @@ var SPOO = {
             return this;
         };
 
-        this.addProperty = function(property, client) {
+        this.addProperty = function(name, property) {
+
+            var prop = {};
+            prop[name] = property;
+            property = prop;
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -2614,7 +2721,7 @@ var SPOO = {
                 var newProp = {};
                 newProp[newProKey] = property[propertyKey];
 
-                this.addPropertyToBag(bag, newProp,  client);
+                this.addPropertyToBag(bag, newProp);
 
                 return;
             }
@@ -2670,7 +2777,12 @@ var SPOO = {
             return this;
         };
 
-        this.setPermission = function(permission) {
+        this.setPermission = function(name, permission) {
+
+            var perm = {};
+            perm[name] = permission;
+            permission = perm;
+
             new SPOO.ObjectPermissionSetWrapper(this, permission);
             return this;
         };
@@ -2682,7 +2794,7 @@ var SPOO = {
 
         this.setPropertyValue = function(property, value,  client) {
 
-            var propertyKey = Object.keys(property)[0];
+            /*var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
                 var lastDot = propertyKey.lastIndexOf(".");
                 var bag = propertyKey.substring(0, lastDot);
@@ -2692,7 +2804,7 @@ var SPOO = {
                 return;
             }
 
-            new SPOO.ConditionsChecker(this.getProperty(property), value);
+            new SPOO.ConditionsChecker(this.getProperty(property), value);*/
 
             new SPOO.PropertySetWrapper(this, property, value,  instance, ['addObject']);
 
@@ -2828,7 +2940,7 @@ var SPOO = {
             return this;
         };
 
-        this.pushToArray = function(array, value,  client) {
+        this.pushToArray = function(array, value) {
 
             var propKey = Object.keys(value)[0];
             var tmpProp = {};
@@ -2837,11 +2949,16 @@ var SPOO = {
 
             tmpProp[tmpName] = value[propKey];
             console.log(tmpProp);
-            this.addPropertyToBag(array, tmpProp,  client);
+            this.addPropertyToBag(array, tmpProp);
         };
 
-        this.setPropertyPermission = function(property, permission) {
-            var propertyKey = Object.keys(property)[0];
+        this.setPropertyPermission = function(property, name, permission) {
+
+            var perm = {};
+            perm[name] = permission;
+            permission = perm;
+
+            /*var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
                 var lastDot = propertyKey.lastIndexOf(".");
                 var bag = propertyKey.substring(0, lastDot);
@@ -2849,7 +2966,7 @@ var SPOO = {
                 var newProp = {};
                 this.setBagPropertyPermission(bag, newProKey, value);
                 return;
-            }
+            }*/
             new SPOO.PropertyPermissionSetWrapper(this, property, permission);
             return this;
         };
@@ -3133,7 +3250,7 @@ var SPOO = {
             return this;
         };
 
-        this.addPropertyToBag = function(bag, property, client) {
+        this.addPropertyToBag = function(bag, property) {
 
 
             var tmpBag = this.getProperty(bag);
@@ -3351,6 +3468,10 @@ var SPOO = {
 
             var thisRef = this;
 
+
+            SPOO.checkPermissions(instance.activeUser, instance.activeApp, thisRef, 'u')
+
+
             Object.keys(thisRef.onChange).forEach(function(key)
             {
                 if(thisRef.onChange[key].trigger == 'before')
@@ -3512,8 +3633,9 @@ var SPOO = {
             var client = instance.activeTenant;
             var app = instance.activeApp;
 
-
             var thisRef = this;
+
+            SPOO.checkPermissions(instance.activeUser, instance.activeApp, thisRef, 'd');
 
             Object.keys(thisRef.onDelete).forEach(function(key)
             {
