@@ -184,6 +184,33 @@ function InvalidEventIdException(message) {
 }
 
 
+function NoHandlerProvidedException(message) {
+    this.message = "No handler provided " + message;
+    this.name = 'NoHandlerProvidedException';
+}
+
+function HandlerExistsException(message) {
+    this.message = "Handler " + message + " already exists";
+    this.name = 'HandlerExistsException';
+}
+
+function HandlerNotFoundException(message) {
+    this.message = "Handler " + message + " not found";
+    this.name = 'HandlerNotFoundException';
+}
+
+function InvalidArgumentException(message) {
+    this.message = "Invalid argument";
+    this.name = 'InvalidArgumentException';
+}
+
+function InvalidHandlerException(message) {
+    this.message = "Invalid handler";
+    this.name = 'InvalidHandlerException';
+}
+
+
+
 var SPOO = {
 
     self: this,
@@ -622,8 +649,16 @@ var SPOO = {
 
     removeObject: function(obj, success, error, app, client) {
 
+        var self = this;
+
         this.mappers[obj.role].removeObj(obj, function(data) {
+            
             success(data);
+
+            if(obj.onDelete) self.execProcessorAction(obj.onDelete, obj, null, null, function(data) {
+            
+            }, client, null);
+
         }, function(err) {
             error('Error - Could not remove object');
         }, app, client);
@@ -890,7 +925,7 @@ var SPOO = {
     },
 
 
-    PropertyBagItemOnChangeRemover: function(obj, propertyName) {
+    PropertyBagItemOnChangeRemover: function(obj, propertyName, name) {
         var allProperties = obj.properties;
         var thisRef = this;
 
@@ -911,9 +946,9 @@ var SPOO = {
                     throw new NoSuchPropertyException(propertyName);
                 }
 
-                if (!obj.properties[access[0]].onChange) throw new NoSuchPermissionException(permissionKey);
+                if (!obj.properties[access[0]].onChange[name]) throw new HandlerNotFoundException(name);
 
-                delete obj.properties[access[0]].onChange;
+                delete obj.properties[access[0]].onChange[name];
                 return;
             }
         }
@@ -985,7 +1020,7 @@ var SPOO = {
 
     },
 
-    PropertyBagItemOnDeleteRemover: function(obj, propertyName) {
+    PropertyBagItemOnDeleteRemover: function(obj, propertyName, name) {
         var allProperties = obj.properties;
         var thisRef = this;
 
@@ -1005,9 +1040,9 @@ var SPOO = {
                     throw new NoSuchPropertyException(propertyName);
                 }
 
-                if (!obj.properties[access[0]].onDelete) throw new NoSuchPermissionException(permissionKey);
+                if (!obj.properties[access[0]].onDelete[name]) throw new HandlerNotFoundException(name);
 
-                delete obj.properties[access[0]].onDelete;
+                delete obj.properties[access[0]].onDelete[name];
                 return;
             }
         }
@@ -1411,8 +1446,6 @@ var SPOO = {
                 throw new InvalidTypeException(property[propertyKey].type);
         }
 
-
-
     },
 
 
@@ -1538,36 +1571,64 @@ var SPOO = {
         return permissions;
     },
 
-    ObjectOnChangeSetWrapper: function(obj, onchange) {
+    ObjectOnCreateSetWrapper: function(obj, name, onCreate, trigger, type) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
-        if (!onchange) throw new InvalidPermissionException();
+        if (!onCreate) throw new InvalidHandlerException();
 
-        obj.onChange = onchange;
+        if(obj.onCreate[name]) throw new HandlerExistsException(name);
 
-        return onchange;
+        if(!name) name = SPOO.RANDOM();
+
+        if(!obj.onCreate[name]) obj.onCreate[name] = {}
+        
+        obj.onCreate[name].value = onCreate;
+        obj.onCreate[name].trigger = trigger || 'after';
+        obj.onCreate[name].type = type || 'async';
+
+        if(obj.onCreate[name].templateId) obj.onCreate[name].overwritten = true;
+
+        return onCreate;
     },
 
-    ObjectOnCreateSetWrapper: function(obj, oncreate) {
+    ObjectOnChangeSetWrapper: function(obj, name, onChange, trigger, type) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
-        if (!oncreate) throw new InvalidPermissionException();
+        if (!onChange) throw new InvalidHandlerException();
 
-        obj.onCreate = oncreate;
-        obj.onCreateOverwritten = true;
+        if(obj.onChange[name]) throw new HandlerExistsException(name);
 
-        return oncreate;
+        if(!name) name = SPOO.RANDOM();
+
+        if(!obj.onChange[name]) obj.onChange[name] = {}
+        
+        obj.onChange[name].value = onChange;
+        obj.onChange[name].trigger = trigger || 'after';
+        obj.onChange[name].type = type || 'async';
+
+        if(obj.onChange[name].templateId) obj.onChange[name].overwritten = true;
+
+        return onChange;
     },
 
-    ObjectOnDeleteSetWrapper: function(obj, ondelete) {
+    ObjectOnDeleteSetWrapper: function(obj, name, onDelete, trigger, type) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
-        if (!ondelete) throw new InvalidPermissionException();
+        if (!onDelete) throw new InvalidHandlerException();
 
-        obj.onDelete = ondelete;
-        obj.onDeleteOverwritten = true;
+        if(obj.onDelete[name]) throw new HandlerExistsException(name);
 
-        return ondelete;
+        if(!name) name = SPOO.RANDOM();
+
+        if(!obj.onDelete[name]) obj.onDelete[name] = {}
+        
+        obj.onDelete[name].value = onDelete;
+        obj.onDelete[name].trigger = trigger || 'after';
+        obj.onDelete[name].type = type || 'async';
+
+        if(obj.onDelete[name].templateId) obj.onDelete[name].overwritten = true;
+
+        return onDelete;
     },
 
     ObjectPermissionSetWrapper: function(obj, permission) //addTemplateToObject!!!
@@ -1634,30 +1695,6 @@ var SPOO = {
     },
 
 
-    PropertyOnChangeSetWrapper: function(obj, propertyKey, onchange) {
-        function setOnChange(obj, access, onchange) {
-            if (typeof(access) == 'string') {
-                access = access.split('.');
-            }
-            if (access.length > 1) {
-                setOnChange(obj.properties[access.shift()], access, onchange);
-            } else {
-
-                try {
-                    var t = obj.properties[access[0]].value;
-                } catch (e) {
-                    throw new NoSuchPropertyException(propertyKey);
-                }
-
-                //if (!obj.properties[access[0]].on) obj.properties[access[0]].on = {};
-
-                if (obj.properties[access[0]].template) obj.properties[access[0]].overwrittenOnChange = true;
-                obj.properties[access[0]].onChange = onchange;
-            }
-        }
-
-        setOnChange(obj, propertyKey, onchange);
-    },
 
     PropertyMetaSetWrapper: function(obj, propertyKey, meta) {
         function setOnChange(obj, access, meta) {
@@ -1684,15 +1721,16 @@ var SPOO = {
         setOnChange(obj, propertyKey, meta);
     },
 
-    PropertyOnCreateSetWrapper: function(obj, propertyKey, oncreate) {
-        function setOnCreate(obj, access, oncreate) {
+
+    PropertyOnChangeSetWrapper: function(obj, propertyKey, name, onChange, trigger, type) {
+        function setOnChange(obj, access, onChange) {
             if (typeof(access) == 'string') {
                 access = access.split('.');
             }
             if (access.length > 1) {
-                setOnCreate(obj.properties[access.shift()], access, oncreate);
+                setOnChange(obj.properties[access.shift()], access, onChange);
             } else {
-                //obj[access[0]] = value;
+
                 try {
                     var t = obj.properties[access[0]].value;
                 } catch (e) {
@@ -1701,21 +1739,27 @@ var SPOO = {
 
                 //if (!obj.properties[access[0]].on) obj.properties[access[0]].on = {};
 
-                if (obj.properties[access[0]].template) obj.properties[access[0]].overwrittenOnCreate = true;
-                obj.properties[access[0]].onCreate = oncreate;
+                if(!obj.properties[access[0]].onChange) obj.properties[access[0]].onChange = {}
+
+                if(!obj.properties[access[0]].onChange[name]) obj.properties[access[0]].onChange[name] = {}
+
+                if (obj.properties[access[0]].onChange[name].template) obj.properties[access[0]].onChange[name].overwritten = true;
+                obj.properties[access[0]].onChange[name].value = onChange;
+                obj.properties[access[0]].onChange[name].trigger = trigger || 'after'; 
+                obj.properties[access[0]].onChange[name].type = type || 'async'; 
             }
         }
 
-        setOnCreate(obj, propertyKey, oncreate);
+        setOnChange(obj, propertyKey, onChange);
     },
 
-    PropertyOnDeleteSetWrapper: function(obj, propertyKey, ondelete) {
-        function setOnDelete(obj, access, ondelete) {
+    PropertyOnCreateSetWrapper: function(obj, propertyKey, name, onCreate, trigger, type) {
+        function setOnCreate(obj, access, onCreate) {
             if (typeof(access) == 'string') {
                 access = access.split('.');
             }
             if (access.length > 1) {
-                setOnDelete(obj.properties[access.shift()], access, ondelete);
+                setOnCreate(obj.properties[access.shift()], access, onCreate);
             } else {
                 //obj[access[0]] = value;
                 try {
@@ -1725,12 +1769,50 @@ var SPOO = {
                 }
 
                 //if (!obj.properties[access[0]].on) obj.properties[access[0]].on = {};
-                if (obj.properties[access[0]].template) obj.properties[access[0]].overwrittenOnDelete = true;
-                obj.properties[access[0]].onDelete = ondelete;
+
+                if(!obj.properties[access[0]].onCreate) obj.properties[access[0]].onCreate = {};
+
+                if(!obj.properties[access[0]].onCreate[name]) obj.properties[access[0]].onCreate[name] = {};
+
+                if(obj.properties[access[0]].onCreate[name].templateId) obj.properties[access[0]].onCreate[name].overwritten = true;
+            
+                obj.properties[access[0]].onCreate[name].value = onCreate;
+                obj.properties[access[0]].onCreate[name].trigger = trigger || 'after';
+                obj.properties[access[0]].onCreate[name].type = type || 'async';
+
             }
         }
 
-        setOnDelete(obj, propertyKey, ondelete);
+        setOnCreate(obj, propertyKey, onCreate);
+    },
+
+    PropertyOnDeleteSetWrapper: function(obj, propertyKey, name, onDelete, trigger, type) {
+        function setOnDelete(obj, access, onDelete) {
+            if (typeof(access) == 'string') {
+                access = access.split('.');
+            }
+            if (access.length > 1) {
+                setOnDelete(obj.properties[access.shift()], access, onDelete);
+            } else {
+                //obj[access[0]] = value;
+                try {
+                    var t = obj.properties[access[0]].value;
+                } catch (e) {
+                    throw new NoSuchPropertyException(propertyKey);
+                }   
+
+                if(!obj.properties[access[0]].onDelete) obj.properties[access[0]].onDelete = {}; 
+                if(!obj.properties[access[0]].onDelete[name]) obj.properties[access[0]].onDelete[name] = {}; 
+
+                //if (!obj.properties[access[0]].on) obj.properties[access[0]].on = {};
+                if (obj.properties[access[0]].onDelete[name].template) obj.properties[access[0]].onDelete[name].overwritten = true;
+                obj.properties[access[0]].onDelete[name].value = onDelete;
+                obj.properties[access[0]].onDelete[name].trigger = trigger || 'after';
+                obj.properties[access[0]].onDelete[name].type = type || 'async';
+            }
+        }
+
+        setOnDelete(obj, propertyKey, onDelete);
     },
 
     PropertyConditionsSetWrapper: function(obj, propertyKey, conditions) {
@@ -2435,8 +2517,9 @@ var SPOO = {
         if (obj._id) this._id = obj._id;
         this.name = obj.name || null;
 
-        this.onCreate = obj.onCreate || null;
-        this.onDelete = obj.onDelete || null;
+        this.onCreate = obj.onCreate || {};
+        this.onChange = obj.onChange || {};
+        this.onDelete = obj.onDelete || {};
 
         this.created = obj.created || moment().toDate().toISOString();
         this.lastModified = obj.lastModified || moment().toDate().toISOString();
@@ -2512,36 +2595,48 @@ var SPOO = {
             return this;
         };
 
-        this.setOnChange = function(onchange) {
-            new SPOO.ObjectOnChangeSetWrapper(this, onchange);
+        this.setOnChange = function(onChangeObj) {
+
+            if(typeof onChangeObj !== 'object') throw new InvalidArgumentException()
+            var key = Object.keys(onChangeObj)[0];
+
+            new SPOO.ObjectOnChangeSetWrapper(this, key, onChangeObj[key].value, onChangeObj[key].trigger, onChangeObj[key].type);
             return this;
         };
 
-        this.setOnDelete = function(onchange) {
-            new SPOO.ObjectOnDeleteSetWrapper(this, onchange);
+        this.setOnDelete = function(onDeleteObj) {
+
+            if(typeof onDeleteObj !== 'object') throw new InvalidArgumentException()
+            var key = Object.keys(onDeleteObj)[0];
+
+            new SPOO.ObjectOnDeleteSetWrapper(this, key, onDeleteObj[key].value, onDeleteObj[key].trigger, onDeleteObj[key].type);
             return this;
         };
 
-        this.setOnCreate = function(onchange) {
-            new SPOO.ObjectOnCreateSetWrapper(this, onchange);
+        this.setOnCreate = function(onCreateObj) {
+            
+            if(typeof onCreateObj !== 'object') throw new InvalidArgumentException()
+            var key = Object.keys(onCreateObj)[0];
+
+            new SPOO.ObjectOnCreateSetWrapper(this, key, onCreateObj[key].value, onCreateObj[key].trigger, onCreateObj[key].type);
             return this;
         };
 
-        this.removeOnChange = function(onchange) {
-            if (!this.onChange) throw new NoOnChangeFoundException();
-            else delete this.onChange;
+        this.removeOnChange = function(name) {
+            if (!this.onChange[name]) throw new HandlerNotFoundException(name);
+            else delete this.onChange[name];
             return this;
         };
 
-        this.removeOnDelete = function(onchange) {
-            if (!this.onDelete) throw new NoOnDeleteFoundException();
-            else delete this.onDelete;
+        this.removeOnDelete = function(name) {
+            if (!this.onDelete[name]) throw new HandlerNotFoundException(name);
+            else delete this.onDelete[name];
             return this;
         };
 
-        this.removeOnCreate = function(onchange) {
-            if (!this.onCreate) throw new NoOnDeleteFoundException();
-            else delete this.onCreate;
+        this.removeOnCreate = function(name) {
+            if (!this.onCreate[name]) throw new HandlerNotFoundException(name);
+            else delete this.onCreate[name];
             return this;
         };
 
@@ -2727,8 +2822,12 @@ var SPOO = {
             return this;
         };
 
-        this.setPropertyOnCreate = function(property, oncreate) {
-            new SPOO.PropertyOnCreateSetWrapper(this, property, oncreate);
+        this.setPropertyOnCreate = function(property, onCreateObj) {
+
+            if(typeof onCreateObj !== 'object') throw new InvalidArgumentException()
+            var key = Object.keys(onCreateObj)[0];
+
+            new SPOO.PropertyOnCreateSetWrapper(this, property, key, onCreateObj[key].value, onCreateObj[key].trigger, onCreateObj[key].type);
             return this;
         };
 
@@ -2790,67 +2889,67 @@ var SPOO = {
         };
 
 
-        this.setPropertyOnChange = function(property, onchange) {
-            new SPOO.PropertyOnChangeSetWrapper(this, property, onchange);
+        this.setPropertyOnChange = function(property, onChangeObj) {
+
+            if(typeof onChangeObj !== 'object') throw new InvalidArgumentException()
+            var key = Object.keys(onChangeObj)[0];
+
+
+            new SPOO.PropertyOnChangeSetWrapper(this, property, key, onChangeObj[key].value, onChangeObj[key].trigger, onChangeObj[key].type);
             return this;
         };
 
-        this.removePropertyOnChange = function(propertyName) {
+        this.removePropertyOnChange = function(propertyName, name) {
             if (propertyName.indexOf('.') != -1) {
-                this.removePropertyOnChangeFromBag(propertyName);
+                this.removePropertyOnChangeFromBag(propertyName, name);
                 return;
             } else {
 
                 if (!this.properties[propertyName]) throw new NoSuchPropertyException(propertyName);
-                if (!this.properties[propertyName].onChange) throw new NoOnChangeException(); // CHANGE!!!
-                delete this.properties[propertyName].onChange;
+                if (!this.properties[propertyName].onDelete[name]) throw new HandlerNotFoundException(name); // CHANGE!!!
+                delete this.properties[propertyName][name];
             }
 
             return this;
         };
 
-        this.removePropertyOnChangeFromBag = function(property) {
+        this.removePropertyOnChangeFromBag = function(property, name) {
             var bag = this.getProperty(property);
 
-            new SPOO.PropertyBagItemOnChangeRemover(this, property);
+            new SPOO.PropertyBagItemOnChangeRemover(this, property, name);
             return this;
         };
 
-        this.removePropertyOnDelete = function(propertyName) {
+        this.setPropertyOnDelete = function(property, onDeleteObj) {
+
+            if(typeof onDeleteObj !== 'object') throw new InvalidArgumentException()
+            var key = Object.keys(onDeleteObj)[0];
+
+            new SPOO.PropertyOnDeleteSetWrapper(this, property, key, onDeleteObj[key].value, onDeleteObj[key].trigger, onDeleteObj[key].type);
+            return this;
+        };
+
+        this.removePropertyOnDelete = function(propertyName, name) {
             if (propertyName.indexOf('.') != -1) {
-                this.removePropertyOnDeleteFromBag(propertyName);
+                this.removePropertyOnDeleteFromBag(propertyName, name);
                 return;
             } else {
 
                 if (!this.properties[propertyName]) throw new NoSuchPropertyException(propertyName);
-                if (!this.properties[propertyName].onDelete) throw new NoOnDeleteException(); // CHANGE!!!
-                delete this.properties[propertyName].onDelete;
+                if (!this.properties[propertyName].onDelete[name]) throw new HandlerNotFoundException(name); // CHANGE!!!
+                delete this.properties[propertyName].onDelete[name]
             }
 
             return this;
         };
 
-        this.removePropertyOnDeleteFromBag = function(property) {
+        this.removePropertyOnDeleteFromBag = function(property, name) {
             var bag = this.getProperty(property);
 
-            new SPOO.PropertyBagItemOnDeleteRemover(this, property);
+            new SPOO.PropertyBagItemOnDeleteRemover(this, property, name);
             return this;
         };
 
-        this.setBagPropertyOnChange = function(property) {
-            new SPOO.PropertyOnChangeSetWrapper(this.getProperty(bag), property, onchange);
-            return this;
-        };
-
-        this.setPropertyOnDelete = function(property, ondelete) {
-            new SPOO.PropertyOnDeleteSetWrapper(this, property, ondelete);
-            return this;
-        };
-
-        this.setBagPropertyOnDelete = function(property, ondelete) {
-            new SPOO.PropertyOnDeleteSetWrapper(this.getProperty(bag), property, ondelete);
-            return this;
-        };
 
 
         this.setPropertyConditions = function(property, conditions) {
@@ -3086,6 +3185,19 @@ var SPOO = {
             var client = instance.activeTenant;
             var app = instance.activeApp;
 
+            var thisRef = this;
+
+            Object.keys(thisRef.onCreate).forEach(function(key)
+            {
+                if(thisRef.onCreate[key].trigger == 'before')
+                {
+                    //dsl, obj, prop, data, callback, client, options
+                    instance.execProcessorAction(thisRef.onCreate[key].value, thisRef, null, null, function(data) {
+            
+                    }, client, null);
+                }
+            })
+
             this.created = moment().toDate().toISOString();
             this.lastModified = moment().toDate().toISOString();
 
@@ -3160,6 +3272,17 @@ var SPOO = {
                     
                     this._id = data._id;
 
+                    Object.keys(data.onCreate).forEach(function(key)
+                    {
+                        if(data.onCreate[key].trigger == 'after')
+                        {
+                            //dsl, obj, prop, data, callback, client, options
+                            instance.execProcessorAction(data.onCreate[key].value, data, null, null, function(data) {
+                    
+                            }, client, null);
+                        }
+                    })
+
                     //if(this.role == 'template') this.inherit();
 
 
@@ -3186,7 +3309,19 @@ var SPOO = {
             var client = instance.activeTenant;
             var app = instance.activeApp;
 
-            console.log("--- " + client);
+
+            var thisRef = this;
+
+            Object.keys(thisRef.onChange).forEach(function(key)
+            {
+                if(thisRef.onChange[key].trigger == 'before')
+                {
+                    //dsl, obj, prop, data, callback, client, options
+                    instance.execProcessorAction(thisRef.onChange[key].value, thisRef, null, null, function(data) {
+            
+                    }, client, null);
+                }
+            })
 
             this.lastModified = moment().toDate().toISOString();
 
@@ -3254,6 +3389,17 @@ var SPOO = {
             SPOO.updateO(this, function(data) {
 
 
+                    Object.keys(data.onChange).forEach(function(key)
+                    {
+                        if(data.onChange[key].trigger == 'after')
+                        {
+                            //dsl, obj, prop, data, callback, client, options
+                            instance.execProcessorAction(data.onChange[key].value, data, null, null, function(data) {
+                    
+                            }, client, null);
+                        }
+                    })
+
 
                     //if (this.role == 'template') this.inherit();
                     success(data);
@@ -3279,13 +3425,43 @@ var SPOO = {
             var client = instance.activeTenant;
             var app = instance.activeApp;
 
+
+            var thisRef = this;
+
+            Object.keys(thisRef.onDelete).forEach(function(key)
+            {
+                if(thisRef.onDelete[key].trigger == 'before')
+                {
+                    //dsl, obj, prop, data, callback, client, options
+                    instance.execProcessorAction(thisRef.onDelete[key].value, thisRef, null, null, function(data) {
+            
+                    }, client, null);
+                }
+            })
+
+
             /*
                         Call event Aggregator
                         method(this)
                             -> remove all events
                     */
 
-            return SPOO.remove(this, success, error, app, client);
+            return SPOO.remove(this, function(data)
+                {
+
+                     Object.keys(data.onDelete).forEach(function(key)
+                    {
+                        if(data.onDelete[key].trigger == 'before')
+                        {
+                            //dsl, obj, prop, data, callback, client, options
+                            instance.execProcessorAction(data.onDelete[key].value, data, null, null, function(data) {
+                    
+                            }, client, null);
+                        }
+                    })
+
+
+                }, error, app, client);
         };
 
 

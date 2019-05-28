@@ -22,9 +22,63 @@ SPOO.ObjectFamily({
     observer: null
 })
 
+
+
 SPOO.tenant('sfasfafs').app('demoapp').user({username: "marco"});
 
-//SPOO.Nicole({_id: "i9mJ9GWlgRKhIBKdGKdSzcWkP_"}).add(function(){},function(){});
+SPOO.Nicole({
+    onCreate: {
+        bev:
+        {
+            value: "Hihi",
+            trigger: 'before'
+        },
+        aft:
+        {
+            value: "Hihi after",
+            trigger: 'after'
+        }
+    },
+    properties:
+    {
+        evt: {
+            type: "event",
+            date: "10",
+            action : "tesr"
+        },
+        int: {
+            type: "event",
+            interval: "P10D",
+            action : "tesr"
+        }
+    }
+}).add(function(data){
+
+    console.log(data);
+
+},function(){});
+
+
+return;
+
+SPOO.Nicole({name: "hallo"}).add(function(data)
+{
+
+    //console.log(data);
+
+    data.setOnCreate({default: { value : "saf"}}).setOnChange({default: { value : "saf"}}).removeOnCreate('default').addProperty({
+        test: {
+            value: "123",
+            type: "shortText"
+        }
+    }).setPropertyOnChange('test', {default: { value : "saf"}});
+
+    console.log(data);
+})
+
+
+
+return;
 
 
 SPOO.Nicoles({}).get(function(data)
@@ -34,6 +88,7 @@ SPOO.Nicoles({}).get(function(data)
 {
 
 })
+
 
 return;
 
