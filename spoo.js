@@ -223,6 +223,8 @@ var SPOO = {
 
     activeApp:null,
 
+    handlerSequence:[],
+
     tenant: function(tenant)
     {
         if(!tenant) throw new Error("No tenant specified");
@@ -686,7 +688,6 @@ var SPOO = {
 
     addObject: function(obj, success, error, app, client) {
 
-        console.log("##" + client); 
 
         this.mappers[obj.role].addObj(obj, function(data) {
             success(data);
@@ -1091,7 +1092,7 @@ var SPOO = {
 
     },
 
-    PropertyBagItemRemover: function(obj, propertyName,  client) {
+    PropertyBagItemRemover: function(obj, propertyName,  instance) {
         var allProperties = obj.properties; //obj.getProperties();
         var thisRef = this;
 
@@ -1112,6 +1113,16 @@ var SPOO = {
                 } catch (e) {
                     throw new NoSuchPropertyException(propertyName);
                 }
+
+
+                if(obj.properties[access[0]].onDelete) {
+                    if(Object.keys(obj.properties[access[0]].onDelete).length > 0)  {
+                        if(!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
+                        if(!instance.handlerSequence[obj._id].onDelete) instance.handlerSequence[obj._id].onDelete = [];
+                            instance.handlerSequence[obj._id].onDelete.push(obj.properties[access[0]].onDelete);
+                    }
+                }
+
 
                 delete obj.properties[access[0]];
 
@@ -1190,7 +1201,7 @@ var SPOO = {
 
 
 
-    PropertyCreateWrapper: function(obj, property, isBag, client) {
+    PropertyCreateWrapper: function(obj, property, isBag, instance) {
 
         property = Object.assign({}, property);
 
@@ -1211,8 +1222,7 @@ var SPOO = {
 
         try {
             existing = obj.properties[propertyKey]
-            console.log(obj.properties);
-            console.log(property);
+           
         } catch (e) {}
 
          /*iif (!property[propertyKey].type) {
@@ -1290,7 +1300,7 @@ var SPOO = {
                 var eventKey = propertyKey;
                 _event[eventKey] = property[propertyKey];
 
-                if (!_event[eventKey].eventId) _event[eventKey].eventId = obj._id + SPOO.ID();
+                if (!_event[eventKey].eventId) _event[eventKey].eventId = SPOO.ID();
 
                 if (!_event[eventKey].reminders) _event[eventKey].reminders = {};
 
@@ -1399,7 +1409,7 @@ var SPOO = {
                     tmpProp = {};
                     tmpProp[property] = innerProperties[property];
 
-                    new SPOO.PropertyCreateWrapper(obj.properties[propertyKey], Object.assign({}, tmpProp, true));
+                    new SPOO.PropertyCreateWrapper(obj.properties[propertyKey], Object.assign({}, tmpProp), true, instance);
                 })
 
                 break;
@@ -1421,7 +1431,7 @@ var SPOO = {
                     tmpProp = {};
                     tmpProp[property] = innerProperties[property];
 
-                    new SPOO.PropertyCreateWrapper(obj.properties[propertyKey], Object.assign({}, tmpProp, true));
+                    new SPOO.PropertyCreateWrapper(obj.properties[propertyKey], Object.assign({}, tmpProp), true, instance);
                 })
 
                 break;
@@ -1444,6 +1454,14 @@ var SPOO = {
 
             default:
                 throw new InvalidTypeException(property[propertyKey].type);
+        }
+
+        if(property[propertyKey].onCreate) {
+            if(Object.keys(property[propertyKey].onCreate).length > 0)  {
+                if(!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
+                if(!instance.handlerSequence[obj._id].onCreate) instance.handlerSequence[obj._id].onCreate = [];
+                    instance.handlerSequence[obj._id].onCreate.push({handler: property[propertyKey].onCreate, prop: property[propertyKey]});
+            }
         }
 
     },
@@ -1894,7 +1912,7 @@ var SPOO = {
     },
 
 
-    PropertySetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
+    PropertySetWrapper: function(obj, propertyKey, newValue,  instance, notPermitted) {
 
 
         function setValue(obj, access, value) {
@@ -1936,6 +1954,17 @@ var SPOO = {
 
                 if (obj.properties[access[0]].template) obj.properties[access[0]].overwritten = true;
                 obj.properties[access[0]].value = newValue;
+
+
+                if(obj.properties[access[0]].onChange) {
+                    if(Object.keys(obj.properties[access[0]].onChange).length > 0)  {
+                        if(!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
+                        if(!instance.handlerSequence[obj._id].onChange) instance.handlerSequence[obj._id].onChange = [];
+                            instance.handlerSequence[obj._id].onChange.push({handler: obj.properties[access[0]].onChange, prop: obj.properties[access[0]]});
+                    }
+                }
+
+
             }
         }
 
@@ -2337,7 +2366,7 @@ var SPOO = {
             var propKey = {};
             propKey[property] = properties[property];
             var newProp = propKey;
-            new SPOO.PropertyCreateWrapper(obj, newProp, false);
+            new SPOO.PropertyCreateWrapper(obj, newProp, false, instance);
         })
         return obj.properties;
     },
@@ -2590,7 +2619,8 @@ var SPOO = {
                 return;
             }
 
-            new SPOO.PropertyCreateWrapper(this, property, false, client);
+            new SPOO.PropertyCreateWrapper(this, property, false, instance);
+
 
             return this;
         };
@@ -2664,7 +2694,9 @@ var SPOO = {
 
             new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.PropertySetWrapper(this, property, value,  client, ['addObject']);
+            new SPOO.PropertySetWrapper(this, property, value,  instance, ['addObject']);
+
+
             return this;
         };
 
@@ -3067,7 +3099,7 @@ var SPOO = {
         };
 
         this.setBagPropertyValue = function(bag, property, value,  client) {
-            new SPOO.PropertySetWrapper(this.getProperty(bag), property, value, ['addObject']);
+            new SPOO.PropertySetWrapper(this.getProperty(bag), property, value, instance);
             return this;
         };
 
@@ -3107,7 +3139,7 @@ var SPOO = {
             var tmpBag = this.getProperty(bag);
             if (tmpBag.template) tmpBag.overwritten = true;
 
-            new SPOO.PropertyCreateWrapper(tmpBag, property, true, client);
+            new SPOO.PropertyCreateWrapper(tmpBag, property, true, instance);
 
             return this;
         };
@@ -3115,7 +3147,7 @@ var SPOO = {
         this.removePropertyFromBag = function(property,  client) {
             var bag = this.getProperty(property);
 
-            new SPOO.PropertyBagItemRemover(this, property,  client);
+            new SPOO.PropertyBagItemRemover(this, property,  instance);
             return this;
         };
 
@@ -3128,16 +3160,24 @@ var SPOO = {
 
         this.removeProperty = function(propertyName,  client) {
 
+
             if (propertyName.indexOf('.') != -1) {
                 this.removePropertyFromBag(propertyName,  client);
                 return;
             } else {
                 if (!this.properties[propertyName]) throw new NoSuchPropertyException(propertyName);
 
+                var tmpProp = Object.assign({}, this.properties[propertyName]);
 
+                 if(tmpProp.onDelete) {
+                    if(Object.keys(tmpProp.onDelete).length > 0)  {
+                        if(!instance.handlerSequence[this._id]) instance.handlerSequence[this._id] = {};
+                        if(!instance.handlerSequence[this._id].onDelete) instance.handlerSequence[this._id].onDelete = [];
+                            instance.handlerSequence[this._id].onDelete.push({handler:tmpProp.onDelete, prop: tmpProp});
+                    }
+                }
 
                 delete this.properties[propertyName];
-
 
             }
 
@@ -3309,7 +3349,6 @@ var SPOO = {
             var client = instance.activeTenant;
             var app = instance.activeApp;
 
-
             var thisRef = this;
 
             Object.keys(thisRef.onChange).forEach(function(key)
@@ -3321,8 +3360,33 @@ var SPOO = {
             
                     }, client, null);
                 }
-            })
+            })  
 
+
+
+
+            if(instance.handlerSequence[this._id])
+            {
+                for(var type in instance.handlerSequence[this._id])
+                {
+                    for(var item in instance.handlerSequence[this._id][type])
+                    {
+                        var handlerObj = instance.handlerSequence[this._id][type][item];
+
+                            for(var handlerItem in handlerObj.handler)
+                            {
+                                 if(handlerObj.handler[handlerItem].trigger == 'before')
+                                    {
+                                        instance.execProcessorAction(handlerObj.handler[handlerItem].value, thisRef, handlerObj.prop, null, function(data) {
+                                
+                                        }, client, null);
+                                    }
+                            }
+                    }
+                }
+            }
+
+          
             this.lastModified = moment().toDate().toISOString();
 
             var thisRef = this;
@@ -3401,8 +3465,31 @@ var SPOO = {
                     })
 
 
+                    if(instance.handlerSequence[this._id])
+                    {
+                        for(var type in instance.handlerSequence[this._id])
+                        {
+                            for(var item in instance.handlerSequence[this._id][type])
+                            {
+                                var handlerObj = instance.handlerSequence[this._id][type][item];
+
+                                    for(var handlerItem in handlerObj.handler)
+                                    {
+                                         if(handlerObj.handler[handlerItem].trigger == 'after')
+                                            {
+                                                instance.execProcessorAction(handlerObj.handler[handlerItem].value, thisRef, handlerObj.prop, null, function(data) {
+                                        
+                                                }, client, null);
+                                            }
+                                    }
+                            }
+                        }
+                    }
+
+                    delete instance.handlerSequence[this._id];
+
                     //if (this.role == 'template') this.inherit();
-                    success(data);
+                    if(success) success(data);
 
                     /*
                         Call event Aggregator
@@ -3413,7 +3500,7 @@ var SPOO = {
 
                 },
                 function(err) {
-                    error(err);
+                    if(error) error(err);
                     //throw new CallbackErrorException(err);
                 }, app, client);
 
