@@ -210,11 +210,26 @@ function InvalidHandlerException(message) {
 }
 
 function LackOfPermissionsException(message) {
-    this.message = "No permissions to perform this operation";
-    this.name = 'LackOfPermissionsException';
+
+    if(Array.isArray(message))
+    {
+        var result = "No permissions to perform these operations: ";
+
+        message.forEach(function(m)
+        {
+            result += "(" + m.name + ": " + m.key + ") ";
+        })
+
+        this.message = result;
+        this.name = 'LackOfPermissionsException';
+    }
+    else
+    {
+         this.message = "No permissions to perform this operation";
+        this.name = 'LackOfPermissionsException';
+    }
+   
 }
-
-
 
 
 
@@ -258,7 +273,7 @@ var SPOO = {
     },
 
 
-    checkPermissions: function(user, app, obj, permission)
+    checkPermissions: function(user, app, obj, permission, soft)
     {
 
         console.log("arguments p");
@@ -267,10 +282,16 @@ var SPOO = {
         var result = false;
         // if (privileges === undefined) result = false;
 
+        if(!user) return true;
+
         var privileges = user.privileges;
         var permissions = obj.permissions;
 
-        if(!privileges) throw new LackOfPermissionsException();
+        if(!privileges)
+        {
+            if(!soft) throw new LackOfPermissionsException();
+            else return false;
+        } 
        
 
         if (app) {
@@ -286,7 +307,8 @@ var SPOO = {
                 console.log("PRIVILEGES CHECK");
                 console.log(privileges);
             } else {
-                return false;
+                 if(!soft) throw new LackOfPermissionsException();
+                else return false;
             }
         }
 
@@ -347,9 +369,24 @@ var SPOO = {
 
         //console.log("res: " + result);
 
-        if(result == false) throw new LackOfPermissionsException();
+        if(result == false) 
+            {
+                if(!soft) throw new LackOfPermissionsException();
+                else return false;
+            }
         return result;
 
+    },
+
+    chainPermission: function(obj, instance, code, name, key)
+    {
+        if(obj.permissions) {
+                    if(Object.keys(obj.permissions).length > 0)  {
+                        if(!instance.permissionSequence[obj._id]) instance.permissionSequence[obj._id] = [];
+                            if(!SPOO.checkPermissions(instance.activeUser, instance.activeApp, obj, code, true))
+                                instance.permissionSequence[obj._id].push({name:name, key: key});
+                    }
+                }
     },
 
     define: function(params) {
@@ -375,11 +412,13 @@ var SPOO = {
 
                 obj.setUsername = function(username) {
                     this.username = username;
+                    SPOO.chainPermission(obj, this, 'o', 'setUsername', username);
                     return obj;
                 }
 
                 obj.setEmail = function(email) {
                     this.email = email;
+                    SPOO.chainPermission(obj, this, 'h', 'setEmail', email);
                     return obj;
                 }
 
@@ -672,31 +711,33 @@ var SPOO = {
             })
     },
 
-    addTemplateToObject: function(obj, templateId) {
+    addTemplateToObject: function(obj, templateId, instance) {
         var contains = false;
         obj.inherits.forEach(function(templ) {
             if (templ == templateId) contains = true;
         });
         if (!contains) {
             obj.inherits.push(templateId);
-
+            SPOO.chainPermission(obj, instance, 'i', 'addInherit', templateId);
         }
 
     },
 
-    addApplicationToObject: function(obj, application) {
+    addApplicationToObject: function(obj, application, instance) {
         var contains = false;
         obj.applications.forEach(function(app) {
             if (app == application) contains = true;
         });
         if (!contains) {
+
             obj.applications.push(application);
+            SPOO.chainPermission(obj, instance, 'a', 'addApplication', application);
 
         } else throw new DuplicateApplicationException(application);
 
     },
 
-    removeApplicationFromObject: function(obj, application) {
+    removeApplicationFromObject: function(obj, application, instance) {
         var contains = false;
         obj.applications.forEach(function(app, i) {
             if (app == application) {
@@ -706,12 +747,14 @@ var SPOO = {
             }
         });
 
+        SPOO.chainPermission(obj, instance, 'a', 'removeApplication', application);
+
         if (!contains) {
             throw new NoSuchApplicationException(application);
         }
     },
 
-    removeTemplateFromObject: function(obj, templateId, success, error) {
+    removeTemplateFromObject: function(obj, templateId, success, error, instance) {
         var contains = false;
         obj.inherits.forEach(function(templ) {
             if (templ == templateId) contains = true;
@@ -739,6 +782,8 @@ var SPOO = {
             for (i = 0; i < obj.inherits.length; i++) {
                 if (obj.inherits[i] == templateId) obj.inherits.splice(i, 1);
             }
+
+            SPOO.chainPermission(obj, instance, 'i', 'removeInherit', templateId);
 
             success(obj);
         } else {
@@ -1093,7 +1138,7 @@ var SPOO = {
 
     },
 
-    PropertyBagItemOnCreateRemover: function(obj, propertyName) {
+    PropertyBagItemOnCreateRemover: function(obj, propertyName, handlerName) {
         var allProperties = obj.properties;
         var thisRef = this;
 
@@ -1113,9 +1158,10 @@ var SPOO = {
                     throw new NoSuchPropertyException(propertyName);
                 }
 
-                if (!obj.properties[access[0]].onCreate) throw new NoSuchPermissionException(permissionKey);
+                if (!obj.properties[access[0]].onCreate) throw new HandlerNotFoundException();
+                if (!obj.properties[access[0]].onCreate[handlerName]) throw new HandlerNotFoundException();
 
-                delete obj.properties[access[0]].onCreate;
+                delete obj.properties[access[0]].onCreate[handlerName];
                 return;
             }
         }
@@ -1156,7 +1202,7 @@ var SPOO = {
     },
 
 
-    PropertyBagItemPermissionRemover: function(obj, propertyName, permissionKey) {
+    PropertyBagItemPermissionRemover: function(obj, propertyName, permissionKey, instance) {
         var allProperties = obj.properties;
         var thisRef = this;
 
@@ -1185,6 +1231,8 @@ var SPOO = {
 
                 if (!obj.properties[access[0]].permissions) throw new NoSuchPermissionException(permissionKey);
                 if (!obj.properties[access[0]].permissions[permissionKey]) throw new NoSuchPermissionException(permissionKey);
+
+                SPOO.chainPermission(obj, instance, 'x', 'removePropertyPermission', propertyName)
 
                 delete obj.properties[access[0]].permissions[permissionKey];
                 return;
@@ -1227,8 +1275,9 @@ var SPOO = {
                 }
 
 
-                delete obj.properties[access[0]];
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'd', 'removeProperty', propertyName);
 
+                delete obj.properties[access[0]];
 
                 return;
             }
@@ -1567,6 +1616,18 @@ var SPOO = {
             }
         }
 
+
+        SPOO.chainPermission(obj, instance, 'p', 'addProperty', propertyKey);
+        console.log(" ++++++++ " + SPOO.chainPermission(obj, instance, 'p', 'addProperty', propertyKey));
+
+        /*if(obj.permissions) {
+            if(Object.keys(obj.permissions).length > 0)  {
+                if(!instance.permissionSequence[obj._id]) instance.permissionSequence[obj._id] = [];
+                    if(!SPOO.checkPermissions(instance.activeUser, instance.activeApp, obj, 'p', true))
+                        instance.permissionSequence[obj._id].push({name:'addProperty', key: propertyKey});
+            }
+        */
+
     },
 
 
@@ -1692,7 +1753,7 @@ var SPOO = {
         return permissions;
     },
 
-    ObjectOnCreateSetWrapper: function(obj, name, onCreate, trigger, type) {
+    ObjectOnCreateSetWrapper: function(obj, name, onCreate, trigger, type, instance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
         if (!onCreate) throw new InvalidHandlerException();
@@ -1709,10 +1770,12 @@ var SPOO = {
 
         if(obj.onCreate[name].templateId) obj.onCreate[name].overwritten = true;
 
+        SPOO.chainPermission(obj, instance, 'v', 'setOnCreateHandler', name);
+
         return onCreate;
     },
 
-    ObjectOnChangeSetWrapper: function(obj, name, onChange, trigger, type) {
+    ObjectOnChangeSetWrapper: function(obj, name, onChange, trigger, type, instance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
         if (!onChange) throw new InvalidHandlerException();
@@ -1729,10 +1792,12 @@ var SPOO = {
 
         if(obj.onChange[name].templateId) obj.onChange[name].overwritten = true;
 
+        SPOO.chainPermission(obj, instance, 'w', 'setOnChangeHandler', name);
+
         return onChange;
     },
 
-    ObjectOnDeleteSetWrapper: function(obj, name, onDelete, trigger, type) {
+    ObjectOnDeleteSetWrapper: function(obj, name, onDelete, trigger, type, isntance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
         if (!onDelete) throw new InvalidHandlerException();
@@ -1749,10 +1814,12 @@ var SPOO = {
 
         if(obj.onDelete[name].templateId) obj.onDelete[name].overwritten = true;
 
+        SPOO.chainPermission(obj, instance, 'z', 'setOnDeleteHandler', name);
+
         return onDelete;
     },
 
-    ObjectPermissionSetWrapper: function(obj, permission) //addTemplateToObject!!!
+    ObjectPermissionSetWrapper: function(obj, permission, instance) //addTemplateToObject!!!
     {
         if (!typeof permission == 'object') throw new InvalidPermissionException();
 
@@ -1765,16 +1832,20 @@ var SPOO = {
             obj.permissions[permissionKey] = permission[permissionKey];
         }
 
+        SPOO.chainPermission(obj, instance, 'x', 'setPermission', permissionKey);
+
         return permission;
     },
 
-    ObjectPermissionRemoveWrapper: function(obj, permissionName) //addTemplateToObject!!!
+    ObjectPermissionRemoveWrapper: function(obj, permissionName, instance) //addTemplateToObject!!!
     {
         if (!permissionName) throw new InvalidPermissionException();
 
         if (!typeof permissionName == 'string') throw new InvalidPermissionException();
 
         if (!obj.permissions[permissionName]) throw new NoSuchPermissionException(permissionName);
+
+        SPOO.chainPermission(obj, instance, 'x', 'removePermission', permissionName);
 
         delete obj.permissions[permissionName];
 
@@ -1843,7 +1914,7 @@ var SPOO = {
     },
 
 
-    PropertyOnChangeSetWrapper: function(obj, propertyKey, name, onChange, trigger, type) {
+    PropertyOnChangeSetWrapper: function(obj, propertyKey, name, onChange, trigger, type, instance) {
         function setOnChange(obj, access, onChange) {
             if (typeof(access) == 'string') {
                 access = access.split('.');
@@ -1868,13 +1939,15 @@ var SPOO = {
                 obj.properties[access[0]].onChange[name].value = onChange;
                 obj.properties[access[0]].onChange[name].trigger = trigger || 'after'; 
                 obj.properties[access[0]].onChange[name].type = type || 'async'; 
+
+                SPOO.chainPermission(obj, instance, 'w', 'setPropertyOnChangeHandler', name);
             }
         }
 
         setOnChange(obj, propertyKey, onChange);
     },
 
-    PropertyOnCreateSetWrapper: function(obj, propertyKey, name, onCreate, trigger, type) {
+    PropertyOnCreateSetWrapper: function(obj, propertyKey, name, onCreate, trigger, type, instance) {
         function setOnCreate(obj, access, onCreate) {
             if (typeof(access) == 'string') {
                 access = access.split('.');
@@ -1901,13 +1974,15 @@ var SPOO = {
                 obj.properties[access[0]].onCreate[name].trigger = trigger || 'after';
                 obj.properties[access[0]].onCreate[name].type = type || 'async';
 
+                SPOO.chainPermission(obj, instance, 'v', 'setPropertyOnCreateHandler', name);
+
             }
         }
 
         setOnCreate(obj, propertyKey, onCreate);
     },
 
-    PropertyOnDeleteSetWrapper: function(obj, propertyKey, name, onDelete, trigger, type) {
+    PropertyOnDeleteSetWrapper: function(obj, propertyKey, name, onDelete, trigger, type, instance) {
         function setOnDelete(obj, access, onDelete) {
             if (typeof(access) == 'string') {
                 access = access.split('.');
@@ -1930,6 +2005,8 @@ var SPOO = {
                 obj.properties[access[0]].onDelete[name].value = onDelete;
                 obj.properties[access[0]].onDelete[name].trigger = trigger || 'after';
                 obj.properties[access[0]].onDelete[name].type = type || 'async';
+
+                SPOO.chainPermission(obj, instance, 'z', 'setPropertyOnDeleteHandler', name);
             }
         }
 
@@ -1961,7 +2038,7 @@ var SPOO = {
         setConditions(obj, propertyKey, conditions);
     },
 
-    PropertyPermissionSetWrapper: function(obj, propertyKey, permission) {
+    PropertyPermissionSetWrapper: function(obj, propertyKey, permission, instance) {
         console.debug(obj);
         console.debug(propertyKey);
 
@@ -1984,6 +2061,8 @@ var SPOO = {
                 if (!obj.properties[access[0]].permissions) obj.properties[access[0]].permissions = {};
 
                 obj.properties[access[0]].permissions[permissionKey] = permission[permissionKey];
+
+                SPOO.chainPermission(obj, instance, 'x', 'setPropertyPermission', propertyKey);
             }
         }
 
@@ -2066,6 +2145,8 @@ var SPOO = {
                             instance.handlerSequence[obj._id].onChange.push({handler: obj.properties[access[0]].onChange, prop: obj.properties[access[0]]});
                     }
                 }
+
+                SPOO.chainPermission(obj, instance, 'u', 'setPropertyValue', propertyKey);
 
 
             }
@@ -2682,7 +2763,7 @@ var SPOO = {
         }
 
         this.addInherit = function(templateId) {
-            SPOO.addTemplateToObject(this, templateId);
+            SPOO.addTemplateToObject(this, templateId, instance);
             return this;
         };
 
@@ -2692,18 +2773,18 @@ var SPOO = {
                 },
                 function(err) {
                     //if (error) error(err);
-                });
+                }, instance);
             return this;
         };
 
 
         this.addApplication = function(application) {
-            SPOO.addApplicationToObject(this, application);
+            SPOO.addApplicationToObject(this, application, instance);
             return this;
         };
 
         this.removeApplication = function(application) {
-            SPOO.removeApplicationFromObject(this, application);
+            SPOO.removeApplicationFromObject(this, application, instance);
             return this;
         };
 
@@ -2732,30 +2813,30 @@ var SPOO = {
             return this;
         };
 
-        this.setOnChange = function(onChangeObj) {
+        this.setOnChange = function(name, onChangeObj) {
 
             if(typeof onChangeObj !== 'object') throw new InvalidArgumentException()
-            var key = Object.keys(onChangeObj)[0];
+            var key = name;//Object.keys(onChangeObj)[0];
 
-            new SPOO.ObjectOnChangeSetWrapper(this, key, onChangeObj[key].value, onChangeObj[key].trigger, onChangeObj[key].type);
+            new SPOO.ObjectOnChangeSetWrapper(this, key, onChangeObj.value, onChangeObj.trigger, onChangeObj.type, instance);
             return this;
         };
 
-        this.setOnDelete = function(onDeleteObj) {
+        this.setOnDelete = function(name, onDeleteObj) {
 
             if(typeof onDeleteObj !== 'object') throw new InvalidArgumentException()
-            var key = Object.keys(onDeleteObj)[0];
+            var key = name;//Object.keys(onDeleteObj)[0];
 
-            new SPOO.ObjectOnDeleteSetWrapper(this, key, onDeleteObj[key].value, onDeleteObj[key].trigger, onDeleteObj[key].type);
+            new SPOO.ObjectOnDeleteSetWrapper(this, key, onDeleteObj.value, onDeleteObj.trigger, onDeleteObj.type, instance);
             return this;
         };
 
-        this.setOnCreate = function(onCreateObj) {
+        this.setOnCreate = function(name, onCreateObj) {
             
             if(typeof onCreateObj !== 'object') throw new InvalidArgumentException()
-            var key = Object.keys(onCreateObj)[0];
+            var key = name;//Object.keys(onCreateObj)[0];
 
-            new SPOO.ObjectOnCreateSetWrapper(this, key, onCreateObj[key].value, onCreateObj[key].trigger, onCreateObj[key].type);
+            new SPOO.ObjectOnCreateSetWrapper(this, key, onCreateObj.value, onCreateObj.trigger, onCreateObj.type, instance);
             return this;
         };
 
@@ -2783,12 +2864,12 @@ var SPOO = {
             perm[name] = permission;
             permission = perm;
 
-            new SPOO.ObjectPermissionSetWrapper(this, permission);
+            new SPOO.ObjectPermissionSetWrapper(this, permission, instance);
             return this;
         };
 
         this.removePermission = function(permission) {
-            new SPOO.ObjectPermissionRemoveWrapper(this, permission);
+            new SPOO.ObjectPermissionRemoveWrapper(this, permission, instance);
             return this;
         };
 
@@ -2967,39 +3048,40 @@ var SPOO = {
                 this.setBagPropertyPermission(bag, newProKey, value);
                 return;
             }*/
-            new SPOO.PropertyPermissionSetWrapper(this, property, permission);
+            new SPOO.PropertyPermissionSetWrapper(this, property, permission, instance);
             return this;
         };
 
-        this.setPropertyOnCreate = function(property, onCreateObj) {
+        this.setPropertyOnCreate = function(property, name, onCreateObj) {
 
             if(typeof onCreateObj !== 'object') throw new InvalidArgumentException()
-            var key = Object.keys(onCreateObj)[0];
+            var key = name;//Object.keys(onCreateObj)[0];
 
-            new SPOO.PropertyOnCreateSetWrapper(this, property, key, onCreateObj[key].value, onCreateObj[key].trigger, onCreateObj[key].type);
+            new SPOO.PropertyOnCreateSetWrapper(this, property, key, onCreateObj.value, onCreateObj.trigger, onCreateObj.type, instance);
             return this;
         };
 
-        this.removePropertyOnCreate = function(propertyName) {
+        this.removePropertyOnCreate = function(propertyName, handlerName) {
             if (propertyName.indexOf('.') != -1) {
-                this.removePropertyOnCreateFromBag(propertyName);
+                this.removePropertyOnCreateFromBag(propertyName, handlerName);
                 return;
             } else {
 
                 if (!this.properties[propertyName]) throw new NoSuchPropertyException(propertyName);
                 if (!this.properties[propertyName].onCreate) throw new NoOnCreateException(); // CHANGE!!!
-                delete this.properties[propertyName].onCreate;
+                if (!this.properties[propertyName].onCreate[handlerName]) throw new NoOnCreateException(); // CHANGE!!!
+                delete this.properties[propertyName].onCreate[propertyName];
             }
 
             return this;
         };
 
-        this.removePropertyOnCreateFromBag = function(property) {
+        this.removePropertyOnCreateFromBag = function(property, handlerName) {
             var bag = this.getProperty(property);
             if (this.role == 'template') {
 
             }
-            new SPOO.PropertyBagItemOnCreateRemover(this, property);
+            new SPOO.PropertyBagItemOnCreateRemover(this, property, handlerName);
             return this;
         };
 
@@ -3038,13 +3120,13 @@ var SPOO = {
         };
 
 
-        this.setPropertyOnChange = function(property, onChangeObj) {
+        this.setPropertyOnChange = function(property, name, onChangeObj) {
 
             if(typeof onChangeObj !== 'object') throw new InvalidArgumentException()
-            var key = Object.keys(onChangeObj)[0];
+            var key = name;//Object.keys(onChangeObj)[0];
 
 
-            new SPOO.PropertyOnChangeSetWrapper(this, property, key, onChangeObj[key].value, onChangeObj[key].trigger, onChangeObj[key].type);
+            new SPOO.PropertyOnChangeSetWrapper(this, property, key, onChangeObj.value, onChangeObj.trigger, onChangeObj.type, instance);
             return this;
         };
 
@@ -3069,12 +3151,12 @@ var SPOO = {
             return this;
         };
 
-        this.setPropertyOnDelete = function(property, onDeleteObj) {
+        this.setPropertyOnDelete = function(property, name, onDeleteObj) {
 
             if(typeof onDeleteObj !== 'object') throw new InvalidArgumentException()
-            var key = Object.keys(onDeleteObj)[0];
+            var key = name; //Object.keys(onDeleteObj)[0];
 
-            new SPOO.PropertyOnDeleteSetWrapper(this, property, key, onDeleteObj[key].value, onDeleteObj[key].trigger, onDeleteObj[key].type);
+            new SPOO.PropertyOnDeleteSetWrapper(this, property, key, onDeleteObj.value, onDeleteObj.trigger, onDeleteObj.type, instance);
             return this;
         };
 
@@ -3209,6 +3291,10 @@ var SPOO = {
                 console.log(permissionKey);
                 if (!this.properties[propertyName]) throw new NoSuchPropertyException(propertyName);
                 if (!this.properties[propertyName].permissions[permissionKey]) throw new NoSuchPermissionException(permissionKey);
+
+                SPOO.chainPermission(this, instance, 'x', 'removePropertyPermission', permissionKey);
+
+
                 delete this.properties[propertyName].permissions[permissionKey];
             }
 
@@ -3271,7 +3357,7 @@ var SPOO = {
         this.removePropertyPermissionFromBag = function(property, permissionKey) {
             var bag = this.getProperty(property);
 
-            new SPOO.PropertyBagItemPermissionRemover(this, property, permissionKey);
+            new SPOO.PropertyBagItemPermissionRemover(this, property, permissionKey, instance);
             return this;
         };
 
@@ -3294,6 +3380,8 @@ var SPOO = {
                     }
                 }
 
+                SPOO.chainPermission(this.properties[propertyName], instance, 'd', 'removeProperty', propertyName);
+
                 delete this.properties[propertyName];
 
             }
@@ -3312,11 +3400,15 @@ var SPOO = {
 
         this.setName = function(name) {
             this.name = name;
+
+            SPOO.chainPermission(this, instance, 'n', 'setName', name);
+
             return this;
         };
 
         this.setType = function(type) {
             this.type = type;
+            SPOO.chainPermission(this, instance, 't', 'setType', type);
             return this;
         };
 
@@ -3471,12 +3563,16 @@ var SPOO = {
 
             SPOO.checkPermissions(instance.activeUser, instance.activeApp, thisRef, 'u')
 
+            if((instance.permissionSequence[obj._id] || []).length > 0)
+            {
+                throw new LackOfPermissionsException(instance.permissionSequence[obj._id]);
+            }
+           
 
             Object.keys(thisRef.onChange).forEach(function(key)
             {
                 if(thisRef.onChange[key].trigger == 'before')
                 {
-                    //dsl, obj, prop, data, callback, client, options
                     instance.execProcessorAction(thisRef.onChange[key].value, thisRef, null, null, function(data) {
             
                     }, client, null);
