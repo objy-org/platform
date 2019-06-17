@@ -15,17 +15,107 @@ var lowDBMapper = new LOWDBMAPPER(null, function(data) {
 SPOO.ObjectFamily({
     name: "Nicole",
     pluralName: 'Nicoles',
-    multitenancy: 'database',
-    storage: lowDBMapper,
-    multitenancy: "database",
-    processor: new PROCESSOR(),
-    observer: null
+
+    persistence: {
+        mapper: lowDBMapper,
+        multitenancy: 'database'
+    },
+    processor: {
+        multitenancy: 'shared'
+    },
+    ovserver:  {
+
+    }
+})
+
+
+console.log("sdgsdgd");
+console.log(SPOO.objectFamilies);
+
+SPOO.tenant('dsl').app('demoapp')
+
+
+var n = SPOO.Nicole({ permissions: {
+    admin: {
+        value: "pux"
+    }
+}})//.setPermission('admin', {value : "pu"})
+
+n.addProperty('remindme', {value : "test"})
+n.setOnChange('default', {value : "SPOO.Nicole({name: 'dsl dsl'}).addProperty('mother', {value: 'fucker'}).add(function(){});dsl.email()"});
+
+//n.removeProperty('remindme')
+//n.setOnCreate('default', {value:'dfsdf'})
+
+//console.log(n.properties);
+
+
+n.update(function(data)
+    {
+
+    });
+
+
+return;
+/*
+{
+    name: "test",
+    inherits: [],
+    age: "test",
+
+    collection:
+    {
+        test:
+    }
+    "$meta":
+    {
+        name:
+        {
+            permissions: {},
+            onCreate:{
+                demo: {
+                    value : "sfsdf",
+                    trigger: "before"
+                }
+            }
+        },
+        "collection.test"
+        {
+
+        }
+    }
+}*/
+
+
+SPOO.Nicole("IcLnXW35TD,KBCC1UpP5aT8Ue").get(function(data)
+{   
+    data.addProperty({h333allo232f:2323}).update(function()
+    {
+
+    }, function()
+
+    {
+
+    })
+
+}, function(err)
+{
+
 })
 
 
 
-SPOO.tenant('sfasfafs').app('demoapp').user({username: "marco"});
 
+
+return;
+
+
+
+SPOO.Object("ddsg").get(function(obj)
+{
+    obj.setPropertyValue('test', "325q2");
+})
+/*
 SPOO.Nicole({
     onCreate: {
         bev:
@@ -41,10 +131,17 @@ SPOO.Nicole({
     },
     properties:
     {
-        evt: {
-            type: "event",
-            date: "10",
-            action : "tesr"
+        test: {
+            type: "shortText",
+            value: "asfsdf",
+            onCreate:
+            {
+                default:
+                {
+                    value: "sdgsdg",
+                    trigger: 'before'
+                }
+            }
         },
         int: {
             type: "event",
@@ -58,24 +155,22 @@ SPOO.Nicole({
 
 },function(){});
 
+return;*/
 
-return;
+var start = new Date();
 
-SPOO.Nicole({name: "hallo"}).add(function(data)
+for(var i = 0; i<100000;i++){
+
+if(i%99999 == 0)
 {
+    console.log(i);
+    console.log(((new Date().getTime() - start.getTime()) / 1000));
+} 
 
-    //console.log(data);
 
-    data.setOnCreate({default: { value : "saf"}}).setOnChange({default: { value : "saf"}}).removeOnCreate('default').addProperty({
-        test: {
-            value: "123",
-            type: "shortText"
-        }
-    }).setPropertyOnChange('test', {default: { value : "saf"}});
+SPOO.Nicole({name: "test"}).addProperty({name: {type: "shortText", value: "sf"}});
 
-    console.log(data);
-})
-
+}
 
 
 return;

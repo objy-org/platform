@@ -48,6 +48,11 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
         }
     };
 
+    this.listTenants = function(success, error)
+    {
+
+    };
+
     this.getObjById = function(id, success, error, app, client) {
 
         var db = this.getDBByMultitenancy(client);

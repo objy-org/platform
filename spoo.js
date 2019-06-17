@@ -389,9 +389,16 @@ var SPOO = {
                 }
     },
 
+    objectFamilies: [],
+
+    getObjectFamilies: function()
+    {
+        return this.objectFamilies;
+    },
+
     define: function(params) {
 
-        if (!params.name || !params.storage || !params.pluralName || !params.processor) {
+        if (!params.name || !params.pluralName) {
             throw new Error("Invalid arguments");
         }
 
@@ -437,19 +444,21 @@ var SPOO = {
             return new SPOO.Obj(obj, params.name, this);
         }
 
+        if(this.objectFamilies.indexOf(params.name) == -1) this.objectFamilies.push(params.name);
+
         this[params.pluralName] = function(objs) {
 
-            
             if (!objs) throw new Error("No params defined");
 
             return new SPOO.Objs(objs, params.name, this);
-
             
         }
 
-        this.plugInMapper(params.name, params.storage, params.multitenancy);
+        if((params.persistence || {}).mapper) this.plugInPersistenceMapper(params.name, params.persistence.mapper, params.persistence.multitenancy);
 
-        this.plugInProcessor(params.name, params.processor);
+        if((params.processor || {}).mapper) this.plugInProcessor(params.name, params.processor.mapper, params.processor.multitenancy);
+
+        if((params.observer || {}).mapper) this.plugInObserver(params.name, params.observer.mapper, params.observer.multitenancy);
     },
     
     ObjectFamily: function(params)
@@ -459,7 +468,13 @@ var SPOO = {
 
     mappers: {},
 
-    plugInMapper: function(name, mapper, multitenancy) {
+    getPersistenceMapper: function(family)
+    {
+        if(!this.mappers[family]) throw new Error("No such Object Family");
+        return this.mappers[family];
+    },
+
+    plugInPersistenceMapper: function(name, mapper, multitenancy) {
         if (!name) throw new Error("No mapper name provided");
         this.mappers[name] = mapper;
         this.mappers[name].setMultiTenancy(multitenancy || "tenantIdentifier");
@@ -470,6 +485,13 @@ var SPOO = {
     plugInProcessor: function(name, processor) {
         if (!name) throw new Error("No mapper name provided");
         this.processors[name] = processor;
+    },
+
+    observers: {},
+
+    plugInObserver: function(name, observer) {
+        if (!name) throw new Error("No mapper name provided");
+        this.observers[name] = observer;
     },
 
     ConditionsChecker: function(property, value) {
@@ -484,7 +506,7 @@ var SPOO = {
     execProcessorAction: function(dsl, obj, prop, data, callback, client, options) {
         if (!this.processors[obj.role]) throw new Error("No Processor registered");
 
-        this.processors[obj.role].execute(dsl, obj, prop, data, callback, client, options);
+        this.processors[obj.role].execute(dsl, obj, prop, data, callback, client, this.instance.activeUser, options);
     },
 
     getElementPermisson: function(element) {
@@ -1618,7 +1640,6 @@ var SPOO = {
 
 
         SPOO.chainPermission(obj, instance, 'p', 'addProperty', propertyKey);
-        console.log(" ++++++++ " + SPOO.chainPermission(obj, instance, 'p', 'addProperty', propertyKey));
 
         /*if(obj.permissions) {
             if(Object.keys(obj.permissions).length > 0)  {
