@@ -1,5 +1,9 @@
 var moment = require('moment');
 var shortid = require('shortid');
+var DefaultStorageMapper = require('./storage/defaultMapper.js')
+var DefaultObserverMapper = require('./observer/defaultMapper.js')
+var DefaultProcessorMapper = require('./processor/defaultMapper.js')
+
 
 var CONSTANTS = {
 
@@ -454,11 +458,11 @@ var SPOO = {
             
         }
 
-        if((params.persistence || {}).mapper) this.plugInPersistenceMapper(params.name, params.persistence.mapper, params.persistence.multitenancy);
+        if(params.persistence) this.plugInPersistenceMapper(params.name, params.persistence);
 
-        if((params.processor || {}).mapper) this.plugInProcessor(params.name, params.processor.mapper, params.processor.multitenancy);
+        if(params.processor) this.plugInProcessor(params.name, params.processor);
 
-        if((params.observer || {}).mapper) this.plugInObserver(params.name, params.observer.mapper, params.observer.multitenancy);
+        if(params.observer) this.plugInObserver(params.name, params.observer);
     },
     
     ObjectFamily: function(params)
@@ -474,10 +478,9 @@ var SPOO = {
         return this.mappers[family];
     },
 
-    plugInPersistenceMapper: function(name, mapper, multitenancy) {
+    plugInPersistenceMapper: function(name, mapper) {
         if (!name) throw new Error("No mapper name provided");
         this.mappers[name] = mapper;
-        this.mappers[name].setMultiTenancy(multitenancy || "tenantIdentifier");
     },
 
     processors: {},
@@ -504,7 +507,9 @@ var SPOO = {
     },
 
     execProcessorAction: function(dsl, obj, prop, data, callback, client, options) {
-        if (!this.processors[obj.role]) throw new Error("No Processor registered");
+
+        if (!this.processors[obj.role]) 
+            return defaultMappers.processor.execute(dsl, obj, prop, data, callback, client, this.instance.activeUser, options); //throw new Error("No Processor registered");
 
         this.processors[obj.role].execute(dsl, obj, prop, data, callback, client, this.instance.activeUser, options);
     },
@@ -823,13 +828,22 @@ var SPOO = {
 
         var self = this;
 
+         if(!this.mappers[obj.role]) {
+            return defaultMappers.persistence.removeObj(obj, function(data) {
+                success(data);
+
+
+                }, function(err) {
+                    error('Error - Could not add object');
+                }, app, client);
+        }
+
+
         this.mappers[obj.role].removeObj(obj, function(data) {
             
             success(data);
 
-            if(obj.onDelete) self.execProcessorAction(obj.onDelete, obj, null, null, function(data) {
-            
-            }, client, null);
+          
 
         }, function(err) {
             error('Error - Could not remove object');
@@ -851,13 +865,20 @@ var SPOO = {
 
         })
 
-
         this.addObject(obj, success, error, app, client);
 
     },
 
     addObject: function(obj, success, error, app, client) {
 
+        if(!this.mappers[obj.role]) {
+            return defaultMappers.persistence.addObj(obj, function(data) {
+                success(data);
+
+                }, function(err) {
+                    error(err);
+                }, app, client);
+        }
 
         this.mappers[obj.role].addObj(obj, function(data) {
             success(data);
@@ -906,6 +927,16 @@ var SPOO = {
     },
 
     updateObject: function(obj, success, error, client) {
+
+        if(!this.mappers[obj.role]) {
+            return defaultMappers.persistence.updateObj(obj, function(data) {
+                success(data);
+
+                }, function(err) {
+                    error('Error - Could not add object');
+                }, client);
+        }
+
         this.mappers[obj.role].updateObj(obj, function(data) {
             success(data);
 
@@ -916,6 +947,14 @@ var SPOO = {
 
     getObjectById: function(role, id, success, error, app, client) {
 
+        if(!this.mappers[role]) {
+            return defaultMappers.persistence.getObjById(id, function(data) {
+                success(data);
+
+                }, function(err) {
+                    error('Error - Could not add object');
+                }, app, client);
+        }
 
         this.mappers[role].getObjById(id, function(data) {
 
@@ -940,6 +979,17 @@ var SPOO = {
 
         var templatesCache = [];
         var objectsCache = [];
+
+        if(!this.mappers[role]) {
+            return defaultMappers.persistence.getObjsByCriteria(criteria, function(data) {
+                success(data);
+
+                }, function(err) {
+                    error(err);
+                }, app, client, flags);
+        }
+
+
         this.mappers[role].getObjsByCriteria(criteria, function(data) {
             var counter = 0;
             var num = data.length;
@@ -2562,7 +2612,7 @@ var SPOO = {
         }
     },
 
-    PropertiesChecker: function(obj, properties) {
+    PropertiesChecker: function(obj, properties, instance) {
         if (properties === undefined) return {};
 
         obj.properties = {};
@@ -2758,7 +2808,7 @@ var SPOO = {
         this.created = obj.created || moment().toDate().toISOString();
         this.lastModified = obj.lastModified || moment().toDate().toISOString();
 
-        this.properties = SPOO.PropertiesChecker(this, obj.properties) || {};
+        this.properties = SPOO.PropertiesChecker(this, obj.properties, instance) || {};
 
         this.permissions = new SPOO.ObjectPermissionsCreateWrapper(this, obj.permissions) || {};
 
@@ -3457,10 +3507,14 @@ var SPOO = {
 
             var thisRef = this;
 
+            console.log(thisRef.onCreate);
+
             Object.keys(thisRef.onCreate).forEach(function(key)
             {
+               
                 if(thisRef.onCreate[key].trigger == 'before')
                 {
+                            console.log("####");
                     //dsl, obj, prop, data, callback, client, options
                     instance.execProcessorAction(thisRef.onCreate[key].value, thisRef, null, null, function(data) {
             
@@ -3775,9 +3829,9 @@ var SPOO = {
             return SPOO.remove(this, function(data)
                 {
 
-                     Object.keys(data.onDelete).forEach(function(key)
+                    Object.keys(data.onDelete).forEach(function(key)
                     {
-                        if(data.onDelete[key].trigger == 'before')
+                        if(data.onDelete[key].trigger == 'after')
                         {
                             //dsl, obj, prop, data, callback, client, options
                             instance.execProcessorAction(data.onDelete[key].value, data, null, null, function(data) {
@@ -3861,8 +3915,6 @@ var SPOO = {
                     }
                 }
             });
-
-
            
         }
 
@@ -3874,6 +3926,17 @@ var SPOO = {
     }
 
 }
+
+var defaultPersistence = new DefaultStorageMapper({multitenancy : 'tenantIdentifier'});
+var defaultObserver = new DefaultObserverMapper(defaultPersistence);
+var defaultProcessor = new DefaultProcessorMapper(SPOO);
+
+var defaultMappers = {
+    persistence: defaultPersistence,
+    observer: defaultObserver,
+    processor: defaultProcessor
+}
+
 
 
 module.exports = SPOO;

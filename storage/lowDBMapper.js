@@ -13,11 +13,11 @@ var CONSTANTS = {
 }
 
 
-localStorageMapper = function(connectionString, connectionSuccess, connectionError) {
+localStorageMapper = function(options, connectionString, connectionSuccess, connectionError) {
 
     this.connectionString = connectionString;
 
-    this.multitenancy = CONSTANTS.MULTITENANCY.TENANTIDENTIFIER;
+    this.multitenancy = options.multitenancy || CONSTANTS.MULTITENANCY.TENANTIDENTIFIER;
 
     var dbConMain = {};
 
@@ -25,7 +25,7 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     };
 
-     this.connectInit(connectionSuccess, connectionError);
+    this.connectInit(connectionSuccess, connectionError);
 
     this.setMultiTenancy = function(value) {
         this.multitenancy = value;
@@ -57,8 +57,13 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
         var db = this.getDBByMultitenancy(client);
 
+        var query = { _id: id };
+
+        if(this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+            Object.assign(query, {tenantId: client})
+
         success(db.get('objects')
-            .find({ _id: id })
+            .find(query)
             .value())
 
     }
@@ -66,9 +71,12 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     this.getObjsByCriteria = function(criteria, success, error, app, client, flags) {
 
-         var db = this.getDBByMultitenancy(client);
+        var db = this.getDBByMultitenancy(client);
 
         // flags contain thigs lik $sort or $page
+
+        if(this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+            Object.assign(criteria, {tenantId: client})
 
         success(db.get('objects')
             .filter(criteria)
@@ -101,9 +109,14 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
         var db = this.getDBByMultitenancy(client);
 
+        var query = { _id: spooElement._id };
+
+        if(this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+            Object.assign(query, {tenantId: client})
+
 
         success(db.get('objects')
-            .find({ _id: spooElement._id })
+            .find(query)
             .assign(spooElement)
             .write())
 
@@ -117,6 +130,8 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
         db.defaults({ objects: [] })
             .write()
 
+        if(this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+            spooElement.tenantId = client;
 
         db.get('objects')
             .push(spooElement)
@@ -131,9 +146,13 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
          var db = this.getDBByMultitenancy(client);
 
+         var query = { _id: spooElement._id };
+
+         if(this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+            Object.assign(query, {tenantId: client})
 
         success(db.get('objects')
-            .remove({ _id: spooElement._id })
+            .remove(query)
             .write())
     };
 

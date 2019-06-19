@@ -1,11 +1,11 @@
 var SPOO = require('./spoo.js');
 
 
-var PROCESSOR = require('./processor/processorMapper.js');
+var PROCESSOR = require('./processor/vmMapper.js');
 
 var LOWDBMAPPER = require('./storage/lowDBMapper.js');
 
-var lowDBMapper = new LOWDBMAPPER(null, function(data) {
+var lowDBMapper = new LOWDBMAPPER({multitenancy: 'database'}, null, function(data) {
 
 }, function(error) {
 
@@ -14,35 +14,80 @@ var lowDBMapper = new LOWDBMAPPER(null, function(data) {
 
 SPOO.ObjectFamily({
     name: "Nicole",
-    pluralName: 'Nicoles',
-
-    persistence: {
-        mapper: lowDBMapper,
-        multitenancy: 'database'
-    },
-    processor: {
-        multitenancy: 'shared'
-    },
-    ovserver:  {
-
-    }
+    pluralName: 'Nicoles'
 })
 
+//new SPOO.Impulse({}).add();
 
-console.log("sdgsdgd");
-console.log(SPOO.objectFamilies);
+//console.log("sdgsdgd");
+//console.log(SPOO.objectFamilies);
 
 SPOO.tenant('dsl').app('demoapp')
 
 
-var n = SPOO.Nicole({ permissions: {
+
+SPOO.Impulse().add();
+
+new SPOO.Impulse({
+    properties:
+    {
+        evt:
+        {
+            date: new Date(),
+            action: 'this.push'
+        }
+    }
+}).add();
+
+
+
+var n = SPOO.Nicole({ onCreate: {
+            test:  {
+                value: "SPOO.Nicole({}).add(function(data){console.log(data)}, function(err){console.log(err)})",
+                trigger: 'before'
+            }
+    },
+    properties: {
+    evt : {
+        type: 'event',
+        interval: 'P10T',
+        action: 'asfasf'
+    }},
+    permissions: {
     admin: {
         value: "pux"
     }
-}})//.setPermission('admin', {value : "pu"})
+}}).add(function(data)
+{
+    /*SPOO.Nicoles({_id : data._id}).get(function(data)
+    {
+        console.log(data[0].aggregatedEvents);
+    }, function(err)
+    {
+        console.log(err)
+    })*/
+    //console.log(data);
+}, function(err)
+{
+    console.log(err);
+});
+
+return;
+
+n.addProperty('sf', 'sdgsdg').update();
+
+console.log(n)
+
+n.remove();
+
+
+return;
+
+
+//.setPermission('admin', {value : "pu"})
 
 n.addProperty('remindme', {value : "test"})
-n.setOnChange('default', {value : "SPOO.Nicole({name: 'dsl dsl'}).addProperty('mother', {value: 'fucker'}).add(function(){});dsl.email()"});
+//n.setOnChange('default', {value : "SPOO.Nicole({name: 'dsl dsl'}).addProperty('hello', {value: 'world'}).add(function(){});dsl.email()"});
 
 //n.removeProperty('remindme')
 //n.setOnCreate('default', {value:'dfsdf'})
