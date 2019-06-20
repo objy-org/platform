@@ -4,7 +4,6 @@ var DefaultStorageMapper = require('./storage/defaultMapper.js')
 var DefaultObserverMapper = require('./observer/defaultMapper.js')
 var DefaultProcessorMapper = require('./processor/defaultMapper.js')
 
-
 var CONSTANTS = {
 
     EVENT: {
@@ -463,6 +462,13 @@ var SPOO = {
         if(params.processor) this.plugInProcessor(params.name, params.processor);
 
         if(params.observer) this.plugInObserver(params.name, params.observer);
+
+        if(params.backend) 
+        {
+            this.plugInPersistenceMapper(params.name, params.backend.persistence);
+            this.plugInProcessor(params.name, params.backend.processor);
+            this.plugInObserver(params.name, params.backend.observer);
+        }
     },
     
     ObjectFamily: function(params)
@@ -3924,7 +3930,6 @@ var SPOO = {
     hello: function() {
         console.log("Hello from SPOO");
     }
-
 }
 
 var defaultPersistence = new DefaultStorageMapper({multitenancy : 'tenantIdentifier'});

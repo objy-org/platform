@@ -2,9 +2,8 @@ var SPOO = require('./spoo.js');
 
 
 var PROCESSOR = require('./processor/vmMapper.js');
-
+var OBSERVER = require('./observer/defaultMapper.js');
 var LOWDBMAPPER = require('./storage/lowDBMapper.js');
-
 var lowDBMapper = new LOWDBMAPPER({multitenancy: 'database'}, null, function(data) {
 
 }, function(error) {
@@ -12,9 +11,13 @@ var lowDBMapper = new LOWDBMAPPER({multitenancy: 'database'}, null, function(dat
 });
 
 
+var defaultBackend = require('./backends/defaultBackend.js');
+
+
 SPOO.ObjectFamily({
     name: "Nicole",
-    pluralName: 'Nicoles'
+    pluralName: 'Nicoles',
+    backend: new defaultBackend(SPOO)
 })
 
 //new SPOO.Impulse({}).add();
@@ -23,21 +26,6 @@ SPOO.ObjectFamily({
 //console.log(SPOO.objectFamilies);
 
 SPOO.tenant('dsl').app('demoapp')
-
-
-
-SPOO.Impulse().add();
-
-new SPOO.Impulse({
-    properties:
-    {
-        evt:
-        {
-            date: new Date(),
-            action: 'this.push'
-        }
-    }
-}).add();
 
 
 

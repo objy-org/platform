@@ -10,7 +10,7 @@ var CONSTANTS = {
 Mapper = function(options) {
 	this.database = {};
 	this.index = {};
-	this.multitenancy = options.multitenancy || CONSTANTS.MULTITENANCY.TENANTIDENTIFIER;
+	this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.DATABASE;
 }
 
 Mapper.prototype.setMultiTenancy = function(value) {
