@@ -12,7 +12,13 @@ SPOO and all available connectors can be downloaded from our GitHub repository.
 First, you need the SPOO Core
 
 ```
-asfsdf
+var SPOO = require('./spoo.js');
+var Obj = require('./catalog/inMemoryObject.js')(SPOO);
+
+Obj({}).addProperty('test', {type: 'boolean', value: true}).add(function(data)
+{
+	console.log(data);
+})
 ```
 
 ## Installing
