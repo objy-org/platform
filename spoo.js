@@ -1,8 +1,8 @@
 var moment = require('moment');
 var shortid = require('shortid');
-var DefaultStorageMapper = require('./storage/defaultMapper.js')
-var DefaultObserverMapper = require('./observer/defaultMapper.js')
-var DefaultProcessorMapper = require('./processor/defaultMapper.js')
+var DefaultStorageMapper = require('./mappers/storage/defaultMapper.js')
+var DefaultObserverMapper = require('./mappers/observer/defaultMapper.js')
+var DefaultProcessorMapper = require('./mappers/processor/defaultMapper.js')
 
 var CONSTANTS = {
 

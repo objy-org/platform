@@ -1,12 +1,16 @@
+var Persistence = require('../mappers/storage/defaultMapper.js');
+var Processor = require('../mappers/processor/defaultMapper.js');
+var Observer = require('../mappers/observer/defaultMapper.js');
 
-var DefaultBackend = require('../backends/DefaultBackend.js');
 
 Obj = function(SPOO, name, pluralName)
 {
 	SPOO.ObjectFamily({
 		name: name || 'Object',
 		pluralName: pluralName || 'Objects',
-		backend: new DefaultBackend()
+		persistence: new Persistence(),
+		processor: new Processor(SPOO),
+		observer: new Observer()
 	})
 }
 
