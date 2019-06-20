@@ -3,7 +3,7 @@ var Processor = require('../mappers/processor/defaultMapper.js');
 var Observer = require('../mappers/observer/defaultMapper.js');
 
 
-Obj = function(SPOO, name, pluralName)
+InMemoryObject = function(SPOO, name, pluralName)
 {
 	SPOO.ObjectFamily({
 		name: name || 'Object',
@@ -12,6 +12,8 @@ Obj = function(SPOO, name, pluralName)
 		processor: new Processor(SPOO),
 		observer: new Observer()
 	})
+
+	return SPOO[name || 'Object'];
 }
 
-module.exports = Obj;
+module.exports = InMemoryObject;
