@@ -5,11 +5,16 @@ var CONSTANTS = {
     MULTITENANCY: {
         ISOLATED: "isolated",
         SHARED: "shared"
+    },
+    TYPES: {
+        SCHEDULED: 'sheduled',
+        QUERIED: 'queried'
     }
 }
 
 
 Mapper = function(options) {
+    this.type = (options || {}).type || CONSTANTS.TYPES.SCHEDULED;
     this.database = {};
     this.index = {};
     this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.ISOLATED;

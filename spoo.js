@@ -258,6 +258,7 @@ var SPOO = {
 
     handlerSequence:[],
     permissionSequence:[],
+    eventAlterationSequence: [],
 
     tenant: function(tenant)
     {
@@ -1567,6 +1568,7 @@ var SPOO = {
 
                     if (_event[eventKey].interval === undefined) throw new MissingAttributeException('interval');
 
+                    instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, propData: property, date: _event[eventKey].nextOccurence })
 
 
                 } else if (_event[eventKey].date !== undefined) {
@@ -1577,16 +1579,13 @@ var SPOO = {
                     if (!_event[eventKey].date) throw new MissingAttributeException('date');
 
                     try {
-                        if (!moment(_event[eventKey].date).isValid()) throw new InvalidDateException(_event[eventKey].date);
-                    } catch (e) {
-                        //throw new InvalidDateException(_event[eventKey].date);
-                    }
-
-                    try {
                         _event[eventKey].date = moment(_event[eventKey].date).format();
                     } catch (e) {
 
                     }
+
+                    instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, propData: property, date: _event[eventKey].date })
+
 
                     if (!_event[eventKey].action) _event[eventKey].action = '';
                 } else {
@@ -2335,6 +2334,7 @@ var SPOO = {
             if (typeof(access) == 'string') {
                 access = access.split('.');
             }
+            
             if (access.length > 1) {
 
                 var shift = access.shift();
@@ -2524,7 +2524,7 @@ var SPOO = {
     },
 
 
-    EventDateSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
+    EventDateSetWrapper: function(obj, propertyKey, newValue,  client, instance) {
 
 
         function setValue(obj, access, value) {
@@ -2562,6 +2562,11 @@ var SPOO = {
                 delete obj.properties[access[0]].lastOccurence;
                 delete obj.properties[access[0]].nextOccurence;
                 obj.properties[access[0]].date = newValue;
+                
+
+                instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, propData: obj.properties[access[0]], date: newValue })
+                instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, propData: obj.properties[access[0]], date: newValue })
+
             }
         }
 
@@ -2569,7 +2574,7 @@ var SPOO = {
 
     },
 
-    EventActionSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
+    EventActionSetWrapper: function(obj, propertyKey, newValue,  client, instance) {
 
         function setValue(obj, access, value) {
             if (typeof(access) == 'string') {
@@ -2605,6 +2610,9 @@ var SPOO = {
                 if (obj.properties[access[0]].template) obj.properties[access[0]].overwritten = true;
 
                 obj.properties[access[0]].action = newValue;
+
+                instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, propData: obj.properties[access[0]], date: newValue })
+                instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, propData: obj.properties[access[0]], date: newValue })
             }
         }
 
@@ -3001,7 +3009,7 @@ var SPOO = {
             }
 
 
-            new SPOO.EventDateSetWrapper(this, property, value,  client, ['addObject']);
+            new SPOO.EventDateSetWrapper(this, property, value,  client, instance);
             return this;
         };
 
@@ -3019,7 +3027,7 @@ var SPOO = {
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.EventActionSetWrapper(this, property, value,  client, ['addObject']);
+            new SPOO.EventActionSetWrapper(this, property, value,  client, instance);
             return this;
         };
 
@@ -3037,7 +3045,7 @@ var SPOO = {
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.EventTriggeredSetWrapper(this, property, value,  client, ['addObject']);
+            new SPOO.EventTriggeredSetWrapper(this, property, value,  client, instance);
             return this;
         };
 
@@ -3551,8 +3559,6 @@ var SPOO = {
 
             var thisRef = this;
 
-            var newEvents = [];
-
             thisRef.aggregatedEvents = [];
 
             function aggregateAllEvents(props, prePropsString) {
@@ -3581,7 +3587,7 @@ var SPOO = {
 
                         if (prePropsString) {
 
-                            newEvents.push({ obj: thisRef, propName: prePropsString + "." + p, propData: props[p], date: date })
+                            thisRef.instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: prePropsString + "." + p, propData: props[p], date: date })
 
                             var found = false;
                             thisRef.aggregatedEvents.forEach(function(aE) {
@@ -3592,7 +3598,7 @@ var SPOO = {
 
                         } else {
 
-                            newEvents.push({ obj: thisRef, propName: p, propData: props[p], date: date })
+                            thisRef.instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: p, propData: props[p], date: date })
 
                             var found = false;
                             thisRef.aggregatedEvents.forEach(function(aE) {
@@ -3678,9 +3684,6 @@ var SPOO = {
                 }
             })  
 
-
-
-
             if(instance.handlerSequence[this._id])
             {
                 for(var type in instance.handlerSequence[this._id])
@@ -3706,8 +3709,6 @@ var SPOO = {
             this.lastModified = moment().toDate().toISOString();
 
             var thisRef = this;
-
-            var newEvents = [];
 
             thisRef.aggregatedEvents = [];
 
@@ -3737,7 +3738,7 @@ var SPOO = {
 
                         if (prePropsString) {
 
-                            newEvents.push({ obj: thisRef, propName: prePropsString + "." + p, propData: props[p], date: date })
+                           // thisRef.instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: prePropsString + "." + p, propData: props[p], date: date });
 
                             var found = false;
                             thisRef.aggregatedEvents.forEach(function(aE) {
@@ -3748,7 +3749,7 @@ var SPOO = {
 
                         } else {
 
-                            newEvents.push({ obj: thisRef, propName: p, propData: props[p], date: date })
+                            //thisRef.instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: p, propData: props[p], date: date })
 
                             var found = false;
                             thisRef.aggregatedEvents.forEach(function(aE) {
@@ -3763,7 +3764,7 @@ var SPOO = {
                 })
             }
 
-            //aggregateAllEvents(this.properties);
+            aggregateAllEvents(this.properties);
 
 
             SPOO.updateO(this, function(data) {
