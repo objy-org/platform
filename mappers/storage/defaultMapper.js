@@ -13,9 +13,29 @@ Mapper = function(options) {
 	this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.DATABASE;
 }
 
+Mapper.prototype.connect = function(connectionString, success, error) {
+
+}
+
+Mapper.prototype.closeConnection = function(success, error) {
+    
+}
+
 Mapper.prototype.setMultiTenancy = function(value) {
     this.multitenancy = value;
 };
+
+Mapper.prototype.createClient = function(client, success, error) {
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
+        if(this.database[client])
+            error('Client already exists')
+
+        this.database[client] = [];
+        this.index[client] = {};
+        success()
+    }
+}
 
 Mapper.prototype.getDBByMultitenancy = function(client) {
         
@@ -26,13 +46,13 @@ Mapper.prototype.getDBByMultitenancy = function(client) {
         } else if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
         	
         	if(!this.database[client])
-            	throw new Error('no database for client ' + client);
+            	error('no database for client ' + client);
 
             return this.database[client];
         }
 };
 
-Mapper.prototype.listTenants = function(success, error) {
+Mapper.prototype.listClients = function(success, error) {
 	if(!this.database)
          return error('no database');
 

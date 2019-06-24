@@ -10,17 +10,13 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
 
     var dbConMain = {};
 
+    Mapper.prototype.connect = function(connectionString, success, error) {
 
-    this.connectInit = function(success, error) {
+    }
 
-    };
+    Mapper.prototype.closeConnection = function(success, error) {
 
-    this.connectInit(connectionSuccess, connectionError);
-
-
-    this.closeConnection = function() {
-
-    };
+    }
 
 
     this.getObjById = function(id, success, error, constrains, client) {
