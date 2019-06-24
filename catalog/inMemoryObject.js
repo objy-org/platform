@@ -3,8 +3,8 @@ var Processor = require('../mappers/processor/defaultMapper.js');
 var Observer = require('../mappers/observer/defaultMapper.js');
 
 
-InMemoryObject = function(SPOO, name, pluralName)
-{
+InMemoryObject = function(SPOO, name, pluralName) {
+
 	SPOO.ObjectFamily({
 		name: name || 'Object',
 		pluralName: pluralName || 'Objects',

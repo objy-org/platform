@@ -1,3 +1,11 @@
+var _nodejs = (
+  typeof process !== 'undefined' && process.versions && process.versions.node);
+if (_nodejs) {
+  _nodejs = {
+    version: process.versions.node
+  };
+}
+
 var moment = require('moment');
 var shortid = require('shortid');
 var DefaultStorageMapper = require('./mappers/storage/defaultMapper.js')
@@ -259,6 +267,14 @@ var SPOO = {
         return this;
     },
 
+    client: function(tenant)
+    {
+        if(!tenant) throw new Error("No tenant specified");
+        this.activeTenant = tenant;
+
+        return this;
+    },
+
     user: function(user)
     {
         if(!user) throw new Error("No user specified");
@@ -469,11 +485,13 @@ var SPOO = {
             this.plugInProcessor(params.name, params.backend.processor);
             this.plugInObserver(params.name, params.backend.observer);
         }
+
+        return this[params.name];
     },
     
     ObjectFamily: function(params)
     {
-        this.define(params);
+        return this.define(params);
     },
 
     mappers: {},
@@ -3944,5 +3962,5 @@ var defaultMappers = {
 
 
 
-module.exports = SPOO;
+if(_nodejs) module.exports = SPOO;
 

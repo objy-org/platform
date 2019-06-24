@@ -54,7 +54,6 @@ Mapper.prototype.getEvent = function(objId, propName, success, error, client) {
             if(db[this.index[client][id]].tenantId != client) 
                 error('object not found: ' + id);
         
-
         success(db[this.index[client][id]]);
 }
 
