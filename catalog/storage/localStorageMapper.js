@@ -19,7 +19,7 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
     }
 
 
-    this.getObjById = function(id, success, error, constrains, client) {
+    this.getById = function(id, success, error, constrains, client) {
 
         var items = JSON.parse(localStorage.getItem('objs_' + client)) || {};
         var item = null;
@@ -31,29 +31,22 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
     }
 
 
-    this.getObjsByCriteria = function(criteria, success, error, constrains, client, flags, all) {
+    this.getByCriteria = function(criteria, success, error, constrains, client, flags, all) {
 
     }
 
 
-    this.aggregateObjsByCriteria = function(aggregation, criteria, success, error, constrains, client, flags) {
+    this.count = function(criteria, success, error, constrains, client, flags) {
 
-
-        switch (aggregation) {
-            case 'count':
-                return Object.keys(this.objects).length;
-                break;
-            default:
-                error();
-        }
-
+      return Object.keys(this.objects).length;
+      
     }
 
-    this.updateObj = function(spooElement, success, error, constrains, client) {
+    this.update = function(spooElement, success, error, constrains, client) {
         this.objects[spooElement._id] = spooElement;
     };
 
-    this.addObj = function(spooElement, success, error, constrains, client) {
+    this.add = function(spooElement, success, error, constrains, client) {
         var items = JSON.parse(localStorage.getItem('objs_' + client)) || {};
 
         if (items[spooElement._id]) {
@@ -66,7 +59,7 @@ localStorageMapper = function(connectionString, connectionSuccess, connectionErr
         localStorage.setItem(JSON.stringify(items));
     };
 
-    this.removeObj = function(spooElement, success, error, constrains, client) {
+    this.remove = function(spooElement, success, error, constrains, client) {
         delete this.spooElement[spooElement._id];
     };
 

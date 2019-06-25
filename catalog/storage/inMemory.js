@@ -61,7 +61,7 @@ Mapper.prototype.listClients = function(success, error) {
 };
 
 
-Mapper.prototype.getObjById = function(id, success, error, app, client) {
+Mapper.prototype.getById = function(id, success, error, app, client) {
         
         var db = this.getDBByMultitenancy(client);
 
@@ -77,7 +77,7 @@ Mapper.prototype.getObjById = function(id, success, error, app, client) {
 }
 
 
-Mapper.prototype.getObjsByCriteria = function(criteria, success, error, app, client, flags) {
+Mapper.prototype.getByCriteria = function(criteria, success, error, app, client, flags) {
 
 	var db = this.getDBByMultitenancy(client);
 
@@ -91,7 +91,7 @@ Mapper.prototype.getObjsByCriteria = function(criteria, success, error, app, cli
 }
 
 
-Mapper.prototype.aggregateObjsByCriteria = function(aggregation, criteria, success, error, app, client, flags) {
+Mapper.prototype.aggregateByCriteria = function(aggregation, criteria, success, error, app, client, flags) {
 
 
 	var db = this.getDBByMultitenancy(client);
@@ -108,7 +108,7 @@ Mapper.prototype.aggregateObjsByCriteria = function(aggregation, criteria, succe
 
 }
 
-Mapper.prototype.updateObj = function(spooElement, success, error, app, client) {
+Mapper.prototype.update = function(spooElement, success, error, app, client) {
         
         var db = this.getDBByMultitenancy(client);
 
@@ -124,7 +124,7 @@ Mapper.prototype.updateObj = function(spooElement, success, error, app, client) 
         success(db[spooElement._id]);
 };
 
-Mapper.prototype.addObj = function(spooElement, success, error, app, client) {
+Mapper.prototype.add = function(spooElement, success, error, app, client) {
 
         if(!this.database[client])
             this.database[client] = [];
@@ -146,7 +146,7 @@ Mapper.prototype.addObj = function(spooElement, success, error, app, client) {
         success(spooElement);
 };
 
-Mapper.prototype.removeObj = function(spooElement, success, error, app, client) {
+Mapper.prototype.remove = function(spooElement, success, error, app, client) {
 
         var db = this.getDBByMultitenancy(client);
 

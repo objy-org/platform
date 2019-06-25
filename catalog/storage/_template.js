@@ -34,27 +34,27 @@ Mapper.prototype.listClients = function(success, error) {
 
 };
 
-Mapper.prototype.getObjById = function(id, success, error, app, client) {
+Mapper.prototype.getById = function(id, success, error, app, client) {
 
 }
 
-Mapper.prototype.getObjsByCriteria = function(criteria, success, error, app, client, flags) {
+Mapper.prototype.getByCriteria = function(criteria, success, error, app, client, flags) {
 
 }
 
-Mapper.prototype.aggregateObjsByCriteria = function(aggregation, criteria, success, error, app, client, flags) {
+Mapper.prototype.count = function(criteria, success, error, app, client, flags) {
 
 }
 
-Mapper.prototype.updateObj = function(spooElement, success, error, app, client) {
+Mapper.prototype.update = function(spooElement, success, error, app, client) {
 
 };
 
-Mapper.prototype.addObj = function(spooElement, success, error, app, client) {
+Mapper.prototype.add = function(spooElement, success, error, app, client) {
 
 };
 
-Mapper.prototype.removeObj = function(spooElement, success, error, app, client) {
+Mapper.prototype.remove = function(spooElement, success, error, app, client) {
 
 };
 

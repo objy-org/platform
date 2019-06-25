@@ -186,7 +186,6 @@ DefaultObserverMapper.prototype.removeEvent = function(objId, propName, success,
 // Processor Mapper
 
 
-
 DefaultProcessorMapper = function(SPOO) {
     this.SPOO = SPOO;
     this.multitenancy = CONSTANTS.MULTITENANCY.ISOLATED;
@@ -258,7 +257,7 @@ DefaultStorageMapper.prototype.listClients = function(success, error) {
 };
 
 
-DefaultStorageMapper.prototype.getObjById = function(id, success, error, app, client) {
+DefaultStorageMapper.prototype.getById = function(id, success, error, app, client) {
 
     var db = this.getDBByMultitenancy(client);
 
@@ -274,7 +273,7 @@ DefaultStorageMapper.prototype.getObjById = function(id, success, error, app, cl
 }
 
 
-DefaultStorageMapper.prototype.getObjsByCriteria = function(criteria, success, error, app, client, flags) {
+DefaultStorageMapper.prototype.getByCriteria = function(criteria, success, error, app, client, flags) {
 
     var db = this.getDBByMultitenancy(client);
 
@@ -288,24 +287,15 @@ DefaultStorageMapper.prototype.getObjsByCriteria = function(criteria, success, e
 }
 
 
-DefaultStorageMapper.prototype.aggregateObjsByCriteria = function(aggregation, criteria, success, error, app, client, flags) {
-
+DefaultStorageMapper.prototype.count = function(criteria, success, error, app, client, flags) {
 
     var db = this.getDBByMultitenancy(client);
 
-    switch (aggregation) {
-        case 'count':
-
-            success(Query.query(db, criteria).length);
-
-            break;
-        default:
-            error();
-    }
+    success(Query.query(db, criteria).length);
 
 }
 
-DefaultStorageMapper.prototype.updateObj = function(spooElement, success, error, app, client) {
+DefaultStorageMapper.prototype.update = function(spooElement, success, error, app, client) {
 
     var db = this.getDBByMultitenancy(client);
 
@@ -321,7 +311,7 @@ DefaultStorageMapper.prototype.updateObj = function(spooElement, success, error,
     success(db[spooElement._id]);
 };
 
-DefaultStorageMapper.prototype.addObj = function(spooElement, success, error, app, client) {
+DefaultStorageMapper.prototype.add = function(spooElement, success, error, app, client) {
 
     if (!this.database[client])
         this.database[client] = [];
@@ -343,7 +333,7 @@ DefaultStorageMapper.prototype.addObj = function(spooElement, success, error, ap
     success(spooElement);
 };
 
-DefaultStorageMapper.prototype.removeObj = function(spooElement, success, error, app, client) {
+DefaultStorageMapper.prototype.remove = function(spooElement, success, error, app, client) {
 
     var db = this.getDBByMultitenancy(client);
 
@@ -1155,7 +1145,7 @@ var SPOO = {
         var self = this;
 
         if (!this.mappers[obj.role]) {
-            return defaultMappers.persistence.removeObj(obj, function(data) {
+            return defaultMappers.persistence.remove(obj, function(data) {
                 success(data);
 
 
@@ -1198,7 +1188,7 @@ var SPOO = {
     addObject: function(obj, success, error, app, client) {
 
         if (!this.mappers[obj.role]) {
-            return defaultMappers.persistence.addObj(obj, function(data) {
+            return defaultMappers.persistence.add(obj, function(data) {
                 success(data);
 
             }, function(err) {
@@ -1255,7 +1245,7 @@ var SPOO = {
     updateObject: function(obj, success, error, client) {
 
         if (!this.mappers[obj.role]) {
-            return defaultMappers.persistence.updateObj(obj, function(data) {
+            return defaultMappers.persistence.update(obj, function(data) {
                 success(data);
 
             }, function(err) {
@@ -1274,7 +1264,7 @@ var SPOO = {
     getObjectById: function(role, id, success, error, app, client) {
 
         if (!this.mappers[role]) {
-            return defaultMappers.persistence.getObjById(id, function(data) {
+            return defaultMappers.persistence.getById(id, function(data) {
                 success(data);
 
             }, function(err) {
@@ -1307,7 +1297,7 @@ var SPOO = {
         var objectsCache = [];
 
         if (!this.mappers[role]) {
-            return defaultMappers.persistence.getObjsByCriteria(criteria, function(data) {
+            return defaultMappers.persistence.getByCriteria(criteria, function(data) {
                 success(data);
 
             }, function(err) {
