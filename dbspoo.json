@@ -1,0 +1,53 @@
+{
+  "objects": [
+    {
+      "role": "object",
+      "type": null,
+      "applications": [],
+      "inherits": [],
+      "name": "HALLO",
+      "onCreate": null,
+      "onDelete": null,
+      "created": "2019-05-22T17:25:55.284Z",
+      "lastModified": "2019-05-22T17:25:55.284Z",
+      "properties": {},
+      "permissions": {},
+      "aggregatedEvents": [],
+      "_id": "MbceAWGjyraI;mjBnF30_3WuE"
+    },
+    {
+      "role": "object",
+      "type": null,
+      "applications": [],
+      "inherits": [],
+      "name": "HALLO",
+      "onCreate": null,
+      "onDelete": null,
+      "created": "2019-05-22T17:27:06.824Z",
+      "lastModified": "2019-05-22T17:27:06.837Z",
+      "properties": {
+        "hallo": "marco"
+      },
+      "permissions": {},
+      "aggregatedEvents": [],
+      "_id": "aArlsyqvinCNKfxv_cIaRDHW6"
+    },
+    {
+      "role": "object",
+      "type": null,
+      "applications": [],
+      "inherits": [],
+      "name": null,
+      "onCreate": null,
+      "onDelete": null,
+      "created": "2019-05-22T17:32:40.675Z",
+      "lastModified": "2019-05-22T17:32:40.677Z",
+      "properties": {
+        "hallo2": "marco"
+      },
+      "permissions": {},
+      "aggregatedEvents": [],
+      "_id": "i9mJ9GWlgRKhIBKdGKdSzcWkP"
+    }
+  ]
+}
