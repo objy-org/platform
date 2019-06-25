@@ -12,10 +12,59 @@ Objects are at the center of every use case. They consist of the following key f
 
 With theese features, objects can be used to represent any entity and transform real-life use cases into digital representations.
 
-## Quick Example
+
+## Getting Started
+
+SPOO runs on JavaScript and can be used on any JS Runtime, like Node.js or Browsers. In order to plug in technologies, like Databses or Data Processing Frameworks, get the right connectors, or build something yourself.
+
+SPOO and all available connectors can be downloaded from our GitHub repository.
 
 
 First, you need the SPOO Core
+
+```
+SPOO.Object({name: "Hello World"}).add(function(data)
+{
+	console.log(data);
+});
+
+SPOO.Objects({name: "Hello World"}).get(function(data){
+	
+})
+```
+
+## Installing
+
+
+### NPM
+
+
+```
+npm install spoo
+```
+
+
+### CDN
+
+Core Framework
+
+```
+https://spoo.io/code/spoo.js
+
+ - or -
+ 
+https://spoo.io/code/spoo.min.js
+
+```
+
+
+
+## Getting started
+
+Explain how to run the automated tests for this system
+
+Explain what these tests test and why
+
 
 ```
 var SPOO = require('./spoo.js');
@@ -36,132 +85,6 @@ SPOO.Object({}).addProperty('test', {type: 'boolean', value: true}).add(function
 	console.log(data);
 })
 ```
-
-## Getting Started
-
-SPOO runs on JavaScript and can be used on any JS Runtime, like Node.js or Browsers. In order to plug in technologies, like Databses or Data Processing Frameworks, get the right connectors, or build something yourself.
-
-SPOO and all available connectors can be downloaded from our GitHub repository.
-
-
-First, you need the SPOO Core
-
-```
-var SPOO = require('./spoo.js');
-var Obj = require('./catalog/inMemoryObject.js')(SPOO);
-
-Obj({}).addProperty('test', {type: 'boolean', value: true}).add(function(data)
-{
-	console.log(data);
-})
-```
-
-## Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
-### NPM
-
-Core Framework
-
-```
-npm install spoo
-```
-
-Data Persistence Mappers
-
-```
-npm install spoo-mongodb
-```
-
-Data Processing Mappers
-
-```
-npm install spoo-bulljs
-```
-
-
-### CDN
-
-Core Framework
-
-```
-npm install spoo
-```
-
-Data Persistence Mappers
-
-```
-npm install spoo-mongodb
-```
-
-Data Processing Mappers
-
-```
-npm install spoo-bulljs
-```
-
-
-### Kubernetes
-
-Core Framework
-
-```
-npm install spoo
-```
-
-Data Persistence Mappers
-
-```
-npm install spoo-mongodb
-```
-
-Data Processing Mappers
-
-```
-npm install spoo-bulljs
-
-```
-
-
-
-## Getting started
-
-Explain how to run the automated tests for this system
-
-Explain what these tests test and why
-
-
-```
-var SPOO = require('spoo');
-var MAPPER = require('spoo-mongodb');
-
-// Say hello and make sure everything works
-SPOO.hello(); // "Hello from SPOO"
-
-
-// Plug in mappers
-var mapper = SPOO.plugInMapper('plain', new MAPPER());
-
-// Define object families
-
-SPOO.objectFamily('Plain', mapper);
-
-
-SPOO.Plain = function(obj) {
-    return new SPOO.Obj(obj, 'plain');
-}
-
-
-var test = new SPOO.Plain({ name: "test" }).add(function(data, err)
-{
-	console.log(data);
-})
-
-```
-
 
 ## Documentation
 
