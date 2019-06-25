@@ -35,11 +35,8 @@ https://spoo.io/code/spoo.min.js
 
 
 ```javascript
-// Define an object family
-SPOO.ObjectFamily({
-	name : "Object",
-	pluralName: "Objects"
-})
+// Include SPOO (Node.js)
+const SPOO = require('spoo');
 
 // Initialize in the context of a client and (optionally) an app
 SPOO.client('myComapny').app('helloWorldApp');
