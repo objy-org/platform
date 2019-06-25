@@ -58,20 +58,26 @@ https://spoo.io/code/spoo.min.js
 ```
 
 
+## Custom Object Families with Adapters
 
-## Getting started
+In order to build production-grade platforms and solutions, SPOO let's your plug in just the right technologies for specific use cases. This is what object families are for. They represent objects that have the same requirements for the underlying technologies used for persistence, processing and observation.
 
-Explain how to run the automated tests for this system
+| Mapper Type | Description | Examples
+--- | --- | ---
+|Persistence| Used to store objects and delegate CRUD operations | Database Systems, File Systems or Caches.
+Processor | Used to execute object actions, event actions and handler actions |  Anything that executes JS Code, like eval or the VM Module. Can be proxied with Messaging Systems.
+Observer | Observes object events and execute their actions. | Cron-based solutions or event schedulers
 
-Explain what these tests test and why
 
 
+### Example
 ```
-var SPOO = require('./spoo.js');
+// Install the mappers
 var storage = require('./mappers/persistence/inMemory.js');
 var observer = require('./mappers/observer/inMemory.js');
 var processor = require('./mappers/processor/inMemory.js');
 
+// Define an object family
 SPOO.define({
 	name : "Object",
 	pluralName: "Objects",
@@ -80,7 +86,8 @@ SPOO.define({
 	processor: new processor()
 })
 
-SPOO.Object({}).addProperty('test', {type: 'boolean', value: true}).add(function(data)
+// Use the object family's constructor
+SPOO.Object({name: "Hello World"}).add(function(data)
 {
 	console.log(data);
 })
