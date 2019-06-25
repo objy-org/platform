@@ -2,7 +2,18 @@
 
 A framework that uses dynamic, behaviour-driven objects to digitalize real-life use cases and build infrastructure-agnostic, multitenant platforms for any infrastructure and any scale.
 
-## SPOO Objects
+
+[Getting Started](https://www.patreon.com/evanyou).
+
+
+
+## Getting Started
+
+
+
+SPOO runs on JavaScript and can be used on any JS Runtime, like Node.js or Browsers. In order to plug in technologies, like Databses or Data Processing Frameworks, get the right connectors, or build something yourself.
+
+SPOO can be downloaded from our GitHub repository.
 
 Objects are at the center of every use case. They consist of the following key features:
 
@@ -12,12 +23,6 @@ Objects are at the center of every use case. They consist of the following key f
 
 With theese features, objects can be used to represent any entity and transform real-life use cases into digital representations.
 
-
-## Getting Started
-
-SPOO runs on JavaScript and can be used on any JS Runtime, like Node.js or Browsers. In order to plug in technologies, like Databses or Data Processing Frameworks, get the right connectors, or build something yourself.
-
-SPOO and all available connectors can be downloaded from our GitHub repository.
 
 
 ```
@@ -124,6 +129,22 @@ SPOO.Object({name: "Hello World"}).add(function(data)
 	console.log(data);
 })
 ```
+
+## Build your own mapper - extend the ecosystem
+
+If you need a mapper that doesn't exist yet, you can simply build it yourself. Each mapper type must follow a predefined structure, that can be found inside the mapper directories (_template.js). You can use this template as a starting point.
+
+### Why build a new mapper?
+
+Building mappers is the best way to participate in the SPOO Ecosystem. 
+
+Every use case may have different requirements for the technologies used. By matching requirements and technical solutions, the best results can be archieved.
+
+With many different mappers for different technologies, SPOO can be used to build platforms for a varaity of different use cases and domains.
+
+### Natively integrate third party systems
+
+Mappers can also be used to connect to third party systems and introduce third party data as SPOO objects in your platform.
 
 
 ## Contributing
