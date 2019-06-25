@@ -2,41 +2,20 @@
 
 A framework that uses dynamic, behaviour-driven objects to digitalize real-life use cases and build infrastructure-agnostic, multitenant platforms for any infrastructure and any scale.
 
+## Table of Contents
 
-[Getting Started](https://www.patreon.com/evanyou).
+- [Getting Started](#Getting Started).
+- [Installing](dgs)
 
 
 
 ## Getting Started
 
-
 SPOO is written in JavaScript and can be used on any JS Runtime, like Node.js or Browsers. It can be downloaded from our GitHub repository or from spoo.io.
 
 
-## Main Concepts
-
-### Objects
-
-In real life, everything is an object. Every object is dynamic, has characteristics, behaviour and can execute actions. In SPOO, we are adopting the way objects work in real life by offering a way to model objects, that can have the same features like in real life. This makes it super easy to turn real use cases into its digital representation
-
-In fact, SPOO stands for Single Point of Object.
-
-Objects can have the following features
-
-
-### Pluggable Technologies
-
-Every use case has it's special technical requirements. That's why SPOO has a plaggable and extendable mapper ecosystem to plug in any technology responsible for data persistence, processing and observation. These mappers can be used to define Object Families (Objects that have the same technical requirements and share the same mappers).
-
-### Multitenancy and App Context
-
-SPOO Objects have built-in, configurable multitenancy capabilities.
-
-Objects can be assigned to one or more App contexts, which makes the development of different Applications super easy.
-
 
 ## Installing
-
 
 ### NPM
 
@@ -56,88 +35,100 @@ https://spoo.io/code/spoo.js
 https://spoo.io/code/spoo.min.js
 ```
 
-## Documentation
+
+
+## Main Concepts
+
+
+### Objects
+
+In real life, everything is an object. Every object is dynamic, has characteristics, behaviour and can execute actions. In SPOO, we are adopting the way objects work in real life by offering a way to model objects, that can have the same features like in real life. This makes it super easy to turn real use cases into its digital representation
+
+In fact, SPOO stands for Single Point of Object.
+
+Objects can have the following features
+
+
+### Pluggable Technologies
+
+Every use case has it's special technical requirements. That's why SPOO has a plaggable and extendable mapper ecosystem to plug in any technology responsible for data persistence, processing and observation. These mappers can be used to define Object Families (Objects that have the same technical requirements and share the same mappers).
+
+### Platform Capabilities
+
+- Runs on any infrastructure, at any scale
+- Don't write much code, just define objects
+- Multitenancy
+- App Contexts
+- User and Permission Handling
+
+
+
+## Quick Example
+
 
 ```
-SPOO.Object({name: "Hello World"}).add(function(data)
-{
-	console.log(data);
-});
+// Define an object family
+SPOO.ObjectFamily({
+	name : "Object",
+	pluralName: "Objects"
+})
 
-SPOO.Objects({name: "Hello World"}).get(function(data){
-	
+// Initialize in the context of a client and (optionally) an app
+SPOO.client('myComapny').app('helloWorldApp');
+
+// Create an object
+SPOO.Object({name: "Hello World"}).add( obj => {
+	console.log(data);
+}, err => {
+	console.error(err);
+})
+
+// Get a single object by its id
+SPOO.Object("id...").get( obj => {
+	console.log(obj);
+}, err => {
+	console.error(err);
+})
+
+// Query Objects
+SPOO.Object({name: "Hello Word"}).get( objs => {
+	console.log(objs);
+}, err => {
+	console.error(err);
 })
 ```
 
-### Object Anatomy
-
-### Object Methods
-
-### Global Methods
 
 
-## Custom Object Families
+## Custom Object Families with Mappers
 
 In order to build production-grade platforms and solutions, SPOO let's your plug in just the right technologies for specific use cases. This is what object families are for. They represent objects that have the same requirements for the underlying technologies used for persistence, processing and observation.
 
-## Cataloge
-
-The "Catalog" holds ready-to-use object families with different underlying technologies.
-
-### Example
-
-```
-var SPOO = require('./spoo.js');
-
-// Install the object family
-var InMemObject = require('./cataloge/inMemoryObject.js')(SPOO);
-
-
-// Use the object family's constructor
-SPOO.InMemObject({name: "Hello World"}).add(function(data)
-{
-	console.log(data);
-})
-```
-
-
-
-## Adapters
-
-
-There are three types of adapters: Persistence, Processing and Observation.
-
-
-| Mapper Type | Description | Examples
---- | --- | ---
-|Persistence| Used to store objects and delegate CRUD operations | Database Systems, File Systems or Caches.
-Processor | Used to execute object actions, event actions and handler actions |  Anything that executes JS Code, like eval or the VM Module. Can be proxied with Messaging Systems.
-Observer | Observes object events and execute their actions. | Cron-based solutions or event schedulers
-
-
+See [Mappers](#mappers) for details.
 
 ### Example
 ```
 // Install the mappers
-var storage = require('./mappers/persistence/inMemory.js');
-var observer = require('./mappers/observer/inMemory.js');
-var processor = require('./mappers/processor/inMemory.js');
+var InMemoryMapper = require('./mappers/persistence/inMemory.js');
+var RealTimeObserver = require('./mappers/observer/realTime.js');
+var RealTimeProcessor = require('./mappers/processor/realTime.js');
 
-// Define an object family
+// Define an object family with mappers
 SPOO.define({
-	name : "Object",
-	pluralName: "Objects",
-	persistence: new storage(),
-	observer: new observer(),
-	processor: new processor()
+	name : "Item",
+	pluralName: "Items",
+	persistence: new InMemoryMapper(),
+	observer: new RealTimeObserver(),
+	processor: new RealTimeProcessor()
 })
 
 // Use the object family's constructor
-SPOO.Object({name: "Hello World"}).add(function(data)
-{
+SPOO.Item({name: "Hello World"}).add( obj => {
 	console.log(data);
 })
 ```
+
+
 
 ## Build your own mapper - extend the ecosystem
 
