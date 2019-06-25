@@ -57,10 +57,46 @@ https://spoo.io/code/spoo.min.js
 
 ```
 
+## Documentation
 
-## Custom Object Families with Adapters
+### Object Anatomy
+
+### Object Methods
+
+### Global Methods
+
+
+## Custom Object Families
 
 In order to build production-grade platforms and solutions, SPOO let's your plug in just the right technologies for specific use cases. This is what object families are for. They represent objects that have the same requirements for the underlying technologies used for persistence, processing and observation.
+
+## Cataloge
+
+The "Catalog" holds ready-to-use object families with different underlying technologies.
+
+### Example
+
+```
+var SPOO = require('./spoo.js');
+
+// Install the object family
+var InMemObject = require('./cataloge/inMemoryObject.js')(SPOO);
+
+
+// Use the object family's constructor
+SPOO.InMemObject({name: "Hello World"}).add(function(data)
+{
+	console.log(data);
+})
+```
+
+
+
+## Adapters
+
+
+There are three types of adapters: Persistence, Processing and Observation.
+
 
 | Mapper Type | Description | Examples
 --- | --- | ---
@@ -93,36 +129,15 @@ SPOO.Object({name: "Hello World"}).add(function(data)
 })
 ```
 
-## Documentation
-
-### Object Anatomy
-
-### Object Methods
-
-### Global Methods
-
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
-
-## Built With
-
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
 
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
 
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
 
 ## Authors
 
-* **Marco Boelling** - *Creator of SPOO, CEO SPOO Technologies* - [Twitter](https://twitter.com/marcoboelling)
+* **Marco Boelling** - *Creator of SPOO* - [Twitter](https://twitter.com/marcoboelling)
 
 See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
@@ -130,9 +145,9 @@ See also the list of [contributors](https://github.com/your/project/contributors
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
 
-## Acknowledgments
+## Connect
 
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* [spoo.io](https://spoo.io) - SPOO's official website
+* [Twitter](https://www.twitter.com/spooio) - SPOO's Twitter
+* [Medium](https://medium.com/spoo-io) - Official SPOO Blog
 
