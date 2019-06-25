@@ -19,7 +19,7 @@ SPOO is written in JavaScript and can be used on any JS Runtime, like Node.js or
 
 ### NPM
 
-```
+```shell
 npm install spoo
 ```
 
@@ -27,7 +27,7 @@ npm install spoo
 ### CDN
 
 
-```
+```shell
 https://spoo.io/code/spoo.js
 
  - or -
@@ -70,7 +70,7 @@ SPOO is perfect for building platforms, because it has everything a platform nee
 ## Quick Example
 
 
-```
+```javascript
 // Define an object family
 SPOO.ObjectFamily({
 	name : "Object",
@@ -111,7 +111,7 @@ In order to build production-grade platforms and solutions, SPOO let's you plug 
 See [Mappers](#mappers) for details.
 
 ### Example
-```
+```javascript
 // Define an object family with mappers
 SPOO.define({
 	name : "Item",
