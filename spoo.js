@@ -1,17 +1,14 @@
 var _nodejs = (
-  typeof process !== 'undefined' && process.versions && process.versions.node);
+    typeof process !== 'undefined' && process.versions && process.versions.node);
 if (_nodejs) {
-  _nodejs = {
-    version: process.versions.node
-  };
+    _nodejs = {
+        version: process.versions.node
+    };
 }
 
 var moment = require('moment');
 var shortid = require('shortid');
-
-var DefaultStorageMapper = require('./my_mappers/storage/inMemory.js')
-var DefaultObserverMapper = require('./my_mappers/observer/inMemoryStream.js')
-var DefaultProcessorMapper = require('./my_mappers/processor/eval.js')
+var Query = require("query");
 
 var CONSTANTS = {
 
@@ -41,8 +38,337 @@ var CONSTANTS = {
         TYPE_EVENT: 'event',
         TYPE_ACTION: 'action',
         TYPE_JSON: 'json'
+    },
+
+    MULTITENANCY: {
+        ISOLATED: "isolated",
+        SHARED: "shared"
+    },
+    TYPES: {
+        SCHEDULED: 'scheduled',
+        QUERIED: 'queried'
     }
 }
+
+
+/*
+ * Default Mappers
+ */
+
+// SCHEDULED MAPPER
+
+DefaultObserverMapper = function(SPOO, options) {
+    this.type = (options || {}).type || CONSTANTS.TYPES.SCHEDULED;
+    this.database = {};
+    this.index = {};
+    this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.ISOLATED;
+}
+
+DefaultObserverMapper.prototype.setMultiTenancy = function(value) {
+    this.multitenancy = value;
+};
+
+DefaultObserverMapper.prototype.getDBByMultitenancy = function(client) {
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED) {
+        if (!Array.isArray(this.database)) this.database = [];
+
+        return this.database;
+    } else if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED) {
+
+        if (!this.database[client])
+            throw new Error('no database for client ' + client);
+
+        return this.database[client];
+    }
+};
+
+DefaultObserverMapper.prototype.listTenants = function(success, error) {
+    if (!this.database)
+        return error('no database');
+
+
+    success(Object.keys(this.database));
+};
+
+
+DefaultObserverMapper.prototype.getEvent = function(objId, propName, success, error, client) {
+
+    var db = this.getDBByMultitenancy(client);
+
+    if (!db[objId])
+        return error('object not found: ' + objId);
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED)
+        if (db[this.index[client][objId]].tenantId != client)
+            error('object not found: ' + objId);
+
+    success(db[this.index[client][objId]]);
+}
+
+DefaultObserverMapper.prototype.addEvent = function(objId, propName, event, success, error, client) {
+
+    var self = this;
+
+    if (!this.database[client])
+        this.database[client] = [];
+
+    if (!this.index[client]) this.index[client] = [];
+
+    if (this.index[client][objId + ':' + propName])
+        return error('object with taht id already exists: ' + objId);
+
+    if (!this.index[client]) this.index[client] = {};
+
+    var db = this.getDBByMultitenancy(client);
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED)
+        event.tenantId = client;
+
+    if (event.date) {
+        var difference = Infinity;
+
+        difference = moment().diff(event.date);
+
+        db.push(setTimeout(function() {
+
+            // @TODO: link to processor
+
+        }, difference))
+    } else if (event.interval) {
+
+        var interval = Infinity; // @TODO: convert iso8601 duration to millis
+
+        interval = moment.duration(event.interval).asMilliseconds()
+
+        if (interval == 0) interval = Infinity;
+
+        db.push(setInterval(function() {
+
+            // @TODO: link to processor
+
+            console.log(event.action);
+
+            //self.processor.execute(dsl, obj, prop, data, callback, client, app, user, options);
+
+        }, interval))
+    }
+
+    this.index[client][objId + ':' + propName] = db.length;
+
+    success(event);
+
+};
+
+DefaultObserverMapper.prototype.removeEvent = function(objId, propName, success, error, client) {
+
+    var db = this.getDBByMultitenancy(client);
+
+
+
+    if (!this.index[client][objId + ':' + propName])
+        return error('object not found: ' + objId + ':' + propName);
+
+
+
+    /*if(this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED)
+        if(this.index[client][objId + ':'+propName].tenantId != client) 
+            return error('object not found: ' + objId + ':'+propName);*/
+
+    console.log(this.index[client]);
+
+
+    db.splice(this.index[client][objId + ':' + propName], 1);
+    delete this.index[client][objId + ':' + propName];
+    success('removed')
+
+};
+
+
+// Processor Mapper
+
+
+
+DefaultProcessorMapper = function(SPOO) {
+    this.SPOO = SPOO;
+    this.multitenancy = CONSTANTS.MULTITENANCY.ISOLATED;
+}
+
+DefaultProcessorMapper.prototype.setMultiTenancy = function(value) {
+    this.multitenancy = value;
+};
+
+DefaultProcessorMapper.prototype.execute = function(dsl, obj, prop, data, callback, client, app, user, options) {
+
+    var SPOO = this.SPOO;
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED) {
+        eval(dsl)
+    } else {
+        eval(dsl)
+    }
+}
+
+
+// Storage Mapper
+
+
+DefaultStorageMapper = function(options) {
+    this.database = {};
+    this.index = {};
+    this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.DATABASE;
+}
+
+DefaultStorageMapper.prototype.connect = function(connectionString, success, error) {
+
+}
+
+DefaultStorageMapper.prototype.closeConnection = function(success, error) {
+
+}
+
+DefaultStorageMapper.prototype.setMultiTenancy = function(value) {
+    this.multitenancy = value;
+};
+
+DefaultStorageMapper.prototype.createClient = function(client, success, error) {
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
+        if (this.database[client])
+            error('Client already exists')
+
+        this.database[client] = [];
+        this.index[client] = {};
+        success()
+    }
+}
+
+DefaultStorageMapper.prototype.getDBByMultitenancy = function(client) {
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER) {
+        if (!Array.isArray(this.database)) this.database = [];
+
+        return this.database;
+    } else if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
+
+        if (!this.database[client])
+            error('no database for client ' + client);
+
+        return this.database[client];
+    }
+};
+
+DefaultStorageMapper.prototype.listClients = function(success, error) {
+    if (!this.database)
+        return error('no database');
+
+
+    success(Object.keys(this.database));
+};
+
+
+DefaultStorageMapper.prototype.getObjById = function(id, success, error, app, client) {
+
+    var db = this.getDBByMultitenancy(client);
+
+    if (!db[id])
+        return error('object not found: ' + id);
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+        if (db[this.index[client][id]].tenantId != client)
+            error('object not found: ' + id);
+
+
+    success(db[this.index[client][id]]);
+}
+
+
+DefaultStorageMapper.prototype.getObjsByCriteria = function(criteria, success, error, app, client, flags) {
+
+    var db = this.getDBByMultitenancy(client);
+
+    if (app)
+        Object.assign(criteria, { applications: { $in: [app] } })
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+        Object.assign(criteria, { tenantId: client })
+
+    success(Query.query(db, criteria));
+}
+
+
+DefaultStorageMapper.prototype.aggregateObjsByCriteria = function(aggregation, criteria, success, error, app, client, flags) {
+
+
+    var db = this.getDBByMultitenancy(client);
+
+    switch (aggregation) {
+        case 'count':
+
+            success(Query.query(db, criteria).length);
+
+            break;
+        default:
+            error();
+    }
+
+}
+
+DefaultStorageMapper.prototype.updateObj = function(spooElement, success, error, app, client) {
+
+    var db = this.getDBByMultitenancy(client);
+
+    if (!this.index[client][spooElement._id]);
+    return error('object not found: ' + id);
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+        if (this.index[client][spooElement._id].tenantId != client)
+            return error('object not found: ' + id);
+
+    db[this.index[client][spooElement._id]] = spooElement;
+
+    success(db[spooElement._id]);
+};
+
+DefaultStorageMapper.prototype.addObj = function(spooElement, success, error, app, client) {
+
+    if (!this.database[client])
+        this.database[client] = [];
+
+    if (!this.index[client]) this.index[client] = [];
+
+    if (this.index[client][spooElement._id])
+        return error('object with taht id already exists: ' + id);
+    if (!this.index[client]) this.index[client] = {};
+
+    var db = this.getDBByMultitenancy(client);
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+        spooElement.tenantId = client;
+
+    db.push(spooElement)
+    this.index[client][spooElement._id] = db.length;
+
+    success(spooElement);
+};
+
+DefaultStorageMapper.prototype.removeObj = function(spooElement, success, error, app, client) {
+
+    var db = this.getDBByMultitenancy(client);
+
+    if (!this.index[client][spooElement._id])
+        return error('object not found: ' + spooElement._id);
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+        if (this.index[client][spooElement._id].tenantId != client)
+            return error('object not found: ' + spooElement._id);
+
+
+    db.splice(this.index[client][spooElement._id], 1);
+    delete this.index[client][spooElement._id];
+    success(spooElement)
+
+};
 
 
 function NoOnChangeException(message) {
@@ -223,24 +549,20 @@ function InvalidHandlerException(message) {
 
 function LackOfPermissionsException(message) {
 
-    if(Array.isArray(message))
-    {
+    if (Array.isArray(message)) {
         var result = "No permissions to perform these operations: ";
 
-        message.forEach(function(m)
-        {
+        message.forEach(function(m) {
             result += "(" + m.name + ": " + m.key + ") ";
         })
 
         this.message = result;
         this.name = 'LackOfPermissionsException';
-    }
-    else
-    {
-         this.message = "No permissions to perform this operation";
+    } else {
+        this.message = "No permissions to perform this operation";
         this.name = 'LackOfPermissionsException';
     }
-   
+
 }
 
 
@@ -251,51 +573,46 @@ var SPOO = {
 
     instance: this,
 
-    activeTenant:null,
+    activeTenant: null,
 
-    activeUser:null,
+    activeUser: null,
 
-    activeApp:null,
+    activeApp: null,
 
-    handlerSequence:[],
-    permissionSequence:[],
+    handlerSequence: [],
+    permissionSequence: [],
     eventAlterationSequence: [],
 
-    tenant: function(tenant)
-    {
-        if(!tenant) throw new Error("No tenant specified");
+    tenant: function(tenant) {
+        if (!tenant) throw new Error("No tenant specified");
         this.activeTenant = tenant;
 
         return this;
     },
 
-    client: function(tenant)
-    {
-        if(!tenant) throw new Error("No tenant specified");
+    client: function(tenant) {
+        if (!tenant) throw new Error("No tenant specified");
         this.activeTenant = tenant;
 
         return this;
     },
 
-    user: function(user)
-    {
-        if(!user) throw new Error("No user specified");
+    user: function(user) {
+        if (!user) throw new Error("No user specified");
         this.activeUser = user;
 
         return this;
     },
 
-    app: function(app)
-    {
-        if(!app) throw new Error("No app specified");
+    app: function(app) {
+        if (!app) throw new Error("No app specified");
         this.activeApp = app;
 
         return this;
     },
 
 
-    checkPermissions: function(user, app, obj, permission, soft)
-    {
+    checkPermissions: function(user, app, obj, permission, soft) {
 
         console.log("arguments p");
         console.log(arguments);
@@ -303,17 +620,16 @@ var SPOO = {
         var result = false;
         // if (privileges === undefined) result = false;
 
-        if(!user) return true;
+        if (!user) return true;
 
         var privileges = user.privileges;
         var permissions = obj.permissions;
 
-        if(!privileges)
-        {
-            if(!soft) throw new LackOfPermissionsException();
+        if (!privileges) {
+            if (!soft) throw new LackOfPermissionsException();
             else return false;
-        } 
-       
+        }
+
 
         if (app) {
             console.log("privofapp");
@@ -328,7 +644,7 @@ var SPOO = {
                 console.log("PRIVILEGES CHECK");
                 console.log(privileges);
             } else {
-                 if(!soft) throw new LackOfPermissionsException();
+                if (!soft) throw new LackOfPermissionsException();
                 else return false;
             }
         }
@@ -390,30 +706,27 @@ var SPOO = {
 
         //console.log("res: " + result);
 
-        if(result == false) 
-            {
-                if(!soft) throw new LackOfPermissionsException();
-                else return false;
-            }
+        if (result == false) {
+            if (!soft) throw new LackOfPermissionsException();
+            else return false;
+        }
         return result;
 
     },
 
-    chainPermission: function(obj, instance, code, name, key)
-    {
-        if(obj.permissions) {
-                    if(Object.keys(obj.permissions).length > 0)  {
-                        if(!instance.permissionSequence[obj._id]) instance.permissionSequence[obj._id] = [];
-                            if(!SPOO.checkPermissions(instance.activeUser, instance.activeApp, obj, code, true))
-                                instance.permissionSequence[obj._id].push({name:name, key: key});
-                    }
-                }
+    chainPermission: function(obj, instance, code, name, key) {
+        if (obj.permissions) {
+            if (Object.keys(obj.permissions).length > 0) {
+                if (!instance.permissionSequence[obj._id]) instance.permissionSequence[obj._id] = [];
+                if (!SPOO.checkPermissions(instance.activeUser, instance.activeApp, obj, code, true))
+                    instance.permissionSequence[obj._id].push({ name: name, key: key });
+            }
+        }
     },
 
     objectFamilies: [],
 
-    getObjectFamilies: function()
-    {
+    getObjectFamilies: function() {
         return this.objectFamilies;
     },
 
@@ -425,8 +738,7 @@ var SPOO = {
 
         this[params.name] = function(obj) {
 
-            if(params.authable)
-            {
+            if (params.authable) {
                 obj.username = obj.username || null;
                 obj.email = obj.email || null;
                 obj.password = obj.password || null;
@@ -465,24 +777,23 @@ var SPOO = {
             return new SPOO.Obj(obj, params.name, this);
         }
 
-        if(this.objectFamilies.indexOf(params.name) == -1) this.objectFamilies.push(params.name);
+        if (this.objectFamilies.indexOf(params.name) == -1) this.objectFamilies.push(params.name);
 
         this[params.pluralName] = function(objs) {
 
             if (!objs) throw new Error("No params defined");
 
             return new SPOO.Objs(objs, params.name, this);
-            
+
         }
 
-        if(params.persistence) this.plugInPersistenceMapper(params.name, params.persistence);
+        if (params.persistence) this.plugInPersistenceMapper(params.name, params.persistence);
 
-        if(params.processor) this.plugInProcessor(params.name, params.processor);
+        if (params.processor) this.plugInProcessor(params.name, params.processor);
 
-        if(params.observer) this.plugInObserver(params.name, params.observer);
+        if (params.observer) this.plugInObserver(params.name, params.observer);
 
-        if(params.backend) 
-        {
+        if (params.backend) {
             this.plugInPersistenceMapper(params.name, params.backend.persistence);
             this.plugInProcessor(params.name, params.backend.processor);
             this.plugInObserver(params.name, params.backend.observer);
@@ -490,17 +801,15 @@ var SPOO = {
 
         return this[params.name];
     },
-    
-    ObjectFamily: function(params)
-    {
+
+    ObjectFamily: function(params) {
         return this.define(params);
     },
 
     mappers: {},
 
-    getPersistenceMapper: function(family)
-    {
-        if(!this.mappers[family]) throw new Error("No such Object Family");
+    getPersistenceMapper: function(family) {
+        if (!this.mappers[family]) throw new Error("No such Object Family");
         return this.mappers[family];
     },
 
@@ -534,7 +843,7 @@ var SPOO = {
 
     execProcessorAction: function(dsl, obj, prop, data, callback, client, options) {
 
-        if (!this.processors[obj.role]) 
+        if (!this.processors[obj.role])
             return defaultMappers.processor.execute(dsl, obj, prop, data, callback, client, this.instance.activeUser, options); //throw new Error("No Processor registered");
 
         this.processors[obj.role].execute(dsl, obj, prop, data, callback, client, this.instance.activeUser, options);
@@ -854,22 +1163,22 @@ var SPOO = {
 
         var self = this;
 
-         if(!this.mappers[obj.role]) {
+        if (!this.mappers[obj.role]) {
             return defaultMappers.persistence.removeObj(obj, function(data) {
                 success(data);
 
 
-                }, function(err) {
-                    error(err);
-                }, app, client);
+            }, function(err) {
+                error(err);
+            }, app, client);
         }
 
 
         this.mappers[obj.role].removeObj(obj, function(data) {
-            
+
             success(data);
 
-          
+
 
         }, function(err) {
             error('Error - Could not remove object');
@@ -897,13 +1206,13 @@ var SPOO = {
 
     addObject: function(obj, success, error, app, client) {
 
-        if(!this.mappers[obj.role]) {
+        if (!this.mappers[obj.role]) {
             return defaultMappers.persistence.addObj(obj, function(data) {
                 success(data);
 
-                }, function(err) {
-                    error(err);
-                }, app, client);
+            }, function(err) {
+                error(err);
+            }, app, client);
         }
 
         this.mappers[obj.role].addObj(obj, function(data) {
@@ -954,13 +1263,13 @@ var SPOO = {
 
     updateObject: function(obj, success, error, client) {
 
-        if(!this.mappers[obj.role]) {
+        if (!this.mappers[obj.role]) {
             return defaultMappers.persistence.updateObj(obj, function(data) {
                 success(data);
 
-                }, function(err) {
-                    error('Error - Could not add object');
-                }, client);
+            }, function(err) {
+                error('Error - Could not add object');
+            }, client);
         }
 
         this.mappers[obj.role].updateObj(obj, function(data) {
@@ -973,24 +1282,24 @@ var SPOO = {
 
     getObjectById: function(role, id, success, error, app, client) {
 
-        if(!this.mappers[role]) {
+        if (!this.mappers[role]) {
             return defaultMappers.persistence.getObjById(id, function(data) {
                 success(data);
 
-                }, function(err) {
-                    error('Error - Could not add object');
-                }, app, client);
+            }, function(err) {
+                error('Error - Could not add object');
+            }, app, client);
         }
 
         this.mappers[role].getObjById(id, function(data) {
 
-             //console.log("---" + data)
+            //console.log("---" + data)
 
             if (data == null) {
                 error('Error - object not found');
                 return;
             }
-            
+
             success(data);
 
 
@@ -1000,19 +1309,19 @@ var SPOO = {
         }, app, client);
     },
 
-    findObjects: function(criteria, role,  success, error, app, client, flags) {
+    findObjects: function(criteria, role, success, error, app, client, flags) {
 
 
         var templatesCache = [];
         var objectsCache = [];
 
-        if(!this.mappers[role]) {
+        if (!this.mappers[role]) {
             return defaultMappers.persistence.getObjsByCriteria(criteria, function(data) {
                 success(data);
 
-                }, function(err) {
-                    error(err);
-                }, app, client, flags);
+            }, function(err) {
+                error(err);
+            }, app, client, flags);
         }
 
 
@@ -1341,7 +1650,7 @@ var SPOO = {
 
     },
 
-    PropertyBagItemRemover: function(obj, propertyName,  instance) {
+    PropertyBagItemRemover: function(obj, propertyName, instance) {
         var allProperties = obj.properties; //obj.getProperties();
         var thisRef = this;
 
@@ -1364,11 +1673,11 @@ var SPOO = {
                 }
 
 
-                if(obj.properties[access[0]].onDelete) {
-                    if(Object.keys(obj.properties[access[0]].onDelete).length > 0)  {
-                        if(!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
-                        if(!instance.handlerSequence[obj._id].onDelete) instance.handlerSequence[obj._id].onDelete = [];
-                            instance.handlerSequence[obj._id].onDelete.push(obj.properties[access[0]].onDelete);
+                if (obj.properties[access[0]].onDelete) {
+                    if (Object.keys(obj.properties[access[0]].onDelete).length > 0) {
+                        if (!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
+                        if (!instance.handlerSequence[obj._id].onDelete) instance.handlerSequence[obj._id].onDelete = [];
+                        instance.handlerSequence[obj._id].onDelete.push(obj.properties[access[0]].onDelete);
                     }
                 }
 
@@ -1430,7 +1739,7 @@ var SPOO = {
     },
 
 
-    ActionCreateWrapper: function(obj, action,  client) {
+    ActionCreateWrapper: function(obj, action, client) {
         console.debug(obj);
         console.log("pppa");
         console.debug(action);
@@ -1455,27 +1764,26 @@ var SPOO = {
 
         property = Object.assign({}, property);
 
-        
+
         var propertyKey = Object.keys(property)[0];
 
-        if (typeof property !== 'object')
-        {
+        if (typeof property !== 'object') {
             throw new InvalidFormatException();
             //obj.properties[propertyKey] = property[propertyKey];
             //return;
         }
 
 
-       
 
-     
+
+
 
         try {
             existing = obj.properties[propertyKey]
-           
+
         } catch (e) {}
 
-         /*iif (!property[propertyKey].type) {
+        /*iif (!property[propertyKey].type) {
 
             obj.properties[propertyKey] = property[propertyKey];
 
@@ -1561,7 +1869,7 @@ var SPOO = {
                     else if (!moment(_event[eventKey].lastOccurence).isValid()) throw new InvalidDateException(_event[eventKey].lastOccurence);
                     else _event[eventKey].lastOccurence = moment(_event[eventKey].lastOccurence).format();
 
-                   
+
 
                     if (_event[eventKey].nextOccurence == undefined)
                         _event[eventKey].nextOccurence = null;
@@ -1571,7 +1879,7 @@ var SPOO = {
 
                     if (_event[eventKey].interval === undefined) throw new MissingAttributeException('interval');
 
-                     _event[eventKey].nextOccurence = moment(_event[eventKey].lastOccurence).add(_event[eventKey].interval)
+                    _event[eventKey].nextOccurence = moment(_event[eventKey].lastOccurence).add(_event[eventKey].interval)
 
                     instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: property, date: _event[eventKey].nextOccurence })
 
@@ -1708,11 +2016,11 @@ var SPOO = {
                 throw new InvalidTypeException(property[propertyKey].type);
         }
 
-        if(property[propertyKey].onCreate) {
-            if(Object.keys(property[propertyKey].onCreate).length > 0)  {
-                if(!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
-                if(!instance.handlerSequence[obj._id].onCreate) instance.handlerSequence[obj._id].onCreate = [];
-                    instance.handlerSequence[obj._id].onCreate.push({handler: property[propertyKey].onCreate, prop: property[propertyKey]});
+        if (property[propertyKey].onCreate) {
+            if (Object.keys(property[propertyKey].onCreate).length > 0) {
+                if (!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
+                if (!instance.handlerSequence[obj._id].onCreate) instance.handlerSequence[obj._id].onCreate = [];
+                instance.handlerSequence[obj._id].onCreate.push({ handler: property[propertyKey].onCreate, prop: property[propertyKey] });
             }
         }
 
@@ -1857,17 +2165,17 @@ var SPOO = {
 
         if (!onCreate) throw new InvalidHandlerException();
 
-        if(obj.onCreate[name]) throw new HandlerExistsException(name);
+        if (obj.onCreate[name]) throw new HandlerExistsException(name);
 
-        if(!name) name = SPOO.RANDOM();
+        if (!name) name = SPOO.RANDOM();
 
-        if(!obj.onCreate[name]) obj.onCreate[name] = {}
-        
+        if (!obj.onCreate[name]) obj.onCreate[name] = {}
+
         obj.onCreate[name].value = onCreate;
         obj.onCreate[name].trigger = trigger || 'after';
         obj.onCreate[name].type = type || 'async';
 
-        if(obj.onCreate[name].templateId) obj.onCreate[name].overwritten = true;
+        if (obj.onCreate[name].templateId) obj.onCreate[name].overwritten = true;
 
         SPOO.chainPermission(obj, instance, 'v', 'setOnCreateHandler', name);
 
@@ -1879,17 +2187,17 @@ var SPOO = {
 
         if (!onChange) throw new InvalidHandlerException();
 
-        if(obj.onChange[name]) throw new HandlerExistsException(name);
+        if (obj.onChange[name]) throw new HandlerExistsException(name);
 
-        if(!name) name = SPOO.RANDOM();
+        if (!name) name = SPOO.RANDOM();
 
-        if(!obj.onChange[name]) obj.onChange[name] = {}
-        
+        if (!obj.onChange[name]) obj.onChange[name] = {}
+
         obj.onChange[name].value = onChange;
         obj.onChange[name].trigger = trigger || 'after';
         obj.onChange[name].type = type || 'async';
 
-        if(obj.onChange[name].templateId) obj.onChange[name].overwritten = true;
+        if (obj.onChange[name].templateId) obj.onChange[name].overwritten = true;
 
         SPOO.chainPermission(obj, instance, 'w', 'setOnChangeHandler', name);
 
@@ -1901,17 +2209,17 @@ var SPOO = {
 
         if (!onDelete) throw new InvalidHandlerException();
 
-        if(obj.onDelete[name]) throw new HandlerExistsException(name);
+        if (obj.onDelete[name]) throw new HandlerExistsException(name);
 
-        if(!name) name = SPOO.RANDOM();
+        if (!name) name = SPOO.RANDOM();
 
-        if(!obj.onDelete[name]) obj.onDelete[name] = {}
-        
+        if (!obj.onDelete[name]) obj.onDelete[name] = {}
+
         obj.onDelete[name].value = onDelete;
         obj.onDelete[name].trigger = trigger || 'after';
         obj.onDelete[name].type = type || 'async';
 
-        if(obj.onDelete[name].templateId) obj.onDelete[name].overwritten = true;
+        if (obj.onDelete[name].templateId) obj.onDelete[name].overwritten = true;
 
         SPOO.chainPermission(obj, instance, 'z', 'setOnDeleteHandler', name);
 
@@ -2030,14 +2338,14 @@ var SPOO = {
 
                 //if (!obj.properties[access[0]].on) obj.properties[access[0]].on = {};
 
-                if(!obj.properties[access[0]].onChange) obj.properties[access[0]].onChange = {}
+                if (!obj.properties[access[0]].onChange) obj.properties[access[0]].onChange = {}
 
-                if(!obj.properties[access[0]].onChange[name]) obj.properties[access[0]].onChange[name] = {}
+                if (!obj.properties[access[0]].onChange[name]) obj.properties[access[0]].onChange[name] = {}
 
                 if (obj.properties[access[0]].onChange[name].template) obj.properties[access[0]].onChange[name].overwritten = true;
                 obj.properties[access[0]].onChange[name].value = onChange;
-                obj.properties[access[0]].onChange[name].trigger = trigger || 'after'; 
-                obj.properties[access[0]].onChange[name].type = type || 'async'; 
+                obj.properties[access[0]].onChange[name].trigger = trigger || 'after';
+                obj.properties[access[0]].onChange[name].type = type || 'async';
 
                 SPOO.chainPermission(obj, instance, 'w', 'setPropertyOnChangeHandler', name);
             }
@@ -2063,12 +2371,12 @@ var SPOO = {
 
                 //if (!obj.properties[access[0]].on) obj.properties[access[0]].on = {};
 
-                if(!obj.properties[access[0]].onCreate) obj.properties[access[0]].onCreate = {};
+                if (!obj.properties[access[0]].onCreate) obj.properties[access[0]].onCreate = {};
 
-                if(!obj.properties[access[0]].onCreate[name]) obj.properties[access[0]].onCreate[name] = {};
+                if (!obj.properties[access[0]].onCreate[name]) obj.properties[access[0]].onCreate[name] = {};
 
-                if(obj.properties[access[0]].onCreate[name].templateId) obj.properties[access[0]].onCreate[name].overwritten = true;
-            
+                if (obj.properties[access[0]].onCreate[name].templateId) obj.properties[access[0]].onCreate[name].overwritten = true;
+
                 obj.properties[access[0]].onCreate[name].value = onCreate;
                 obj.properties[access[0]].onCreate[name].trigger = trigger || 'after';
                 obj.properties[access[0]].onCreate[name].type = type || 'async';
@@ -2094,10 +2402,10 @@ var SPOO = {
                     var t = obj.properties[access[0]].value;
                 } catch (e) {
                     throw new NoSuchPropertyException(propertyKey);
-                }   
+                }
 
-                if(!obj.properties[access[0]].onDelete) obj.properties[access[0]].onDelete = {}; 
-                if(!obj.properties[access[0]].onDelete[name]) obj.properties[access[0]].onDelete[name] = {}; 
+                if (!obj.properties[access[0]].onDelete) obj.properties[access[0]].onDelete = {};
+                if (!obj.properties[access[0]].onDelete[name]) obj.properties[access[0]].onDelete[name] = {};
 
                 //if (!obj.properties[access[0]].on) obj.properties[access[0]].on = {};
                 if (obj.properties[access[0]].onDelete[name].template) obj.properties[access[0]].onDelete[name].overwritten = true;
@@ -2193,7 +2501,7 @@ var SPOO = {
     },
 
 
-    PropertySetWrapper: function(obj, propertyKey, newValue,  instance, notPermitted) {
+    PropertySetWrapper: function(obj, propertyKey, newValue, instance, notPermitted) {
 
 
         function setValue(obj, access, value) {
@@ -2237,11 +2545,11 @@ var SPOO = {
                 obj.properties[access[0]].value = newValue;
 
 
-                if(obj.properties[access[0]].onChange) {
-                    if(Object.keys(obj.properties[access[0]].onChange).length > 0)  {
-                        if(!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
-                        if(!instance.handlerSequence[obj._id].onChange) instance.handlerSequence[obj._id].onChange = [];
-                            instance.handlerSequence[obj._id].onChange.push({handler: obj.properties[access[0]].onChange, prop: obj.properties[access[0]]});
+                if (obj.properties[access[0]].onChange) {
+                    if (Object.keys(obj.properties[access[0]].onChange).length > 0) {
+                        if (!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
+                        if (!instance.handlerSequence[obj._id].onChange) instance.handlerSequence[obj._id].onChange = [];
+                        instance.handlerSequence[obj._id].onChange.push({ handler: obj.properties[access[0]].onChange, prop: obj.properties[access[0]] });
                     }
                 }
 
@@ -2278,7 +2586,7 @@ var SPOO = {
         }*/
     },
 
-    EventIntervalSetWrapper: function(obj, propertyKey, newValue,  client, instance) {
+    EventIntervalSetWrapper: function(obj, propertyKey, newValue, client, instance) {
 
 
         var prop = obj.getProperty(propertyKey);
@@ -2322,7 +2630,7 @@ var SPOO = {
                 delete obj.properties[access[0]].date;
                 obj.properties[access[0]].interval = newValue;
 
-                if(obj.properties[access[0]].lastOccurence) {
+                if (obj.properties[access[0]].lastOccurence) {
 
                     var nextOccurence = moment(obj.properties[access[0]].lastOccurence).add(newValue);
                     instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: nextOccurence })
@@ -2330,7 +2638,7 @@ var SPOO = {
                 }
 
 
-                
+
             }
         }
 
@@ -2338,7 +2646,7 @@ var SPOO = {
 
     },
 
-    EventTriggeredSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
+    EventTriggeredSetWrapper: function(obj, propertyKey, newValue, client, notPermitted) {
 
         var prop = obj.getProperty(propertyKey);
 
@@ -2349,7 +2657,7 @@ var SPOO = {
             if (typeof(access) == 'string') {
                 access = access.split('.');
             }
-            
+
             if (access.length > 1) {
 
                 var shift = access.shift();
@@ -2386,7 +2694,7 @@ var SPOO = {
     },
 
 
-    EventLastOccurenceSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
+    EventLastOccurenceSetWrapper: function(obj, propertyKey, newValue, client, notPermitted) {
 
         var prop = obj.getProperty(propertyKey);
 
@@ -2435,7 +2743,7 @@ var SPOO = {
 
     },
 
-    EventReminderSetWrapper: function(obj, propertyKey, reminder,  client, notPermitted) {
+    EventReminderSetWrapper: function(obj, propertyKey, reminder, client, notPermitted) {
 
 
         var prop = obj.getProperty(propertyKey);
@@ -2486,7 +2794,7 @@ var SPOO = {
     },
 
 
-    EventReminderRemover: function(obj, propertyKey, reminder,  client, notPermitted) {
+    EventReminderRemover: function(obj, propertyKey, reminder, client, notPermitted) {
 
 
         var prop = obj.getProperty(propertyKey);
@@ -2539,7 +2847,7 @@ var SPOO = {
     },
 
 
-    EventDateSetWrapper: function(obj, propertyKey, newValue,  client, instance) {
+    EventDateSetWrapper: function(obj, propertyKey, newValue, client, instance) {
 
 
         function setValue(obj, access, value) {
@@ -2577,7 +2885,7 @@ var SPOO = {
                 delete obj.properties[access[0]].lastOccurence;
                 delete obj.properties[access[0]].nextOccurence;
                 obj.properties[access[0]].date = newValue;
-                
+
 
                 instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
                 instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
@@ -2589,7 +2897,7 @@ var SPOO = {
 
     },
 
-    EventActionSetWrapper: function(obj, propertyKey, newValue,  client, instance) {
+    EventActionSetWrapper: function(obj, propertyKey, newValue, client, instance) {
 
         function setValue(obj, access, value) {
             if (typeof(access) == 'string') {
@@ -2756,66 +3064,64 @@ var SPOO = {
     Objs: function(objs, role, instance) {
         var self = this;
 
-        if(typeof objs === "object")
-        {
+        if (typeof objs === "object") {
 
             this.get = function(success, error) {
 
-            var client = instance.activeTenant;
-            var app = instance.activeApp;
-            
-            var thisRef = this;
-            var counter = 0;
+                var client = instance.activeTenant;
+                var app = instance.activeApp;
 
-            var flags = {} // TODO!!!
+                var thisRef = this;
+                var counter = 0;
+
+                var flags = {} // TODO!!!
 
 
-             SPOO.findObjects(objs, role, function(data) { 
-                success(data);
+                SPOO.findObjects(objs, role, function(data) {
+                    success(data);
 
-            }, function(err) { error(err) }, app, client, flags);
-             return;
+                }, function(err) { error(err) }, app, client, flags);
+                return;
 
-            if (this.inherits.length == 0) {
-                success(thisRef);
-                return this;
+                if (this.inherits.length == 0) {
+                    success(thisRef);
+                    return this;
+                }
+
+
+                this.inherits.forEach(function(template) {
+
+                    if (thisRef._id != template) {
+
+                        SPOO.getTemplateFieldsForObject(thisRef, template, function() {
+                                counter++;
+                                if (counter == thisRef.inherits.length) {
+                                    success(thisRef);
+                                    return this;
+                                }
+                            },
+                            function(err) {
+
+                                success(thisRef);
+                                return this;
+                            }, client)
+                    } else {
+                        if (thisRef.inherits.length == 1) {
+                            success(thisRef);
+                            return this;
+                        } else {
+                            counter++;
+                            return;
+                        }
+                    }
+                });
+
+
+
             }
 
 
-            this.inherits.forEach(function(template) {
-
-                if (thisRef._id != template) {
-
-                    SPOO.getTemplateFieldsForObject(thisRef, template, function() {
-                            counter++;
-                            if (counter == thisRef.inherits.length) {
-                                success(thisRef);
-                                return this;
-                            }
-                        },
-                        function(err) {
-
-                            success(thisRef);
-                            return this;
-                        }, client)
-                } else {
-                    if (thisRef.inherits.length == 1) {
-                        success(thisRef);
-                        return this;
-                    } else {
-                        counter++;
-                        return;
-                    }
-                }
-            });
-
-
-           
-        }
-
-
-        } else if(Array.isArray(objs))
-        {
+        } else if (Array.isArray(objs)) {
             var i;
             for (i = 0; i < objs.length; i++) {
                 objs[i] = new SPOO.Obj(objs[i], role);
@@ -2823,7 +3129,7 @@ var SPOO = {
 
             return objs;
         }
-        
+
     },
 
     Obj: function(obj, role, instance) {
@@ -2933,8 +3239,8 @@ var SPOO = {
 
         this.setOnChange = function(name, onChangeObj) {
 
-            if(typeof onChangeObj !== 'object') throw new InvalidArgumentException()
-            var key = name;//Object.keys(onChangeObj)[0];
+            if (typeof onChangeObj !== 'object') throw new InvalidArgumentException()
+            var key = name; //Object.keys(onChangeObj)[0];
 
             new SPOO.ObjectOnChangeSetWrapper(this, key, onChangeObj.value, onChangeObj.trigger, onChangeObj.type, instance);
             return this;
@@ -2942,17 +3248,17 @@ var SPOO = {
 
         this.setOnDelete = function(name, onDeleteObj) {
 
-            if(typeof onDeleteObj !== 'object') throw new InvalidArgumentException()
-            var key = name;//Object.keys(onDeleteObj)[0];
+            if (typeof onDeleteObj !== 'object') throw new InvalidArgumentException()
+            var key = name; //Object.keys(onDeleteObj)[0];
 
             new SPOO.ObjectOnDeleteSetWrapper(this, key, onDeleteObj.value, onDeleteObj.trigger, onDeleteObj.type, instance);
             return this;
         };
 
         this.setOnCreate = function(name, onCreateObj) {
-            
-            if(typeof onCreateObj !== 'object') throw new InvalidArgumentException()
-            var key = name;//Object.keys(onCreateObj)[0];
+
+            if (typeof onCreateObj !== 'object') throw new InvalidArgumentException()
+            var key = name; //Object.keys(onCreateObj)[0];
 
             new SPOO.ObjectOnCreateSetWrapper(this, key, onCreateObj.value, onCreateObj.trigger, onCreateObj.type, instance);
             return this;
@@ -2991,7 +3297,7 @@ var SPOO = {
             return this;
         };
 
-        this.setPropertyValue = function(property, value,  client) {
+        this.setPropertyValue = function(property, value, client) {
 
             /*var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -3005,13 +3311,13 @@ var SPOO = {
 
             new SPOO.ConditionsChecker(this.getProperty(property), value);*/
 
-            new SPOO.PropertySetWrapper(this, property, value,  instance, ['addObject']);
+            new SPOO.PropertySetWrapper(this, property, value, instance, ['addObject']);
 
 
             return this;
         };
 
-        this.setEventDate = function(property, value,  client) {
+        this.setEventDate = function(property, value, client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -3019,16 +3325,16 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.setBagEventDate(bag, newProKey, value,  client);
+                this.setBagEventDate(bag, newProKey, value, client);
                 return;
             }
 
 
-            new SPOO.EventDateSetWrapper(this, property, value,  client, instance);
+            new SPOO.EventDateSetWrapper(this, property, value, client, instance);
             return this;
         };
 
-        this.setEventAction = function(property, value,  client) {
+        this.setEventAction = function(property, value, client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -3036,35 +3342,17 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.setBagEventAction(bag, newProKey, value,  client);
-                return;
-            }
-
-            // new SPOO.ConditionsChecker(this.getProperty(property), value);
-
-            new SPOO.EventActionSetWrapper(this, property, value,  client, instance);
-            return this;
-        };
-
-        this.setEventTriggered = function(property, value,  client) {
-
-            var propertyKey = Object.keys(property)[0];
-            if (propertyKey.indexOf('.') != -1) {
-                var lastDot = propertyKey.lastIndexOf(".");
-                var bag = propertyKey.substring(0, lastDot);
-                var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
-                var newProp = {};
-                this.setBagEventTriggered(bag, newProKey, value,  client);
+                this.setBagEventAction(bag, newProKey, value, client);
                 return;
             }
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.EventTriggeredSetWrapper(this, property, value,  client, instance);
+            new SPOO.EventActionSetWrapper(this, property, value, client, instance);
             return this;
         };
 
-        this.setEventLastOccurence = function(property, value,  client) {
+        this.setEventTriggered = function(property, value, client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -3072,18 +3360,17 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.setBagEventLastOccurence(bag, newProKey, value,  client);
+                this.setBagEventTriggered(bag, newProKey, value, client);
                 return;
             }
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-
-            new SPOO.EventLastOccurenceSetWrapper(this, property, value,  client, ['addObject']);
+            new SPOO.EventTriggeredSetWrapper(this, property, value, client, instance);
             return this;
         };
 
-        this.setEventInterval = function(property, value,  client) {
+        this.setEventLastOccurence = function(property, value, client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -3091,17 +3378,18 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.setBagEventInterval(bag, newProKey, value,  client);
+                this.setBagEventLastOccurence(bag, newProKey, value, client);
                 return;
             }
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.EventIntervalSetWrapper(this, property, value,  client, instance);
+
+            new SPOO.EventLastOccurenceSetWrapper(this, property, value, client, ['addObject']);
             return this;
         };
 
-        this.addEventReminder = function(property, reminder,  client) {
+        this.setEventInterval = function(property, value, client) {
 
             var propertyKey = Object.keys(property)[0];
             if (propertyKey.indexOf('.') != -1) {
@@ -3109,13 +3397,31 @@ var SPOO = {
                 var bag = propertyKey.substring(0, lastDot);
                 var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
                 var newProp = {};
-                this.addBagEventReminder(bag, newProKey, reminder,  client);
+                this.setBagEventInterval(bag, newProKey, value, client);
                 return;
             }
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.EventReminderSetWrapper(this, property, reminder,  client, ['addObject']);
+            new SPOO.EventIntervalSetWrapper(this, property, value, client, instance);
+            return this;
+        };
+
+        this.addEventReminder = function(property, reminder, client) {
+
+            var propertyKey = Object.keys(property)[0];
+            if (propertyKey.indexOf('.') != -1) {
+                var lastDot = propertyKey.lastIndexOf(".");
+                var bag = propertyKey.substring(0, lastDot);
+                var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
+                var newProp = {};
+                this.addBagEventReminder(bag, newProKey, reminder, client);
+                return;
+            }
+
+            // new SPOO.ConditionsChecker(this.getProperty(property), value);
+
+            new SPOO.EventReminderSetWrapper(this, property, reminder, client, ['addObject']);
             return this;
         };
 
@@ -3172,8 +3478,8 @@ var SPOO = {
 
         this.setPropertyOnCreate = function(property, name, onCreateObj) {
 
-            if(typeof onCreateObj !== 'object') throw new InvalidArgumentException()
-            var key = name;//Object.keys(onCreateObj)[0];
+            if (typeof onCreateObj !== 'object') throw new InvalidArgumentException()
+            var key = name; //Object.keys(onCreateObj)[0];
 
             new SPOO.PropertyOnCreateSetWrapper(this, property, key, onCreateObj.value, onCreateObj.trigger, onCreateObj.type, instance);
             return this;
@@ -3240,8 +3546,8 @@ var SPOO = {
 
         this.setPropertyOnChange = function(property, name, onChangeObj) {
 
-            if(typeof onChangeObj !== 'object') throw new InvalidArgumentException()
-            var key = name;//Object.keys(onChangeObj)[0];
+            if (typeof onChangeObj !== 'object') throw new InvalidArgumentException()
+            var key = name; //Object.keys(onChangeObj)[0];
 
 
             new SPOO.PropertyOnChangeSetWrapper(this, property, key, onChangeObj.value, onChangeObj.trigger, onChangeObj.type, instance);
@@ -3271,7 +3577,7 @@ var SPOO = {
 
         this.setPropertyOnDelete = function(property, name, onDeleteObj) {
 
-            if(typeof onDeleteObj !== 'object') throw new InvalidArgumentException()
+            if (typeof onDeleteObj !== 'object') throw new InvalidArgumentException()
             var key = name; //Object.keys(onDeleteObj)[0];
 
             new SPOO.PropertyOnDeleteSetWrapper(this, property, key, onDeleteObj.value, onDeleteObj.trigger, onDeleteObj.type, instance);
@@ -3419,37 +3725,37 @@ var SPOO = {
             return this;
         };
 
-        this.setBagPropertyValue = function(bag, property, value,  client) {
+        this.setBagPropertyValue = function(bag, property, value, client) {
             new SPOO.PropertySetWrapper(this.getProperty(bag), property, value, instance);
             return this;
         };
 
-        this.setBagEventDate = function(bag, property, value,  client) {
+        this.setBagEventDate = function(bag, property, value, client) {
             new SPOO.EventDateSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.setBagEventAction = function(bag, property, value,  client) {
+        this.setBagEventAction = function(bag, property, value, client) {
             new SPOO.EventActionSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.setBagEventInterval = function(bag, property, value,  client) {
+        this.setBagEventInterval = function(bag, property, value, client) {
             new SPOO.EventIntervalSetWrapper(this.getProperty(bag), property, value, instance);
             return this;
         };
 
-        this.setBagEventTriggered = function(bag, property, value,  client) {
+        this.setBagEventTriggered = function(bag, property, value, client) {
             new SPOO.EventTriggeredSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.setBagEventLastOccurence = function(bag, property, value,  client) {
+        this.setBagEventLastOccurence = function(bag, property, value, client) {
             new SPOO.EventLastOccurenceSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
 
-        this.addBagEventReminder = function(bag, property, value,  client) {
+        this.addBagEventReminder = function(bag, property, value, client) {
             new SPOO.EventReminderSetWrapper(this.getProperty(bag), property, value, ['addObject']);
             return this;
         };
@@ -3465,10 +3771,10 @@ var SPOO = {
             return this;
         };
 
-        this.removePropertyFromBag = function(property,  client) {
+        this.removePropertyFromBag = function(property, client) {
             var bag = this.getProperty(property);
 
-            new SPOO.PropertyBagItemRemover(this, property,  instance);
+            new SPOO.PropertyBagItemRemover(this, property, instance);
             return this;
         };
 
@@ -3479,28 +3785,28 @@ var SPOO = {
             return this;
         };
 
-        this.removeProperty = function(propertyName,  client) {
+        this.removeProperty = function(propertyName, client) {
 
 
             if (propertyName.indexOf('.') != -1) {
-                this.removePropertyFromBag(propertyName,  client);
+                this.removePropertyFromBag(propertyName, client);
                 return;
             } else {
                 if (!this.properties[propertyName]) throw new NoSuchPropertyException(propertyName);
 
                 var tmpProp = Object.assign({}, this.properties[propertyName]);
 
-                 if(tmpProp.onDelete) {
-                    if(Object.keys(tmpProp.onDelete).length > 0)  {
-                        if(!instance.handlerSequence[this._id]) instance.handlerSequence[this._id] = {};
-                        if(!instance.handlerSequence[this._id].onDelete) instance.handlerSequence[this._id].onDelete = [];
-                            instance.handlerSequence[this._id].onDelete.push({handler:tmpProp.onDelete, prop: tmpProp});
+                if (tmpProp.onDelete) {
+                    if (Object.keys(tmpProp.onDelete).length > 0) {
+                        if (!instance.handlerSequence[this._id]) instance.handlerSequence[this._id] = {};
+                        if (!instance.handlerSequence[this._id].onDelete) instance.handlerSequence[this._id].onDelete = [];
+                        instance.handlerSequence[this._id].onDelete.push({ handler: tmpProp.onDelete, prop: tmpProp });
                     }
                 }
 
                 SPOO.chainPermission(this.properties[propertyName], instance, 'd', 'removeProperty', propertyName);
 
-                if(this.properties[propertyName].type=='date') instance.eventAlterationSequence.push({ operation: 'remove', obj: this, propName: propertyName, date: date })
+                if (this.properties[propertyName].type == 'date') instance.eventAlterationSequence.push({ operation: 'remove', obj: this, propName: propertyName, date: date })
 
                 delete this.properties[propertyName];
 
@@ -3550,7 +3856,7 @@ var SPOO = {
         };
 
         this.add = function(success, error) {
-            
+
             var client = instance.activeTenant;
             var app = instance.activeApp;
 
@@ -3558,15 +3864,13 @@ var SPOO = {
 
             console.log(thisRef.onCreate);
 
-            Object.keys(thisRef.onCreate).forEach(function(key)
-            {
-               
-                if(thisRef.onCreate[key].trigger == 'before')
-                {
-                            console.log("####");
+            Object.keys(thisRef.onCreate).forEach(function(key) {
+
+                if (thisRef.onCreate[key].trigger == 'before') {
+                    console.log("####");
                     //dsl, obj, prop, data, callback, client, options
                     instance.execProcessorAction(thisRef.onCreate[key].value, thisRef, null, null, function(data) {
-            
+
                     }, client, null);
                 }
             })
@@ -3630,65 +3934,62 @@ var SPOO = {
                 })
             }
 
-             var mapper = null;
-                    
-                    if(!instance.observers[obj.role]) 
-                        mapper = defaultMappers.observer;
-                    else 
-                        mapper = instance.observers[obj.role];
+            var mapper = null;
+
+            if (!instance.observers[obj.role])
+                mapper = defaultMappers.observer;
+            else
+                mapper = instance.observers[obj.role];
 
 
-            aggregateAllEvents(this.properties); 
+            aggregateAllEvents(this.properties);
 
-            if(!this._id) this._id = SPOO.ID();
+            if (!this._id) this._id = SPOO.ID();
 
-            if(app)
-                if(this.applications.indexOf(app) == -1) this.applications.push(app);
-           
+            if (app)
+                if (this.applications.indexOf(app) == -1) this.applications.push(app);
+
 
             SPOO.add(this, function(data) {
-                    
+
                     this._id = data._id;
 
-                    Object.keys(data.onCreate).forEach(function(key)
-                    {
-                        if(data.onCreate[key].trigger == 'after')
-                        {
+                    Object.keys(data.onCreate).forEach(function(key) {
+                        if (data.onCreate[key].trigger == 'after') {
                             //dsl, obj, prop, data, callback, client, options
                             instance.execProcessorAction(data.onCreate[key].value, data, null, null, function(data) {
-                    
+
                             }, client, null);
                         }
                     })
 
                     var mapper = null;
-                    
-                    if(!instance.observers[obj.role]) 
+
+                    if (!instance.observers[obj.role])
                         mapper = defaultMappers.observer;
-                    else 
+                    else
                         mapper = instance.observers[obj.role];
 
 
-                    
-                    if(mapper.type == 'scheduled') {
+
+                    if (mapper.type == 'scheduled') {
 
                         instance.eventAlterationSequence.forEach(function(evt) {
-                            
-                            if(evt.operation == 'add') {
+
+                            if (evt.operation == 'add') {
                                 mapper.addEvent(this._id, evt.propName, evt.property, function(evtData) {
-                                
+
                                 }, function(evtErr) {
 
                                 }, instance.activeTenant)
-                            }
-                           else if(evt.operation == 'remove') {
+                            } else if (evt.operation == 'remove') {
                                 mapper.addEvent(this._id, evt.propName, function(evtData) {
-                                
+
                                 }, function(evtErr) {
 
                                 }, instance.activeTenant)
                             }
-                           
+
                         })
                     }
 
@@ -3728,44 +4029,36 @@ var SPOO = {
 
             SPOO.checkPermissions(instance.activeUser, instance.activeApp, thisRef, 'u')
 
-            if((instance.permissionSequence[obj._id] || []).length > 0)
-            {
+            if ((instance.permissionSequence[obj._id] || []).length > 0) {
                 throw new LackOfPermissionsException(instance.permissionSequence[obj._id]);
             }
-           
 
-            Object.keys(thisRef.onChange).forEach(function(key)
-            {
-                if(thisRef.onChange[key].trigger == 'before')
-                {
+
+            Object.keys(thisRef.onChange).forEach(function(key) {
+                if (thisRef.onChange[key].trigger == 'before') {
                     instance.execProcessorAction(thisRef.onChange[key].value, thisRef, null, null, function(data) {
-            
+
                     }, client, null);
                 }
-            })  
+            })
 
-            if(instance.handlerSequence[this._id])
-            {
-                for(var type in instance.handlerSequence[this._id])
-                {
-                    for(var item in instance.handlerSequence[this._id][type])
-                    {
+            if (instance.handlerSequence[this._id]) {
+                for (var type in instance.handlerSequence[this._id]) {
+                    for (var item in instance.handlerSequence[this._id][type]) {
                         var handlerObj = instance.handlerSequence[this._id][type][item];
 
-                            for(var handlerItem in handlerObj.handler)
-                            {
-                                 if(handlerObj.handler[handlerItem].trigger == 'before')
-                                    {
-                                        instance.execProcessorAction(handlerObj.handler[handlerItem].value, thisRef, handlerObj.prop, null, function(data) {
-                                
-                                        }, client, null);
-                                    }
+                        for (var handlerItem in handlerObj.handler) {
+                            if (handlerObj.handler[handlerItem].trigger == 'before') {
+                                instance.execProcessorAction(handlerObj.handler[handlerItem].value, thisRef, handlerObj.prop, null, function(data) {
+
+                                }, client, null);
                             }
+                        }
                     }
                 }
             }
 
-          
+
             this.lastModified = moment().toDate().toISOString();
 
             var thisRef = this;
@@ -3798,7 +4091,7 @@ var SPOO = {
 
                         if (prePropsString) {
 
-                           // instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: prePropsString + "." + p, date: date });
+                            // instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: prePropsString + "." + p, date: date });
 
                             var found = false;
                             thisRef.aggregatedEvents.forEach(function(aE) {
@@ -3824,66 +4117,59 @@ var SPOO = {
                 })
             }
 
-             var mapper = null;
-                    
-                    if(!instance.observers[obj.role]) 
-                        mapper = defaultMappers.observer;
-                    else 
-                        mapper = instance.observers[obj.role];
+            var mapper = null;
 
-            
-            if(mapper.type != 'scheduled') aggregateAllEvents(this.properties);
+            if (!instance.observers[obj.role])
+                mapper = defaultMappers.observer;
+            else
+                mapper = instance.observers[obj.role];
+
+
+            if (mapper.type != 'scheduled') aggregateAllEvents(this.properties);
 
 
             SPOO.updateO(this, function(data) {
 
 
-                    Object.keys(data.onChange).forEach(function(key)
-                    {
-                        if(data.onChange[key].trigger == 'after')
-                        {
+                    Object.keys(data.onChange).forEach(function(key) {
+                        if (data.onChange[key].trigger == 'after') {
                             //dsl, obj, prop, data, callback, client, options
                             instance.execProcessorAction(data.onChange[key].value, data, null, null, function(data) {
-                    
+
                             }, client, null);
                         }
                     })
 
 
-                    if(instance.handlerSequence[this._id])
-                    {
-                        for(var type in instance.handlerSequence[this._id])
-                        {
-                            for(var item in instance.handlerSequence[this._id][type])
-                            {
+                    if (instance.handlerSequence[this._id]) {
+                        for (var type in instance.handlerSequence[this._id]) {
+                            for (var item in instance.handlerSequence[this._id][type]) {
                                 var handlerObj = instance.handlerSequence[this._id][type][item];
 
-                                    for(var handlerItem in handlerObj.handler)
-                                    {
-                                         if(handlerObj.handler[handlerItem].trigger == 'after')
-                                            {
-                                                instance.execProcessorAction(handlerObj.handler[handlerItem].value, thisRef, handlerObj.prop, null, function(data) {
-                                        
-                                                }, client, null);
-                                            }
+                                for (var handlerItem in handlerObj.handler) {
+                                    if (handlerObj.handler[handlerItem].trigger == 'after') {
+                                        instance.execProcessorAction(handlerObj.handler[handlerItem].value, thisRef, handlerObj.prop, null, function(data) {
+
+                                        }, client, null);
                                     }
+                                }
                             }
                         }
                     }
 
                     delete instance.handlerSequence[this._id];
 
-                   
-                    if(mapper.type == 'scheduled') {
+
+                    if (mapper.type == 'scheduled') {
                         instance.eventAlterationSequence.forEach(function(evt) {
-                            if(evt.type == 'add') {
+                            if (evt.type == 'add') {
                                 mapper.addEvent(this._id, evt.propName, evt.property, function(evtData) {
-                                
+
                                 }, function(evtErr) {
 
                                 }, instance.activeTenant)
                             }
-                           
+
                         })
                     }
 
@@ -3893,7 +4179,7 @@ var SPOO = {
 
 
                     //if (this.role == 'template') this.inherit();
-                    if(success) success(data);
+                    if (success) success(data);
 
                     /*
                         Call event Aggregator
@@ -3904,7 +4190,7 @@ var SPOO = {
 
                 },
                 function(err) {
-                    if(error) error(err);
+                    if (error) error(err);
                     //throw new CallbackErrorException(err);
                 }, app, client);
 
@@ -3920,30 +4206,25 @@ var SPOO = {
 
             SPOO.checkPermissions(instance.activeUser, instance.activeApp, thisRef, 'd');
 
-            Object.keys(thisRef.onDelete).forEach(function(key)
-            {
-                if(thisRef.onDelete[key].trigger == 'before')
-                {
+            Object.keys(thisRef.onDelete).forEach(function(key) {
+                if (thisRef.onDelete[key].trigger == 'before') {
                     //dsl, obj, prop, data, callback, client, options
                     instance.execProcessorAction(thisRef.onDelete[key].value, thisRef, null, null, function(data) {
-            
+
                     }, client, null);
                 }
             })
 
 
-            SPOO.getObjectById(this.role, this._id, function(data) { 
+            SPOO.getObjectById(this.role, this._id, function(data) {
 
-                            return SPOO.remove(thisRef, function(_data)
-                {
+                return SPOO.remove(thisRef, function(_data) {
 
-                    Object.keys(thisRef.onDelete).forEach(function(key)
-                    {
-                        if(thisRef.onDelete[key].trigger == 'after')
-                        {
+                    Object.keys(thisRef.onDelete).forEach(function(key) {
+                        if (thisRef.onDelete[key].trigger == 'after') {
                             //dsl, obj, prop, data, callback, client, options
                             instance.execProcessorAction(thisRef.onDelete[key].value, thisRef, null, null, function(data) {
-                    
+
                             }, client, null);
                         }
                     })
@@ -3952,76 +4233,75 @@ var SPOO = {
 
                     function aggregateAllEvents(props, prePropsString) {
 
-                    Object.keys(props).forEach(function(p) {
-                        if (props[p].type == CONSTANTS.PROPERTY.TYPE_PROPERTY_BAG)
-                            if (prePropsString) {
-                                aggregateAllEvents(props[p].properties, prePropsString + "." + p)
-                            }
-                        else {
-                            aggregateAllEvents(props[p].properties, p)
-                        }
-
-                        if (props[p].type == CONSTANTS.PROPERTY.TYPE_EVENT) {
-
-                            var date = null;
-
-                            if (props[p].date) {
-                                if (!props[p].date.triggered) date = props[p].date;
-                                else date = null;
-                            } else if (props[p].interval) {
-                                if (props[p].nextOccurence) {
-                                    date = props[p].nextOccurence;
-                                } else date = moment().toISOString();
+                        Object.keys(props).forEach(function(p) {
+                            if (props[p].type == CONSTANTS.PROPERTY.TYPE_PROPERTY_BAG)
+                                if (prePropsString) {
+                                    aggregateAllEvents(props[p].properties, prePropsString + "." + p)
+                                }
+                            else {
+                                aggregateAllEvents(props[p].properties, p)
                             }
 
-                            if (prePropsString) {
+                            if (props[p].type == CONSTANTS.PROPERTY.TYPE_EVENT) {
 
-                                instance.eventAlterationSequence.push({ operation: 'remove', obj: thisRef, propName: prePropsString + "." + p, date: date });
+                                var date = null;
 
-                                var found = false;
-                               
-                            } else {
+                                if (props[p].date) {
+                                    if (!props[p].date.triggered) date = props[p].date;
+                                    else date = null;
+                                } else if (props[p].interval) {
+                                    if (props[p].nextOccurence) {
+                                        date = props[p].nextOccurence;
+                                    } else date = moment().toISOString();
+                                }
 
-                                instance.eventAlterationSequence.push({ operation: 'remove', obj: thisRef, propName: p, date: date })
+                                if (prePropsString) {
+
+                                    instance.eventAlterationSequence.push({ operation: 'remove', obj: thisRef, propName: prePropsString + "." + p, date: date });
+
+                                    var found = false;
+
+                                } else {
+
+                                    instance.eventAlterationSequence.push({ operation: 'remove', obj: thisRef, propName: p, date: date })
 
 
+                                }
                             }
-                        }
 
-                    })
-                }
+                        })
+                    }
 
-             var mapper = null;
-                    
-                    if(!instance.observers[obj.role]) 
+                    var mapper = null;
+
+                    if (!instance.observers[obj.role])
                         mapper = defaultMappers.observer;
-                    else 
+                    else
                         mapper = instance.observers[obj.role];
 
-        
-           aggregateAllEvents(data.properties);
+
+                    aggregateAllEvents(data.properties);
 
 
 
-                    if(mapper.type == 'scheduled') {
+                    if (mapper.type == 'scheduled') {
 
                         instance.eventAlterationSequence.forEach(function(evt) {
-                            
-                            if(evt.operation == 'add') {
+
+                            if (evt.operation == 'add') {
                                 mapper.addEvent(data._id, evt.propName, evt.property, function(evtData) {
-                                
+
                                 }, function(evtErr) {
 
                                 }, instance.activeTenant)
-                            }
-                           else if(evt.operation == 'remove') {
+                            } else if (evt.operation == 'remove') {
                                 mapper.removeEvent(data._id, evt.propName, function(evtData) {
-                                
+
                                 }, function(evtErr) {
                                     console.log(evtErr);
                                 }, instance.activeTenant)
                             }
-                           
+
                         })
                     }
 
@@ -4029,7 +4309,7 @@ var SPOO = {
 
 
                 }, function(err) { error(err) }, app, client);
-                
+
 
             }, function(err) { error(err) }, app, client);
 
@@ -4042,7 +4322,7 @@ var SPOO = {
 
             var client = instance.activeTenant;
             var app = instance.activeApp;
-            
+
             var thisRef = this;
             var counter = 0;
 
@@ -4068,13 +4348,13 @@ var SPOO = {
             }
             // arrayDeserialize(this);
 
-             SPOO.getObjectById(this.role, this._id, function(data) { 
+            SPOO.getObjectById(this.role, this._id, function(data) {
 
-                
-                success(SPOO[thisRef.role](data)) 
+
+                success(SPOO[thisRef.role](data))
 
             }, function(err) { error(err) }, app, client);
-             return;
+            return;
 
             if (this.inherits.length == 0) {
                 success(thisRef);
@@ -4108,7 +4388,7 @@ var SPOO = {
                     }
                 }
             });
-           
+
         }
 
         return this;
@@ -4119,7 +4399,7 @@ var SPOO = {
     }
 }
 
-var defaultPersistence = new DefaultStorageMapper({multitenancy : 'tenantIdentifier'});
+var defaultPersistence = new DefaultStorageMapper({ multitenancy: 'tenantIdentifier' });
 var defaultObserver = new DefaultObserverMapper(defaultPersistence);
 var defaultProcessor = new DefaultProcessorMapper(SPOO);
 
@@ -4131,5 +4411,4 @@ var defaultMappers = {
 
 
 
-if(_nodejs) module.exports = SPOO;
-
+if (_nodejs) module.exports = SPOO;
