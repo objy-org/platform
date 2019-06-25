@@ -1,6 +1,41 @@
 # SPOO
 
-A framework for building industry-specific platforms, that run anywhere and can solve any problem.
+A framework that uses dynamic, behaviour-driven objects to digitalize real-life use cases and build infrastructure-agnostic, multitenant platforms for any infrastructure and any scale.
+
+## SPOO Objects
+
+Objects are at the center of every use case. They consist of the following key features:
+
+- Properties
+- Events
+- Actions
+
+With theese features, objects can be used to represent any entity and transform real-life use cases into digital representations.
+
+## Quick Example
+
+
+First, you need the SPOO Core
+
+```
+var SPOO = require('./spoo.js');
+var storage = require('./mappers/persistence/inMemory.js');
+var observer = require('./mappers/observer/inMemory.js');
+var processor = require('./mappers/processor/inMemory.js');
+
+SPOO.define({
+	name : "Object",
+	pluralName: "Objects",
+	persistence: new storage(),
+	observer: new observer(),
+	processor: new processor()
+})
+
+SPOO.Object({}).addProperty('test', {type: 'boolean', value: true}).add(function(data)
+{
+	console.log(data);
+})
+```
 
 ## Getting Started
 
