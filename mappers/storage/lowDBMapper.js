@@ -126,7 +126,6 @@ localStorageMapper = function(options, connectionString, connectionSuccess, conn
 
         var db = this.getDBByMultitenancy(client);
 
-
         db.defaults({ objects: [] })
             .write()
 

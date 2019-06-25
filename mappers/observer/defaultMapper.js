@@ -1,5 +1,6 @@
-
 // SCHEDULED MAPPER
+
+var moment = require('moment');
 
 var CONSTANTS = {
     MULTITENANCY: {
@@ -7,13 +8,13 @@ var CONSTANTS = {
         SHARED: "shared"
     },
     TYPES: {
-        SCHEDULED: 'sheduled',
+        SCHEDULED: 'scheduled',
         QUERIED: 'queried'
     }
 }
 
 
-Mapper = function(options) {
+Mapper = function(SPOO, options) {
     this.type = (options || {}).type || CONSTANTS.TYPES.SCHEDULED;
     this.database = {};
     this.index = {};
@@ -52,17 +53,19 @@ Mapper.prototype.getEvent = function(objId, propName, success, error, client) {
         
         var db = this.getDBByMultitenancy(client);
 
-        if(!db[id]) 
-            return error('object not found: ' + id);
+        if(!db[objId]) 
+            return error('object not found: ' + objId);
         
         if(this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED)
-            if(db[this.index[client][id]].tenantId != client) 
-                error('object not found: ' + id);
+            if(db[this.index[client][objId]].tenantId != client) 
+                error('object not found: ' + objId);
         
-        success(db[this.index[client][id]]);
+        success(db[this.index[client][objId]]);
 }
 
 Mapper.prototype.addEvent = function(objId, propName, event, success, error, client) {
+
+        var self = this;
 
         if(!this.database[client])
             this.database[client] = [];
@@ -70,7 +73,7 @@ Mapper.prototype.addEvent = function(objId, propName, event, success, error, cli
         if(!this.index[client]) this.index[client] = [];
 
         if(this.index[client][objId + ':'+propName])
-            return error('object with taht id already exists: ' + id);
+            return error('object with taht id already exists: ' + objId);
         
         if(!this.index[client]) this.index[client] = {};
 
@@ -80,7 +83,9 @@ Mapper.prototype.addEvent = function(objId, propName, event, success, error, cli
             event.tenantId = client;
 
         if(event.date) {
-            var difference = 0;
+            var difference = Infinity;
+
+            difference = moment().diff(event.date);
             
             db.push(setTimeout(function() {
 
@@ -90,16 +95,23 @@ Mapper.prototype.addEvent = function(objId, propName, event, success, error, cli
         }
         else if(event.interval) {
 
-            var interval = 0; // @TODO: convert iso8601 duration to millis
+            var interval = Infinity; // @TODO: convert iso8601 duration to millis
+
+            interval = moment.duration(event.interval).asMilliseconds()
+            
+            if(interval == 0) interval = Infinity;
 
             db.push(setInterval(function() {
 
                 // @TODO: link to processor
 
+                console.log(event.action);
+
+                //self.processor.execute(dsl, obj, prop, data, callback, client, app, user, options);
+
             }, interval))
         }
             
-
         this.index[client][objId + ':'+propName] = db.length;
 
         success(event);
@@ -110,17 +122,23 @@ Mapper.prototype.removeEvent = function(objId, propName, success, error, client)
 
         var db = this.getDBByMultitenancy(client);
 
+
+
         if(!this.index[client][objId + ':'+propName])
-            return error('object not found: ' + id);
+            return error('object not found: ' + objId + ':'+propName);
 
-        if(this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED)
+
+
+        /*if(this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED)
             if(this.index[client][objId + ':'+propName].tenantId != client) 
-                return error('object not found: ' + id);
+                return error('object not found: ' + objId + ':'+propName);*/
 
+            console.log(this.index[client]);
+ 
 
         db.splice(this.index[client][objId + ':'+propName], 1);
         delete this.index[client][objId + ':'+propName];
-        success('removed')
+        success('removed')        
 
 };
 

@@ -1,9 +1,9 @@
 var SPOO = require('./spoo.js');
 
 
-var PROCESSOR = require('./processor/vmMapper.js');
-var OBSERVER = require('./observer/defaultMapper.js');
-var LOWDBMAPPER = require('./storage/lowDBMapper.js');
+var PROCESSOR = require('./mappers/processor/vmMapper.js');
+var OBSERVER = require('./mappers/observer/defaultMapper.js');
+var LOWDBMAPPER = require('./mappers/storage/lowDBMapper.js');
 var lowDBMapper = new LOWDBMAPPER({multitenancy: 'database'}, null, function(data) {
 
 }, function(error) {
@@ -11,13 +11,10 @@ var lowDBMapper = new LOWDBMAPPER({multitenancy: 'database'}, null, function(dat
 });
 
 
-var defaultBackend = require('./backends/defaultBackend.js');
-
-
 SPOO.ObjectFamily({
     name: "Nicole",
     pluralName: 'Nicoles',
-    backend: new defaultBackend(SPOO)
+    persistence: lowDBMapper,
 })
 
 //new SPOO.Impulse({}).add();
@@ -25,7 +22,7 @@ SPOO.ObjectFamily({
 //console.log("sdgsdgd");
 //console.log(SPOO.objectFamilies);
 
-SPOO.tenant('dsl').app('demoapp')
+SPOO.tenant('dsllj').app('demoapp')
 
 
 
@@ -38,7 +35,12 @@ var n = SPOO.Nicole({ onCreate: {
     properties: {
     evt : {
         type: 'event',
-        interval: 'P10T',
+        interval: 'PT10S',
+        action: 'asfasf'
+    },
+    evt2 : {
+        type: 'event',
+        date: '0',
         action: 'asfasf'
     }},
     permissions: {
@@ -47,6 +49,16 @@ var n = SPOO.Nicole({ onCreate: {
     }
 }}).add(function(data)
 {
+
+    console.log(data);
+
+    SPOO.Nicole(data._id).remove(function(data)
+    {
+        console.log(data);
+    }, function(err)
+    {
+        console.log(err)
+    })
     /*SPOO.Nicoles({_id : data._id}).get(function(data)
     {
         console.log(data[0].aggregatedEvents);
@@ -57,7 +69,7 @@ var n = SPOO.Nicole({ onCreate: {
     //console.log(data);
 }, function(err)
 {
-    console.log(err);
+    //console.log(err);
 });
 
 return;

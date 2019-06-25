@@ -6,7 +6,7 @@ SPOO.ObjectFamily({
     pluralName: 'Impulses'
 })
 
-
+/*
 SPOO.ObjectFamily({
     name: "Asset",
     pluralName: 'Asset',
@@ -14,7 +14,7 @@ SPOO.ObjectFamily({
     observer: new MongoObserver(SPOO),
     processor: new BullObserver(SPOO)
 })
-
+/*
 
 SPOO
     .define('Activity')
@@ -23,9 +23,9 @@ SPOO
     .setPersistence(new Mapper()),
     .setObserver(new Observer())
     .ml(new MLMapper())
+*/
 
-
-SPOO.setTenant('dsl').setApp('demoapp')
+SPOO.tenant('dsl').app('demoapp')
 
 
 var obj = {
@@ -39,7 +39,7 @@ var obj = {
     }
 }
 
-
+return;
 
 
 SPOO

@@ -151,11 +151,11 @@ Mapper.prototype.removeObj = function(spooElement, success, error, app, client) 
         var db = this.getDBByMultitenancy(client);
 
         if(!this.index[client][spooElement._id])
-            return error('object not found: ' + id);
+            return error('object not found: ' + spooElement._id);
 
         if(this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
         	if(this.index[client][spooElement._id].tenantId != client) 
-        		return error('object not found: ' + id);
+        		return error('object not found: ' + spooElement._id);
 
 
         db.splice(this.index[client][spooElement._id], 1);

@@ -859,7 +859,7 @@ var SPOO = {
 
 
                 }, function(err) {
-                    error('Error - Could not add object');
+                    error(err);
                 }, app, client);
         }
 
@@ -1560,6 +1560,8 @@ var SPOO = {
                     else if (!moment(_event[eventKey].lastOccurence).isValid()) throw new InvalidDateException(_event[eventKey].lastOccurence);
                     else _event[eventKey].lastOccurence = moment(_event[eventKey].lastOccurence).format();
 
+                   
+
                     if (_event[eventKey].nextOccurence == undefined)
                         _event[eventKey].nextOccurence = null;
 
@@ -1568,7 +1570,9 @@ var SPOO = {
 
                     if (_event[eventKey].interval === undefined) throw new MissingAttributeException('interval');
 
-                    instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, propData: property, date: _event[eventKey].nextOccurence })
+                     _event[eventKey].nextOccurence = moment(_event[eventKey].lastOccurence).add(_event[eventKey].interval)
+
+                    instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: property, date: _event[eventKey].nextOccurence })
 
 
                 } else if (_event[eventKey].date !== undefined) {
@@ -1584,7 +1588,7 @@ var SPOO = {
 
                     }
 
-                    instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, propData: property, date: _event[eventKey].date })
+                    instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: property, date: _event[eventKey].date })
 
 
                     if (!_event[eventKey].action) _event[eventKey].action = '';
@@ -2273,7 +2277,7 @@ var SPOO = {
         }*/
     },
 
-    EventIntervalSetWrapper: function(obj, propertyKey, newValue,  client, notPermitted) {
+    EventIntervalSetWrapper: function(obj, propertyKey, newValue,  client, instance) {
 
 
         var prop = obj.getProperty(propertyKey);
@@ -2316,6 +2320,16 @@ var SPOO = {
 
                 delete obj.properties[access[0]].date;
                 obj.properties[access[0]].interval = newValue;
+
+                if(obj.properties[access[0]].lastOccurence) {
+
+                    var nextOccurence = moment(obj.properties[access[0]].lastOccurence).add(newValue);
+                    instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: nextOccurence })
+                    instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: nextOccurence })
+                }
+
+
+                
             }
         }
 
@@ -2564,8 +2578,8 @@ var SPOO = {
                 obj.properties[access[0]].date = newValue;
                 
 
-                instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, propData: obj.properties[access[0]], date: newValue })
-                instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, propData: obj.properties[access[0]], date: newValue })
+                instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
+                instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
 
             }
         }
@@ -2611,8 +2625,8 @@ var SPOO = {
 
                 obj.properties[access[0]].action = newValue;
 
-                instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, propData: obj.properties[access[0]], date: newValue })
-                instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, propData: obj.properties[access[0]], date: newValue })
+                //instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
+                //instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
             }
         }
 
@@ -3082,7 +3096,7 @@ var SPOO = {
 
             // new SPOO.ConditionsChecker(this.getProperty(property), value);
 
-            new SPOO.EventIntervalSetWrapper(this, property, value,  client, ['addObject']);
+            new SPOO.EventIntervalSetWrapper(this, property, value,  client, instance);
             return this;
         };
 
@@ -3335,7 +3349,7 @@ var SPOO = {
                 this.setBagPropertyEventInterval(bag, newProKey, value);
                 return;
             }
-            new SPOO.PropertyEventIntervalSetWrapper(this, property, interval);
+            new SPOO.PropertyEventIntervalSetWrapper(this, property, interval, instance);
             return this;
         };
 
@@ -3420,7 +3434,7 @@ var SPOO = {
         };
 
         this.setBagEventInterval = function(bag, property, value,  client) {
-            new SPOO.EventIntervalSetWrapper(this.getProperty(bag), property, value, ['addObject']);
+            new SPOO.EventIntervalSetWrapper(this.getProperty(bag), property, value, instance);
             return this;
         };
 
@@ -3484,6 +3498,8 @@ var SPOO = {
                 }
 
                 SPOO.chainPermission(this.properties[propertyName], instance, 'd', 'removeProperty', propertyName);
+
+                if(this.properties[propertyName].type=='date') instance.eventAlterationSequence.push({ operation: 'remove', obj: this, propName: propertyName, date: date })
 
                 delete this.properties[propertyName];
 
@@ -3587,25 +3603,25 @@ var SPOO = {
 
                         if (prePropsString) {
 
-                            thisRef.instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: prePropsString + "." + p, propData: props[p], date: date })
+                            instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: prePropsString + "." + p, property: props[p], date: date })
 
                             var found = false;
                             thisRef.aggregatedEvents.forEach(function(aE) {
                                 if (aE.propName == prePropsString + "." + p) found = true;
                             })
 
-                            if (!found) thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, propData: props[p], date: date });
+                            if (!found) thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
 
                         } else {
 
-                            thisRef.instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: p, propData: props[p], date: date })
+                            instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: p, property: props[p], date: date })
 
                             var found = false;
                             thisRef.aggregatedEvents.forEach(function(aE) {
                                 if (aE.propName == p) found = true;
                             })
 
-                            if (!found) thisRef.aggregatedEvents.push({ propName: p, propData: props[p], date: date });
+                            if (!found) thisRef.aggregatedEvents.push({ propName: p, date: date });
 
                         }
                     }
@@ -3613,14 +3629,21 @@ var SPOO = {
                 })
             }
 
-            aggregateAllEvents(this.properties);
+             var mapper = null;
+                    
+                    if(!instance.observers[obj.role]) 
+                        mapper = defaultMappers.observer;
+                    else 
+                        mapper = instance.observers[obj.role];
+
+
+            aggregateAllEvents(this.properties); 
 
             if(!this._id) this._id = SPOO.ID();
 
             if(app)
                 if(this.applications.indexOf(app) == -1) this.applications.push(app);
-
-            delete this.instance;
+           
 
             SPOO.add(this, function(data) {
                     
@@ -3637,6 +3660,39 @@ var SPOO = {
                         }
                     })
 
+                    var mapper = null;
+                    
+                    if(!instance.observers[obj.role]) 
+                        mapper = defaultMappers.observer;
+                    else 
+                        mapper = instance.observers[obj.role];
+
+
+                    
+                    if(mapper.type == 'scheduled') {
+
+                        instance.eventAlterationSequence.forEach(function(evt) {
+                            
+                            if(evt.operation == 'add') {
+                                mapper.addEvent(this._id, evt.propName, evt.property, function(evtData) {
+                                
+                                }, function(evtErr) {
+
+                                }, instance.activeTenant)
+                            }
+                           else if(evt.operation == 'remove') {
+                                mapper.addEvent(this._id, evt.propName, function(evtData) {
+                                
+                                }, function(evtErr) {
+
+                                }, instance.activeTenant)
+                            }
+                           
+                        })
+                    }
+
+                    instance.eventAlterationSequence = [];
+
                     //if(this.role == 'template') this.inherit();
 
 
@@ -3649,6 +3705,9 @@ var SPOO = {
 
 
                     success(data);
+
+                    delete thisRef.instance;
+
                 },
                 function(err) {
                     error(err);
@@ -3738,25 +3797,25 @@ var SPOO = {
 
                         if (prePropsString) {
 
-                           // thisRef.instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: prePropsString + "." + p, propData: props[p], date: date });
+                           // instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: prePropsString + "." + p, date: date });
 
                             var found = false;
                             thisRef.aggregatedEvents.forEach(function(aE) {
                                 if (aE.propName == prePropsString + "." + p) found = true;
                             })
 
-                            if (!found) thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, propData: props[p], date: date });
+                            if (!found) thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
 
                         } else {
 
-                            //thisRef.instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: p, propData: props[p], date: date })
+                            //instance.eventAlterationSequence.push({ operation: 'add', obj: thisRef, propName: p, date: date })
 
                             var found = false;
                             thisRef.aggregatedEvents.forEach(function(aE) {
                                 if (aE.propName == p) found = true;
                             })
 
-                            if (!found) thisRef.aggregatedEvents.push({ propName: p, propData: props[p], date: date });
+                            if (!found) thisRef.aggregatedEvents.push({ propName: p, date: date });
 
                         }
                     }
@@ -3764,7 +3823,15 @@ var SPOO = {
                 })
             }
 
-            aggregateAllEvents(this.properties);
+             var mapper = null;
+                    
+                    if(!instance.observers[obj.role]) 
+                        mapper = defaultMappers.observer;
+                    else 
+                        mapper = instance.observers[obj.role];
+
+            
+            if(mapper.type != 'scheduled') aggregateAllEvents(this.properties);
 
 
             SPOO.updateO(this, function(data) {
@@ -3804,6 +3871,25 @@ var SPOO = {
                     }
 
                     delete instance.handlerSequence[this._id];
+
+                   
+                    if(mapper.type == 'scheduled') {
+                        instance.eventAlterationSequence.forEach(function(evt) {
+                            if(evt.type == 'add') {
+                                mapper.addEvent(this._id, evt.propName, evt.property, function(evtData) {
+                                
+                                }, function(evtErr) {
+
+                                }, instance.activeTenant)
+                            }
+                           
+                        })
+                    }
+
+
+                    instance.eventAlterationSequence = [];
+
+
 
                     //if (this.role == 'template') this.inherit();
                     if(success) success(data);
@@ -3845,28 +3931,109 @@ var SPOO = {
             })
 
 
-            /*
-                        Call event Aggregator
-                        method(this)
-                            -> remove all events
-                    */
+            SPOO.getObjectById(this.role, this._id, function(data) { 
 
-            return SPOO.remove(this, function(data)
+                            return SPOO.remove(thisRef, function(_data)
                 {
 
-                    Object.keys(data.onDelete).forEach(function(key)
+                    Object.keys(thisRef.onDelete).forEach(function(key)
                     {
-                        if(data.onDelete[key].trigger == 'after')
+                        if(thisRef.onDelete[key].trigger == 'after')
                         {
                             //dsl, obj, prop, data, callback, client, options
-                            instance.execProcessorAction(data.onDelete[key].value, data, null, null, function(data) {
+                            instance.execProcessorAction(thisRef.onDelete[key].value, thisRef, null, null, function(data) {
                     
                             }, client, null);
                         }
                     })
 
 
-                }, error, app, client);
+
+                    function aggregateAllEvents(props, prePropsString) {
+
+                    Object.keys(props).forEach(function(p) {
+                        if (props[p].type == CONSTANTS.PROPERTY.TYPE_PROPERTY_BAG)
+                            if (prePropsString) {
+                                aggregateAllEvents(props[p].properties, prePropsString + "." + p)
+                            }
+                        else {
+                            aggregateAllEvents(props[p].properties, p)
+                        }
+
+                        if (props[p].type == CONSTANTS.PROPERTY.TYPE_EVENT) {
+
+                            var date = null;
+
+                            if (props[p].date) {
+                                if (!props[p].date.triggered) date = props[p].date;
+                                else date = null;
+                            } else if (props[p].interval) {
+                                if (props[p].nextOccurence) {
+                                    date = props[p].nextOccurence;
+                                } else date = moment().toISOString();
+                            }
+
+                            if (prePropsString) {
+
+                                instance.eventAlterationSequence.push({ operation: 'remove', obj: thisRef, propName: prePropsString + "." + p, date: date });
+
+                                var found = false;
+                               
+                            } else {
+
+                                instance.eventAlterationSequence.push({ operation: 'remove', obj: thisRef, propName: p, date: date })
+
+
+                            }
+                        }
+
+                    })
+                }
+
+             var mapper = null;
+                    
+                    if(!instance.observers[obj.role]) 
+                        mapper = defaultMappers.observer;
+                    else 
+                        mapper = instance.observers[obj.role];
+
+        
+           aggregateAllEvents(data.properties);
+
+
+
+                    if(mapper.type == 'scheduled') {
+
+                        instance.eventAlterationSequence.forEach(function(evt) {
+                            
+                            if(evt.operation == 'add') {
+                                mapper.addEvent(data._id, evt.propName, evt.property, function(evtData) {
+                                
+                                }, function(evtErr) {
+
+                                }, instance.activeTenant)
+                            }
+                           else if(evt.operation == 'remove') {
+                                mapper.removeEvent(data._id, evt.propName, function(evtData) {
+                                
+                                }, function(evtErr) {
+                                    console.log(evtErr);
+                                }, instance.activeTenant)
+                            }
+                           
+                        })
+                    }
+
+                    success(data);
+
+
+                }, function(err) { error(err) }, app, client);
+                
+
+            }, function(err) { error(err) }, app, client);
+
+
+
         };
 
 
