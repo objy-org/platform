@@ -55,11 +55,15 @@ Every use case has it's special technical requirements. That's why SPOO has a pl
 
 ### Platform Capabilities
 
+SPOO is perfect for building platforms, because it has everything a platform needs:
+
 - Runs on any infrastructure, at any scale
+- Simple, open API
 - Don't write much code, just define objects
 - Multitenancy
 - App Contexts
 - User and Permission Handling
+- Industry-specific solutions
 
 
 
@@ -102,17 +106,12 @@ SPOO.Object({name: "Hello Word"}).get( objs => {
 
 ## Custom Object Families with Mappers
 
-In order to build production-grade platforms and solutions, SPOO let's your plug in just the right technologies for specific use cases. This is what object families are for. They represent objects that have the same requirements for the underlying technologies used for persistence, processing and observation.
+In order to build production-grade platforms and solutions, SPOO let's you plug in just the right technologies for specific use cases. This is what object families are for. They represent objects that have the same requirements for the underlying technologies used for persistence, processing and observation.
 
 See [Mappers](#mappers) for details.
 
 ### Example
 ```
-// Install the mappers
-var InMemoryMapper = require('./mappers/persistence/inMemory.js');
-var RealTimeObserver = require('./mappers/observer/realTime.js');
-var RealTimeProcessor = require('./mappers/processor/realTime.js');
-
 // Define an object family with mappers
 SPOO.define({
 	name : "Item",
@@ -121,13 +120,7 @@ SPOO.define({
 	observer: new RealTimeObserver(),
 	processor: new RealTimeProcessor()
 })
-
-// Use the object family's constructor
-SPOO.Item({name: "Hello World"}).add( obj => {
-	console.log(data);
-})
 ```
-
 
 
 ## Build your own mapper - extend the ecosystem
