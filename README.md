@@ -1,19 +1,47 @@
-# SPOO
+# SPOO - Single Point of Object
 
-A framework that uses dynamic, behaviour-driven objects to digitalize real-life use cases and build infrastructure-agnostic, multitenant platforms for any infrastructure and any scale.
+An object-driven framework for building dynamic, infrastructure-agnostic digitalisation platforms.
 
 ## Table of Contents
 
-- [Getting Started](#Getting Started).
+- [Main Concepts](#Getting Started)
 - [Installing](dgs)
 
 
 
-## Getting Started
+## Main Concepts
 
-SPOO is written in JavaScript and can be used on any JS Runtime, like Node.js or Browsers. It can be downloaded from our GitHub repository or from spoo.io.
+### Objects
 
+In real life, everything is an object. Every object is dynamic, has characteristics, behaviour and can execute actions. In SPOO, we are adopting the way objects work in real life by offering a way to model objects, that can have the same features like in real life. This makes it super easy to turn real use cases into its digital representation
 
+In fact, SPOO stands for Single Point of Object.
+
+Objects can have the following features
+
+### Pluggable Technologies
+
+Every use case has it's special technical requirements. That's why SPOO has a plaggable and extendable mapper ecosystem to plug in any technology responsible for data persistence, processing and observation. These mappers can be used to define Object Families (Objects that have the same technical requirements and share the same mappers).
+
+### Platform Capabilities
+
+SPOO is perfect for building platforms, because it has everything a platform needs:
+
+- Runs on any infrastructure, at any scale
+
+- Simple, open API
+
+- Don't write much code, just define objects
+
+- Multitenancy
+
+- App Contexts
+
+- User and Permission Handling
+
+- Industry-specific solutions
+
+  
 
 ## Installing
 
@@ -34,36 +62,6 @@ https://spoo.io/code/spoo.js
  
 https://spoo.io/code/spoo.min.js
 ```
-
-
-
-## Main Concepts
-
-
-### Objects
-
-In real life, everything is an object. Every object is dynamic, has characteristics, behaviour and can execute actions. In SPOO, we are adopting the way objects work in real life by offering a way to model objects, that can have the same features like in real life. This makes it super easy to turn real use cases into its digital representation
-
-In fact, SPOO stands for Single Point of Object.
-
-Objects can have the following features
-
-
-### Pluggable Technologies
-
-Every use case has it's special technical requirements. That's why SPOO has a plaggable and extendable mapper ecosystem to plug in any technology responsible for data persistence, processing and observation. These mappers can be used to define Object Families (Objects that have the same technical requirements and share the same mappers).
-
-### Platform Capabilities
-
-SPOO is perfect for building platforms, because it has everything a platform needs:
-
-- Runs on any infrastructure, at any scale
-- Simple, open API
-- Don't write much code, just define objects
-- Multitenancy
-- App Contexts
-- User and Permission Handling
-- Industry-specific solutions
 
 
 
