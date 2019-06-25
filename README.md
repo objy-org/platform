@@ -10,37 +10,35 @@ A framework that uses dynamic, behaviour-driven objects to digitalize real-life 
 ## Getting Started
 
 
-
-SPOO runs on JavaScript and can be used on any JS Runtime, like Node.js or Browsers. In order to plug in technologies, like Databses or Data Processing Frameworks, get the right connectors, or build something yourself.
-
-SPOO can be downloaded from our GitHub repository.
-
-Objects are at the center of every use case. They consist of the following key features:
-
-- Properties
-- Events
-- Actions
-
-With theese features, objects can be used to represent any entity and transform real-life use cases into digital representations.
+SPOO is written in JavaScript and can be used on any JS Runtime, like Node.js or Browsers. It can be downloaded from our GitHub repository or from spoo.io.
 
 
+## Main Concepts
 
-```
-SPOO.Object({name: "Hello World"}).add(function(data)
-{
-	console.log(data);
-});
+### Objects
 
-SPOO.Objects({name: "Hello World"}).get(function(data){
-	
-})
-```
+In real life, everything is an object. Every object is dynamic, has characteristics, behaviour and can execute actions. In SPOO, we are adopting the way objects work in real life by offering a way to model objects, that can have the same features like in real life. This makes it super easy to turn real use cases into its digital representation
+
+In fact, SPOO stands for Single Point of Object.
+
+Objects can have the following features
+
+
+### Pluggable Technologies
+
+Every use case has it's special technical requirements. That's why SPOO has a plaggable and extendable mapper ecosystem to plug in any technology responsible for data persistence, processing and observation. These mappers can be used to define Object Families (Objects that have the same technical requirements and share the same mappers).
+
+### Multitenancy and App Context
+
+SPOO Objects have built-in, configurable multitenancy capabilities.
+
+Objects can be assigned to one or more App contexts, which makes the development of different Applications super easy.
+
 
 ## Installing
 
 
 ### NPM
-
 
 ```
 npm install spoo
@@ -59,6 +57,17 @@ https://spoo.io/code/spoo.min.js
 ```
 
 ## Documentation
+
+```
+SPOO.Object({name: "Hello World"}).add(function(data)
+{
+	console.log(data);
+});
+
+SPOO.Objects({name: "Hello World"}).get(function(data){
+	
+})
+```
 
 ### Object Anatomy
 
