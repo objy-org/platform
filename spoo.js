@@ -28,7 +28,6 @@ var CONSTANTS = {
         TYPE_NUMBER: 'number',
         TYPE_DATE: 'date',
         TYPE_SHORTID: 'shortId',
-        //TYPE_DURATION : 'duration',
         TYPE_REF_OBJ: 'objectRef',
         TYPE_REF_USR: 'userRef',
         TYPE_REF_FILE: 'fileRef',
@@ -39,7 +38,6 @@ var CONSTANTS = {
         TYPE_ACTION: 'action',
         TYPE_JSON: 'json'
     },
-
     MULTITENANCY: {
         ISOLATED: "isolated",
         SHARED: "shared"
@@ -212,19 +210,10 @@ DefaultProcessorMapper.prototype.execute = function(dsl, obj, prop, data, callba
 
 // Storage Mapper
 
-
 DefaultStorageMapper = function(options) {
     this.database = {};
     this.index = {};
-    this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.DATABASE;
-}
-
-DefaultStorageMapper.prototype.connect = function(connectionString, success, error) {
-
-}
-
-DefaultStorageMapper.prototype.closeConnection = function(success, error) {
-
+    this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.ISOLATED;
 }
 
 DefaultStorageMapper.prototype.setMultiTenancy = function(value) {
@@ -233,7 +222,7 @@ DefaultStorageMapper.prototype.setMultiTenancy = function(value) {
 
 DefaultStorageMapper.prototype.createClient = function(client, success, error) {
 
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED) {
         if (this.database[client])
             error('Client already exists')
 
@@ -245,14 +234,16 @@ DefaultStorageMapper.prototype.createClient = function(client, success, error) {
 
 DefaultStorageMapper.prototype.getDBByMultitenancy = function(client) {
 
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER) {
+    if(client) client = null;
+
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED) {
         if (!Array.isArray(this.database)) this.database = [];
 
         return this.database;
-    } else if (this.multitenancy == CONSTANTS.MULTITENANCY.DATABASE) {
+    } else if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED) {
 
         if (!this.database[client])
-            error('no database for client ' + client);
+            throw new Error('no database for client ' + client);
 
         return this.database[client];
     }
@@ -274,7 +265,7 @@ DefaultStorageMapper.prototype.getObjById = function(id, success, error, app, cl
     if (!db[id])
         return error('object not found: ' + id);
 
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
         if (db[this.index[client][id]].tenantId != client)
             error('object not found: ' + id);
 
@@ -290,7 +281,7 @@ DefaultStorageMapper.prototype.getObjsByCriteria = function(criteria, success, e
     if (app)
         Object.assign(criteria, { applications: { $in: [app] } })
 
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
         Object.assign(criteria, { tenantId: client })
 
     success(Query.query(db, criteria));
@@ -321,7 +312,7 @@ DefaultStorageMapper.prototype.updateObj = function(spooElement, success, error,
     if (!this.index[client][spooElement._id]);
     return error('object not found: ' + id);
 
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
         if (this.index[client][spooElement._id].tenantId != client)
             return error('object not found: ' + id);
 
@@ -343,7 +334,7 @@ DefaultStorageMapper.prototype.addObj = function(spooElement, success, error, ap
 
     var db = this.getDBByMultitenancy(client);
 
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
         spooElement.tenantId = client;
 
     db.push(spooElement)
@@ -359,7 +350,7 @@ DefaultStorageMapper.prototype.removeObj = function(spooElement, success, error,
     if (!this.index[client][spooElement._id])
         return error('object not found: ' + spooElement._id);
 
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.TENANTIDENTIFIER)
+    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
         if (this.index[client][spooElement._id].tenantId != client)
             return error('object not found: ' + spooElement._id);
 
@@ -4399,7 +4390,7 @@ var SPOO = {
     }
 }
 
-var defaultPersistence = new DefaultStorageMapper({ multitenancy: 'tenantIdentifier' });
+var defaultPersistence = new DefaultStorageMapper({multitenancy:'shared'});
 var defaultObserver = new DefaultObserverMapper(defaultPersistence);
 var defaultProcessor = new DefaultProcessorMapper(SPOO);
 
@@ -4410,5 +4401,9 @@ var defaultMappers = {
 }
 
 
+SPOO.ObjectFamily({
+    name: "Object",
+    pluralName: 'Objects'
+})
 
 if (_nodejs) module.exports = SPOO;

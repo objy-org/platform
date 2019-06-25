@@ -1,9 +1,17 @@
 var SPOO = require('./spoo.js');
-var MAPPER = require('./storageMappers/localStorageMapper.js');
-var PROCESSOR = require('./processorMappers/processorMapper.js');
+
+//var MAPPER = require('./storageMappers/localStorageMapper.js');
+//var PROCESSOR = require('./processorMappers/processorMapper.js');
 
 SPOO.hello();
 
+
+SPOO.Object({}).add(function(data)
+{
+
+})
+
+return;
 
 SPOO.define({
     name: "SensorItem",
@@ -72,21 +80,6 @@ new SPOO.SensorItem({
 }).add(function(data, err) {
     console.log(data);
 });
-
-
-
-
-{
-    "name": "ssdg",
-    "test": "23434",
-    "permissions": {
-        "test" : {
-            "admin" : {
-                "value": "*"
-            }
-        }
-    }
-}
 
 
 //get/update one

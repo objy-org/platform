@@ -13,8 +13,7 @@ var lowDBMapper = new LOWDBMAPPER({multitenancy: 'database'}, null, function(dat
 
 SPOO.ObjectFamily({
     name: "Nicole",
-    pluralName: 'Nicoles',
-    persistence: lowDBMapper,
+    pluralName: 'Nicoles'
 })
 
 //new SPOO.Impulse({}).add();
