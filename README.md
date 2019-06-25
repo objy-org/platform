@@ -20,8 +20,6 @@ SPOO runs on JavaScript and can be used on any JS Runtime, like Node.js or Brows
 SPOO and all available connectors can be downloaded from our GitHub repository.
 
 
-First, you need the SPOO Core
-
 ```
 SPOO.Object({name: "Hello World"}).add(function(data)
 {
@@ -46,7 +44,6 @@ npm install spoo
 
 ### CDN
 
-Core Framework
 
 ```
 https://spoo.io/code/spoo.js
@@ -54,7 +51,6 @@ https://spoo.io/code/spoo.js
  - or -
  
 https://spoo.io/code/spoo.min.js
-
 ```
 
 ## Documentation
