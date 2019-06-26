@@ -14,10 +14,6 @@ Mapper.prototype.initialize = function(millis) {
         }, this.interval)
 }
 
-Mapper.prototype.setObjectFamily = function(value) {
-    this.objectFamily = value;
-};
-
 Mapper.prototype.run = function(date) {
         
         var self = this;

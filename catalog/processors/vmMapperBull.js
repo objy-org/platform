@@ -8,11 +8,11 @@ Mapper.prototype.sandBox = new VM({ sandbox: { SPOO: this.SPOO, dsl: this, this:
 
 Mapper.prototype.jobQueue = new Queue('spoo jobs', {redis : rediscon});
 
-Mapper.jobQueue.process(function(job, done) {
+Mapper.prototype.jobQueue.process(function(job, done) {
         new Mapper(SPOO).executeFromJob(job.data.dsl, JSON.parse(job.data.obj), JSON.parse(job.prop || {}), job.data.data, );
 });
 
-Mapper.jobQueue.on('completed', function(job, result) {
+Mapper.prototype.jobQueue.on('completed', function(job, result) {
         job.remove();
 })
 

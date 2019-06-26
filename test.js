@@ -21,6 +21,16 @@ SPOO.Object({
 })
 
 
+var m = require('./catalog/storage/inMemory.js');
+
+var m1 = new m();
+var m2 = new m();
+
+m1.objectFamily = 222
+
+console.log(m1);
+console.log(m2);
+
 
 return;
 
