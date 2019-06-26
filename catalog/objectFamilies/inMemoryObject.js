@@ -1,9 +1,9 @@
-var Persistence = require('../mappers/storage/defaultMapper.js');
-var Processor = require('../mappers/processor/defaultMapper.js');
-var Observer = require('../mappers/observer/defaultMapper.js');
+var Persistence = require('../storage/inMemory.js');
+var Processor = require('../processors/eval.js');
+var Observer = require('../observers/intervalMapper.js');
 
 
-InMemoryObject = function(SPOO, name, pluralName) {
+InMemoryObject = function(SPOO, name, pluralName, storageOpts, processorOpts, observerOpts) {
 
 	SPOO.ObjectFamily({
 		name: name || 'Object',

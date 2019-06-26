@@ -13,13 +13,17 @@ var CONSTANTS = {
     }
 }
 
-
 Mapper = function(SPOO, options) {
     this.type = (options || {}).type || CONSTANTS.TYPES.SCHEDULED;
     this.database = {};
+    this.objectFamily = null;
     this.index = {};
     this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.ISOLATED;
 }
+
+Mapper.prototype.setObjectFamily = function(value) {
+    this.objectFamily = value;
+};
 
 Mapper.prototype.setMultiTenancy = function(value) {
     this.multitenancy = value;

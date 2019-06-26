@@ -5,11 +5,22 @@ var SPOO = require('./spoo.js');
 
 SPOO.hello();
 
+SPOO.client('sf');
 
-SPOO.Object({}).add(function(data)
+SPOO.Object({
+    properties: {
+        evt: {
+            date: "0",
+            action: 'asfasf',
+            type: 'date'
+        }
+    }
+}).add(function(data)
 {
 
 })
+
+
 
 return;
 

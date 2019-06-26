@@ -7,8 +7,12 @@ var globalPagingNum = 20;
 
 var CONSTANTS = {
     MULTITENANCY: {
-        TENANTIDENTIFIER: "tenantIdentifier",
-        DATABASE: "database"
+        ISOLATED: "isolated",
+        SHARED: "shared"
+    },
+    TYPES: {
+        SCHEDULED: 'scheduled',
+        QUERIED: 'queried'
     }
 }
 

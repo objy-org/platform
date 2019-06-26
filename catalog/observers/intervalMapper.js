@@ -1,9 +1,4 @@
-
-Mapper = function(persistence) {
-	this.persistence = persistence;
-    this.interval =  null;
-    this.initialize();
-}
+const Mapper = require('./_template.js');
 
 Mapper.prototype.initialize = function(millis) {
         var self = this;
@@ -16,23 +11,25 @@ Mapper.prototype.initialize = function(millis) {
 
             self.run(new Date());
 
-        }, millis || 60000)
+        }, this.interval)
 }
 
+Mapper.prototype.setObjectFamily = function(value) {
+    this.objectFamily = value;
+};
 
 Mapper.prototype.run = function(date) {
-        console.log("-----");
         
         var self = this;
 
-        this.persistence.listTenants(function(data){
+        self.SPOO.getPersistence(this.objectFamily).listClients(function(data){
 
             data.forEach(function(tenant) {
-                
-                self.persistence.getObjsByCriteria({}, function(objs) {
-                        
-                        objs.forEach(function(obj) {
+                    console.log("asfasf", tenant);
+                self.SPOO.getPersistence(self.objectFamily).getByCriteria({}, function(objs) {
 
+                        objs.forEach(function(obj) {
+                            console.log("asfasf");
                         })
 
                     }, function(err) {

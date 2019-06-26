@@ -8,7 +8,9 @@ if (_nodejs) {
 
 var moment = require('moment');
 var shortid = require('shortid');
-var Query = require("query");
+var DefaultStorageMapper = require('./catalog/storage/inMemory.js');
+var DefaultProcessorMapper = require('./catalog/processors/eval.js');
+var DefaultObserverMapper = require('./catalog/observers/intervalMapper.js');
 
 var CONSTANTS = {
 
@@ -47,310 +49,6 @@ var CONSTANTS = {
         QUERIED: 'queried'
     }
 }
-
-
-/*
- * Default Mappers
- */
-
-// SCHEDULED MAPPER
-
-DefaultObserverMapper = function(SPOO, options) {
-    this.type = (options || {}).type || CONSTANTS.TYPES.SCHEDULED;
-    this.database = {};
-    this.index = {};
-    this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.ISOLATED;
-}
-
-DefaultObserverMapper.prototype.setMultiTenancy = function(value) {
-    this.multitenancy = value;
-};
-
-DefaultObserverMapper.prototype.getDBByMultitenancy = function(client) {
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED) {
-        if (!Array.isArray(this.database)) this.database = [];
-
-        return this.database;
-    } else if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED) {
-
-        if (!this.database[client])
-            throw new Error('no database for client ' + client);
-
-        return this.database[client];
-    }
-};
-
-DefaultObserverMapper.prototype.listTenants = function(success, error) {
-    if (!this.database)
-        return error('no database');
-
-
-    success(Object.keys(this.database));
-};
-
-
-DefaultObserverMapper.prototype.getEvent = function(objId, propName, success, error, client) {
-
-    var db = this.getDBByMultitenancy(client);
-
-    if (!db[objId])
-        return error('object not found: ' + objId);
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED)
-        if (db[this.index[client][objId]].tenantId != client)
-            error('object not found: ' + objId);
-
-    success(db[this.index[client][objId]]);
-}
-
-DefaultObserverMapper.prototype.addEvent = function(objId, propName, event, success, error, client) {
-
-    var self = this;
-
-    if (!this.database[client])
-        this.database[client] = [];
-
-    if (!this.index[client]) this.index[client] = [];
-
-    if (this.index[client][objId + ':' + propName])
-        return error('object with taht id already exists: ' + objId);
-
-    if (!this.index[client]) this.index[client] = {};
-
-    var db = this.getDBByMultitenancy(client);
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED)
-        event.tenantId = client;
-
-    if (event.date) {
-        var difference = Infinity;
-
-        difference = moment().diff(event.date);
-
-        db.push(setTimeout(function() {
-
-            // @TODO: link to processor
-
-        }, difference))
-    } else if (event.interval) {
-
-        var interval = Infinity; // @TODO: convert iso8601 duration to millis
-
-        interval = moment.duration(event.interval).asMilliseconds()
-
-        if (interval == 0) interval = Infinity;
-
-        db.push(setInterval(function() {
-
-            // @TODO: link to processor
-
-            console.log(event.action);
-
-            //self.processor.execute(dsl, obj, prop, data, callback, client, app, user, options);
-
-        }, interval))
-    }
-
-    this.index[client][objId + ':' + propName] = db.length;
-
-    success(event);
-
-};
-
-DefaultObserverMapper.prototype.removeEvent = function(objId, propName, success, error, client) {
-
-    var db = this.getDBByMultitenancy(client);
-
-
-
-    if (!this.index[client][objId + ':' + propName])
-        return error('object not found: ' + objId + ':' + propName);
-
-
-
-    /*if(this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED)
-        if(this.index[client][objId + ':'+propName].tenantId != client) 
-            return error('object not found: ' + objId + ':'+propName);*/
-
-    console.log(this.index[client]);
-
-
-    db.splice(this.index[client][objId + ':' + propName], 1);
-    delete this.index[client][objId + ':' + propName];
-    success('removed')
-
-};
-
-
-// Processor Mapper
-
-
-DefaultProcessorMapper = function(SPOO) {
-    this.SPOO = SPOO;
-    this.multitenancy = CONSTANTS.MULTITENANCY.ISOLATED;
-}
-
-DefaultProcessorMapper.prototype.setMultiTenancy = function(value) {
-    this.multitenancy = value;
-};
-
-DefaultProcessorMapper.prototype.execute = function(dsl, obj, prop, data, callback, client, app, user, options) {
-
-    var SPOO = this.SPOO;
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED) {
-        eval(dsl)
-    } else {
-        eval(dsl)
-    }
-}
-
-
-// Storage Mapper
-
-DefaultStorageMapper = function(options) {
-    this.database = {};
-    this.index = {};
-    this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.ISOLATED;
-}
-
-DefaultStorageMapper.prototype.setMultiTenancy = function(value) {
-    this.multitenancy = value;
-};
-
-DefaultStorageMapper.prototype.createClient = function(client, success, error) {
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED) {
-        if (this.database[client])
-            error('Client already exists')
-
-        this.database[client] = [];
-        this.index[client] = {};
-        success()
-    }
-}
-
-DefaultStorageMapper.prototype.getDBByMultitenancy = function(client) {
-
-    if(client) client = null;
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED) {
-        if (!Array.isArray(this.database)) this.database = [];
-
-        return this.database;
-    } else if (this.multitenancy == CONSTANTS.MULTITENANCY.ISOLATED) {
-
-        if (!this.database[client])
-            throw new Error('no database for client ' + client);
-
-        return this.database[client];
-    }
-};
-
-DefaultStorageMapper.prototype.listClients = function(success, error) {
-    if (!this.database)
-        return error('no database');
-
-
-    success(Object.keys(this.database));
-};
-
-
-DefaultStorageMapper.prototype.getById = function(id, success, error, app, client) {
-
-    var db = this.getDBByMultitenancy(client);
-
-    if (!db[id])
-        return error('object not found: ' + id);
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
-        if (db[this.index[client][id]].tenantId != client)
-            error('object not found: ' + id);
-
-
-    success(db[this.index[client][id]]);
-}
-
-
-DefaultStorageMapper.prototype.getByCriteria = function(criteria, success, error, app, client, flags) {
-
-    var db = this.getDBByMultitenancy(client);
-
-    if (app)
-        Object.assign(criteria, { applications: { $in: [app] } })
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
-        Object.assign(criteria, { tenantId: client })
-
-    success(Query.query(db, criteria));
-}
-
-
-DefaultStorageMapper.prototype.count = function(criteria, success, error, app, client, flags) {
-
-    var db = this.getDBByMultitenancy(client);
-
-    success(Query.query(db, criteria).length);
-
-}
-
-DefaultStorageMapper.prototype.update = function(spooElement, success, error, app, client) {
-
-    var db = this.getDBByMultitenancy(client);
-
-    if (!this.index[client][spooElement._id]);
-    return error('object not found: ' + id);
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
-        if (this.index[client][spooElement._id].tenantId != client)
-            return error('object not found: ' + id);
-
-    db[this.index[client][spooElement._id]] = spooElement;
-
-    success(db[spooElement._id]);
-};
-
-DefaultStorageMapper.prototype.add = function(spooElement, success, error, app, client) {
-
-    if (!this.database[client])
-        this.database[client] = [];
-
-    if (!this.index[client]) this.index[client] = [];
-
-    if (this.index[client][spooElement._id])
-        return error('object with taht id already exists: ' + id);
-    if (!this.index[client]) this.index[client] = {};
-
-    var db = this.getDBByMultitenancy(client);
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
-        spooElement.tenantId = client;
-
-    db.push(spooElement)
-    this.index[client][spooElement._id] = db.length;
-
-    success(spooElement);
-};
-
-DefaultStorageMapper.prototype.remove = function(spooElement, success, error, app, client) {
-
-    var db = this.getDBByMultitenancy(client);
-
-    if (!this.index[client][spooElement._id])
-        return error('object not found: ' + spooElement._id);
-
-    if (this.multitenancy == CONSTANTS.MULTITENANCY.SHARED)
-        if (this.index[client][spooElement._id].tenantId != client)
-            return error('object not found: ' + spooElement._id);
-
-
-    db.splice(this.index[client][spooElement._id], 1);
-    delete this.index[client][spooElement._id];
-    success(spooElement)
-
-};
-
 
 function NoOnChangeException(message) {
     this.message = "onChange not found";
@@ -794,9 +492,16 @@ var SPOO = {
         return this.mappers[family];
     },
 
+    getPersistence: function(family) {
+        if(Object.keys(this.mappers).length == 0) return defaultPersistence;
+        if (!this.mappers[family]) throw new Error("No such Object Family");
+        return this.mappers[family];
+    },
+
     plugInPersistenceMapper: function(name, mapper) {
         if (!name) throw new Error("No mapper name provided");
         this.mappers[name] = mapper;
+        this.mappers[name].setObjectFamily(name);
     },
 
     processors: {},
@@ -804,6 +509,7 @@ var SPOO = {
     plugInProcessor: function(name, processor) {
         if (!name) throw new Error("No mapper name provided");
         this.processors[name] = processor;
+        this.processors[name].setObjectFamily(name);
     },
 
     observers: {},
@@ -811,6 +517,7 @@ var SPOO = {
     plugInObserver: function(name, observer) {
         if (!name) throw new Error("No mapper name provided");
         this.observers[name] = observer;
+        this.observers[name].setObjectFamily(name);
     },
 
     ConditionsChecker: function(property, value) {
@@ -823,9 +530,6 @@ var SPOO = {
     },
 
     execProcessorAction: function(dsl, obj, prop, data, callback, client, options) {
-
-        if (!this.processors[obj.role])
-            return defaultMappers.processor.execute(dsl, obj, prop, data, callback, client, this.instance.activeUser, options); //throw new Error("No Processor registered");
 
         this.processors[obj.role].execute(dsl, obj, prop, data, callback, client, this.instance.activeUser, options);
     },
@@ -1144,18 +848,9 @@ var SPOO = {
 
         var self = this;
 
-        if (!this.mappers[obj.role]) {
-            return defaultMappers.persistence.remove(obj, function(data) {
-                success(data);
+       
 
-
-            }, function(err) {
-                error(err);
-            }, app, client);
-        }
-
-
-        this.mappers[obj.role].removeObj(obj, function(data) {
+        this.mappers[obj.role].remove(obj, function(data) {
 
             success(data);
 
@@ -1187,16 +882,8 @@ var SPOO = {
 
     addObject: function(obj, success, error, app, client) {
 
-        if (!this.mappers[obj.role]) {
-            return defaultMappers.persistence.add(obj, function(data) {
-                success(data);
 
-            }, function(err) {
-                error(err);
-            }, app, client);
-        }
-
-        this.mappers[obj.role].addObj(obj, function(data) {
+        this.mappers[obj.role].add(obj, function(data) {
             success(data);
 
         }, function(err) {
@@ -1244,16 +931,9 @@ var SPOO = {
 
     updateObject: function(obj, success, error, client) {
 
-        if (!this.mappers[obj.role]) {
-            return defaultMappers.persistence.update(obj, function(data) {
-                success(data);
+       
 
-            }, function(err) {
-                error('Error - Could not add object');
-            }, client);
-        }
-
-        this.mappers[obj.role].updateObj(obj, function(data) {
+        this.mappers[obj.role].update(obj, function(data) {
             success(data);
 
         }, function(err) {
@@ -1263,16 +943,9 @@ var SPOO = {
 
     getObjectById: function(role, id, success, error, app, client) {
 
-        if (!this.mappers[role]) {
-            return defaultMappers.persistence.getById(id, function(data) {
-                success(data);
+        
 
-            }, function(err) {
-                error('Error - Could not add object');
-            }, app, client);
-        }
-
-        this.mappers[role].getObjById(id, function(data) {
+        this.mappers[role].getById(id, function(data) {
 
             //console.log("---" + data)
 
@@ -1296,17 +969,9 @@ var SPOO = {
         var templatesCache = [];
         var objectsCache = [];
 
-        if (!this.mappers[role]) {
-            return defaultMappers.persistence.getByCriteria(criteria, function(data) {
-                success(data);
+       
 
-            }, function(err) {
-                error(err);
-            }, app, client, flags);
-        }
-
-
-        this.mappers[role].getObjsByCriteria(criteria, function(data) {
+        this.mappers[role].getByCriteria(criteria, function(data) {
             var counter = 0;
             var num = data.length;
             if (num == 0) success([]);
@@ -3848,7 +3513,7 @@ var SPOO = {
             Object.keys(thisRef.onCreate).forEach(function(key) {
 
                 if (thisRef.onCreate[key].trigger == 'before') {
-                    console.log("####");
+                    
                     //dsl, obj, prop, data, callback, client, options
                     instance.execProcessorAction(thisRef.onCreate[key].value, thisRef, null, null, function(data) {
 
@@ -3915,12 +3580,7 @@ var SPOO = {
                 })
             }
 
-            var mapper = null;
-
-            if (!instance.observers[obj.role])
-                mapper = defaultMappers.observer;
-            else
-                mapper = instance.observers[obj.role];
+            var mapper = instance.observers[thisRef.role];
 
 
             aggregateAllEvents(this.properties);
@@ -3944,15 +3604,9 @@ var SPOO = {
                         }
                     })
 
-                    var mapper = null;
+                    //var mapper = instance.observers[obj.role];
 
-                    if (!instance.observers[obj.role])
-                        mapper = defaultMappers.observer;
-                    else
-                        mapper = instance.observers[obj.role];
-
-
-
+                  
                     if (mapper.type == 'scheduled') {
 
                         instance.eventAlterationSequence.forEach(function(evt) {
@@ -4010,8 +3664,8 @@ var SPOO = {
 
             SPOO.checkPermissions(instance.activeUser, instance.activeApp, thisRef, 'u')
 
-            if ((instance.permissionSequence[obj._id] || []).length > 0) {
-                throw new LackOfPermissionsException(instance.permissionSequence[obj._id]);
+            if ((instance.permissionSequence[thisRef._id] || []).length > 0) {
+                throw new LackOfPermissionsException(instance.permissionSequence[thisRef._id]);
             }
 
 
@@ -4098,12 +3752,7 @@ var SPOO = {
                 })
             }
 
-            var mapper = null;
-
-            if (!instance.observers[obj.role])
-                mapper = defaultMappers.observer;
-            else
-                mapper = instance.observers[obj.role];
+            var mapper =  instance.observers[obj.role];
 
 
             if (mapper.type != 'scheduled') aggregateAllEvents(this.properties);
@@ -4253,12 +3902,7 @@ var SPOO = {
                         })
                     }
 
-                    var mapper = null;
-
-                    if (!instance.observers[obj.role])
-                        mapper = defaultMappers.observer;
-                    else
-                        mapper = instance.observers[obj.role];
+                    var mapper = instance.observers[obj.role];
 
 
                     aggregateAllEvents(data.properties);
@@ -4380,20 +4024,18 @@ var SPOO = {
     }
 }
 
-var defaultPersistence = new DefaultStorageMapper({multitenancy:'shared'});
-var defaultObserver = new DefaultObserverMapper(defaultPersistence);
-var defaultProcessor = new DefaultProcessorMapper(SPOO);
 
-var defaultMappers = {
-    persistence: defaultPersistence,
-    observer: defaultObserver,
-    processor: defaultProcessor
-}
+var defaultPersistence = new DefaultStorageMapper();
+var defaultObserver = new DefaultObserverMapper(SPOO);
+var defaultProcessor = new DefaultProcessorMapper(SPOO);
 
 
 SPOO.ObjectFamily({
     name: "Object",
-    pluralName: 'Objects'
+    pluralName: 'Objects',
+    persistence: defaultPersistence,
+    processor: defaultProcessor,
+    observer: defaultObserver
 })
 
 if (_nodejs) module.exports = SPOO;

@@ -1,13 +1,16 @@
-var CONSTANTS = {
-    MULTITENANCY: {
-        TENANTIDENTIFIER: "tenantIdentifier",
-        DATABASE: "database"
-    }
-}
-
 Mapper = function(options) {
-	this.database = {};
-	this.multitenancy = (options || {}).multitenancy || CONSTANTS.MULTITENANCY.DATABASE;
+	this.CONSTANTS = {
+	    MULTITENANCY: {
+	        ISOLATED: "isolated",
+	        SHARED: "shared"
+	    },
+	    TYPES: {
+	        SCHEDULED: 'scheduled',
+	        QUERIED: 'queried'
+	    }
+	};
+    this.objectFamily = null;
+	this.multitenancy = (options || {}).multitenancy || this.CONSTANTS.MULTITENANCY.ISOLATED;
 }
 
 Mapper.prototype.connect = function(connectionString, success, error) {
@@ -17,6 +20,10 @@ Mapper.prototype.connect = function(connectionString, success, error) {
 Mapper.prototype.closeConnection = function(success, error) {
     
 }
+
+Mapper.prototype.setObjectFamily = function(value) {
+    this.objectFamily = value;
+};
 
 Mapper.prototype.setMultiTenancy = function(value) {
     this.multitenancy = value;
