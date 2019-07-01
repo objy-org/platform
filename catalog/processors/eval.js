@@ -5,10 +5,12 @@ Mapper.prototype.execute = function(dsl, obj, prop, data, callback, client, app,
         var SPOO = this.SPOO;
 
         if(this.multitenancy == this.CONSTANTS.MULTITENANCY.ISOLATED) {
-            eval(dsl)
+            eval(dsl);
+            callback();
         }
         else {
             eval(dsl)
+            callback();
         }
 }
 

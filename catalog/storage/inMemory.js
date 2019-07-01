@@ -26,7 +26,7 @@ Mapper.prototype.getDBByMultitenancy = function(client) {
         } else if (this.multitenancy == this.CONSTANTS.MULTITENANCY.ISOLATED) {
         	
         	if(!this.database[client])
-            	error('no database for client ' + client);
+            	throw new Error('no database for client ' + client);
 
             return this.database[client];
         }
@@ -41,12 +41,11 @@ Mapper.prototype.listClients = function(success, error) {
     else success(Object.keys(this.database));
 };
 
-
 Mapper.prototype.getById = function(id, success, error, app, client) {
         
         var db = this.getDBByMultitenancy(client);
 
-        if(!db[id]) 
+        if(!this.index[client][id]) 
         	return error('object not found: ' + id);
         
         if(this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED)
@@ -85,23 +84,22 @@ Mapper.prototype.aggregateByCriteria = function(aggregation, criteria, success, 
             default:
                 error();
         }
-
 }
 
 Mapper.prototype.update = function(spooElement, success, error, app, client) {
-        
+
         var db = this.getDBByMultitenancy(client);
 
-        if(!this.index[client][spooElement._id]);
-            return error('object not found: ' + id);
+        if(this.index[client][spooElement._id] === undefined)
+            return error('object not found: ' + spooElement._id);
 
         if(this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED)
         	if(this.index[client][spooElement._id].tenantId != client) 
-        		return error('object not found: ' + id);
+        		return error('object not found: ' + _id);
 
         db[this.index[client][spooElement._id]] = spooElement;
         
-        success(db[spooElement._id]);
+        success(db[this.index[client][spooElement._id]]);
 };
 
 Mapper.prototype.add = function(spooElement, success, error, app, client) {
@@ -109,19 +107,21 @@ Mapper.prototype.add = function(spooElement, success, error, app, client) {
         if(!this.database[client])
             this.database[client] = [];
         
-        if(!this.index[client]) this.index[client] = [];
+        if(!this.index[client]) this.index[client] = {};
 
         if(this.index[client][spooElement._id])
-            return error('object with taht id already exists: ' + id);
+            return error('object with taht id already exists: ' + spooElement._id);
         if(!this.index[client]) this.index[client] = {};
 
         var db = this.getDBByMultitenancy(client);
 
-        if(this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED)
+        if(this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED) {
         	spooElement.tenantId = client;
+        }
 
         db.push(spooElement)
-        this.index[client][spooElement._id] = db.length;
+
+        this.index[client][spooElement._id] = db.length-1;
 
         success(spooElement);
 };

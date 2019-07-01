@@ -11,16 +11,20 @@ SPOO.Object({
     properties: {
         evt: {
             date: "0",
-            action: 'asfasf',
-            type: 'date'
+            action: 'console.log("afddddd")',
+            type: 'event'
         }
     }
 }).add(function(data)
 {
-
+    data.addProperty('fsdsgsg', 'asaa').update(function(data){
+        
+    })
+    console.log(data);
 })
 
 
+/*
 var m = require('./catalog/storage/inMemory.js');
 
 var m1 = new m();
@@ -29,8 +33,7 @@ var m2 = new m();
 m1.objectFamily = 222
 
 console.log(m1);
-console.log(m2);
-
+console.log(m2);*/
 
 return;
 

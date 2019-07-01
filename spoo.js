@@ -486,6 +486,12 @@ var SPOO = {
     },
 
     mappers: {},
+  
+    getConstructor: function(role)
+    {
+        if(this.mappers[role]) return SPOO[role];
+        throw new Error("No constructor");
+    },
 
     getPersistenceMapper: function(family) {
         if (!this.mappers[family]) throw new Error("No such Object Family");
@@ -506,6 +512,12 @@ var SPOO = {
 
     processors: {},
 
+    getProcessor: function(family) {
+        if(Object.keys(this.processors).length == 0) return defaultPersistence;
+        if (!this.processors[family]) throw new Error("No such Object Family");
+        return this.processors[family];
+    },
+
     plugInProcessor: function(name, processor) {
         if (!name) throw new Error("No mapper name provided");
         this.processors[name] = processor;
@@ -513,6 +525,12 @@ var SPOO = {
     },
 
     observers: {},
+
+    getObserver: function(family) {
+        if(Object.keys(this.observers).length == 0) return defaultPersistence;
+        if (!this.observers[family]) throw new Error("No such Object Family");
+        return this.observers[family];
+    },
 
     plugInObserver: function(name, observer) {
         if (!name) throw new Error("No mapper name provided");
@@ -893,7 +911,7 @@ var SPOO = {
     },
 
 
-    updateO: function(obj, success, error, client) {
+    updateO: function(obj, success, error, app, client) {
         var propKeys = Object.keys(obj.properties);
 
 
@@ -923,13 +941,13 @@ var SPOO = {
             })
         }
 
-        this.updateObject(obj, success, error, client);
+        this.updateObject(obj, success, error, app, client);
 
 
         // ADD TENANT AND APPLICATION!!!
     },
 
-    updateObject: function(obj, success, error, client) {
+    updateObject: function(obj, success, error, app, client) {
 
        
 
@@ -937,8 +955,8 @@ var SPOO = {
             success(data);
 
         }, function(err) {
-            error('Error - Could not update object');
-        }, client);
+            error(err);
+        }, app, client);
     },
 
     getObjectById: function(role, id, success, error, app, client) {
@@ -1518,7 +1536,7 @@ var SPOO = {
 
 
                     if (_event[eventKey].nextOccurence == undefined)
-                        _event[eventKey].nextOccurence = null;
+                        _event[eventKey].nextOccurence = moment();
 
                     if (_event[eventKey].action === undefined) _event[eventKey].action = '';
 
@@ -1532,7 +1550,6 @@ var SPOO = {
 
                 } else if (_event[eventKey].date !== undefined) {
 
-
                     if (_event[eventKey].date == null) _event[eventKey].date = moment().toISOString();
 
                     if (!_event[eventKey].date) throw new MissingAttributeException('date');
@@ -1544,7 +1561,6 @@ var SPOO = {
                     }
 
                     instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: property, date: _event[eventKey].date })
-
 
                     if (!_event[eventKey].action) _event[eventKey].action = '';
                 } else {
@@ -3501,9 +3517,9 @@ var SPOO = {
             return this.properties;
         };
 
-        this.add = function(success, error) {
+        this.add = function(success, error, client) {
 
-            var client = instance.activeTenant;
+            var client = client || instance.activeTenant;
             var app = instance.activeApp;
 
             var thisRef = this;
@@ -3654,9 +3670,9 @@ var SPOO = {
             return this;
         };
 
-        this.update = function(success, error) {
+        this.update = function(success, error, client) {
 
-            var client = instance.activeTenant;
+            var client = client || instance.activeTenant;
             var app = instance.activeApp;
 
             var thisRef = this;
@@ -3667,7 +3683,6 @@ var SPOO = {
             if ((instance.permissionSequence[thisRef._id] || []).length > 0) {
                 throw new LackOfPermissionsException(instance.permissionSequence[thisRef._id]);
             }
-
 
             Object.keys(thisRef.onChange).forEach(function(key) {
                 if (thisRef.onChange[key].trigger == 'before') {
@@ -3752,14 +3767,13 @@ var SPOO = {
                 })
             }
 
-            var mapper =  instance.observers[obj.role];
-
+            var mapper =  instance.observers[thisRef.role];
+            console.log(111, instance.observers[thisRef.role]);
 
             if (mapper.type != 'scheduled') aggregateAllEvents(this.properties);
 
 
             SPOO.updateO(this, function(data) {
-
 
                     Object.keys(data.onChange).forEach(function(key) {
                         if (data.onChange[key].trigger == 'after') {
@@ -3827,9 +3841,9 @@ var SPOO = {
             return this;
         };
 
-        this.remove = function(success, error) {
+        this.remove = function(success, error, client) {
 
-            var client = instance.activeTenant;
+            var client = client || instance.activeTenant;
             var app = instance.activeApp;
 
             var thisRef = this;
@@ -3902,7 +3916,7 @@ var SPOO = {
                         })
                     }
 
-                    var mapper = instance.observers[obj.role];
+                    var mapper = instance.observers[thisRef.role];
 
 
                     aggregateAllEvents(data.properties);

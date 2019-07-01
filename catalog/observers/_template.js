@@ -10,7 +10,7 @@ Mapper = function(SPOO, options) {
         }
     };
     this.SPOO = SPOO;
-    this.interval =  (options || {}).interval || 60000;
+    this.interval =  (options || {}).interval || 600;
     this.initialize();
     this.objectFamily = null;
     this.type = (options || {}).type || this.CONSTANTS.TYPES.QUERIED;
