@@ -293,8 +293,6 @@ var SPOO = {
 
     checkPermissions: function(user, app, obj, permission, soft) {
 
-        console.log("arguments p");
-        console.log(arguments);
         console.log(privileges);
         var result = false;
         // if (privileges === undefined) result = false;
@@ -1534,16 +1532,15 @@ var SPOO = {
                     else _event[eventKey].lastOccurence = moment(_event[eventKey].lastOccurence).format();
 
 
-
                     if (_event[eventKey].nextOccurence == undefined)
-                        _event[eventKey].nextOccurence = moment();
+                        _event[eventKey].nextOccurence = moment().toISOString();
 
                     if (_event[eventKey].action === undefined) _event[eventKey].action = '';
 
 
                     if (_event[eventKey].interval === undefined) throw new MissingAttributeException('interval');
 
-                    _event[eventKey].nextOccurence = moment(_event[eventKey].lastOccurence).add(_event[eventKey].interval)
+                    _event[eventKey].nextOccurence = moment(_event[eventKey].lastOccurence || moment()).add(_event[eventKey].interval).toISOString();
 
                     instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: property, date: _event[eventKey].nextOccurence })
 
@@ -2345,6 +2342,8 @@ var SPOO = {
                     throw new NoSuchPropertyException(propertyKey);
                 }
 
+                if(obj.properties[access[0]].interval)
+                    obj.properties[access[0]].nextOccurence = moment().add(obj.properties[access[0]].interval).toISOString();
 
                 obj.properties[access[0]].triggered = newValue;
                 obj.properties[access[0]].overwritten = true;
@@ -3577,7 +3576,9 @@ var SPOO = {
                                 if (aE.propName == prePropsString + "." + p) found = true;
                             })
 
-                            if (!found) thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
+                            if (!found)
+                                if(moment().toISOString() <= moment(date).toISOString()) 
+                                    thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
 
                         } else {
 
@@ -3588,7 +3589,9 @@ var SPOO = {
                                 if (aE.propName == p) found = true;
                             })
 
-                            if (!found) thisRef.aggregatedEvents.push({ propName: p, date: date });
+                            if (!found)
+                                if(moment().toISOString() <= moment(date).toISOString()) 
+                                    thisRef.aggregatedEvents.push({ propName: p, date: date });
 
                         }
                     }
@@ -3748,7 +3751,10 @@ var SPOO = {
                                 if (aE.propName == prePropsString + "." + p) found = true;
                             })
 
-                            if (!found) thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
+
+                            if (!found)
+                                if(moment().toISOString() <= moment(date).toISOString())
+                                    thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
 
                         } else {
 
@@ -3759,7 +3765,9 @@ var SPOO = {
                                 if (aE.propName == p) found = true;
                             })
 
-                            if (!found) thisRef.aggregatedEvents.push({ propName: p, date: date });
+                            if (!found)
+                                 if(moment().toISOString() <= moment(date).toISOString())
+                                    thisRef.aggregatedEvents.push({ propName: p, date: date });
 
                         }
                     }
@@ -3768,8 +3776,7 @@ var SPOO = {
             }
 
             var mapper =  instance.observers[thisRef.role];
-            console.log(111, instance.observers[thisRef.role]);
-
+            
             if (mapper.type != 'scheduled') aggregateAllEvents(this.properties);
 
 

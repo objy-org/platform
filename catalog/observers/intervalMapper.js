@@ -22,9 +22,7 @@ Mapper.prototype.run = function(date) {
 
             data.forEach(function(tenant) {
                     
-                console.log("asfasf", date, date.toISOString());
-
-                console.log("...", tenant);
+                console.log("current run: ", date.toISOString());
 
                 self.SPOO.getPersistence(self.objectFamily).getByCriteria({ $or: [ { aggregatedEvents: {
                         $elemMatch: {
@@ -33,7 +31,7 @@ Mapper.prototype.run = function(date) {
 
                         { aggregatedEvents: {
                         $elemMatch: {
-                          'nectInterval': { $lte: date.toISOString() }
+                          'nextInterval': { $lte: date.toISOString() }
                         }} }
 
                         ]}, function(objs) {
@@ -42,18 +40,15 @@ Mapper.prototype.run = function(date) {
 
                             obj.aggregatedEvents.forEach(function(aE)
                             {
-
                                 if(aE.date <= date.toISOString())
                                 {
-                                    console.log(aE)
+                                    
                                     var prop = obj.getProperty(aE.propName);
-
-                                    console.log("pers-", self.SPOO.getPersistence(obj.role).index);
 
                                     self.SPOO.execProcessorAction(prop.action, obj, prop, null, function() {
                                         
-                                        obj.setEventTriggered(aE.propName, true, tenant).update(function(){
-                                            console.log("updated");
+                                        obj.setEventTriggered(aE.propName, true, tenant).update(function(d){
+                                            
                                         }, function(err)
                                         {
                                             console.log(err);

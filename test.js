@@ -10,7 +10,7 @@ SPOO.client('sf');
 SPOO.Object({
     properties: {
         evt: {
-            date: "0",
+            interval: 6000,
             action: 'console.log("afddddd")',
             type: 'event'
         }
@@ -18,9 +18,9 @@ SPOO.Object({
 }).add(function(data)
 {
     data.addProperty('fsdsgsg', 'asaa').update(function(data){
-        
+
     })
-    console.log(data);
+    console.log("d",data.properties.evt);
 })
 
 
