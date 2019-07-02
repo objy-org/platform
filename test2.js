@@ -29,12 +29,19 @@ SPOO.ObjectFamily({
     observer: SPOO.instantObserver({
         initialize: function()
        {
-        console.log("observer...");
+        console.log("observer...",  this.interval);
+        var self = this;
+         this.interval = setInterval(function() {
+
+            self.run(new Date());
+
+        }, this.interval)
+
        },
 
        run: function()
        {
-
+            console.log("run...");
        }
     })
 })

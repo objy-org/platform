@@ -1,4 +1,4 @@
-Mapper = function(SPOO, options) {
+Mapper = function(SPOO, options, content) {
     this.CONSTANTS = {
         MULTITENANCY: {
             ISOLATED: "isolated",
@@ -10,15 +10,16 @@ Mapper = function(SPOO, options) {
         }
     };
     this.SPOO = SPOO;
-    this.interval =  (options || {}).interval || 600;
-    this.initialize();
+    this.interval =  (options || {}).interval || 60000;
     this.objectFamily = null;
     this.type = (options || {}).type || this.CONSTANTS.TYPES.QUERIED;
     this.multitenancy = (options || {}).multitenancy || this.CONSTANTS.MULTITENANCY.ISOLATED;
+
+    if(content) Object.assign(this, content)
 }
 
 Mapper.prototype.initialize = function(millis) {
-       
+
 }
 
 Mapper.prototype.setObjectFamily = function(value) {

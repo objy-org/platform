@@ -475,7 +475,11 @@ var SPOO = {
         if (params.processor) this.plugInProcessor(params.name, params.processor);
         else this.plugInProcessor(params.name, new DefaultProcessorMapper(this));
 
-        if (params.observer) this.plugInObserver(params.name, params.observer);
+        if (params.observer)
+        {
+            this.plugInObserver(params.name, params.observer);
+            params.observer.initialize();
+        } 
         else this.plugInObserver(params.name, new DefaultObserverMapper(this));
         
 
