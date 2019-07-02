@@ -1,9 +1,9 @@
 var SPOO = require('./spoo.js');
 
 
-var PROCESSOR = require('./mappers/processor/vmMapper.js');
-var OBSERVER = require('./mappers/observer/defaultMapper.js');
-var LOWDBMAPPER = require('./mappers/storage/lowDBMapper.js');
+var PROCESSOR = require('./catalog/processors/vmMapper.js');
+var OBSERVER = require('./catalog/observers/intervalMapper.js');
+var LOWDBMAPPER = require('./catalog/storage/lowDBMapper.js');
 var lowDBMapper = new LOWDBMAPPER({multitenancy: 'database'}, null, function(data) {
 
 }, function(error) {
@@ -13,9 +13,33 @@ var lowDBMapper = new LOWDBMAPPER({multitenancy: 'database'}, null, function(dat
 
 SPOO.ObjectFamily({
     name: "Nicole",
-    pluralName: 'Nicoles'
+    pluralName: 'Nicoles',
+    persistence: SPOO.instantStorage({
+        add: function()
+        {
+
+        }
+    }),
+    processor: SPOO.instantProcessor({
+        execute: function()
+        {
+            console.log(444)
+        }
+    }),
+    observer: SPOO.instantObserver({
+        initialize: function()
+       {
+        console.log("observer...");
+       },
+
+       run: function()
+       {
+
+       }
+    })
 })
 
+console.log(SPOO.mappers)
 //new SPOO.Impulse({}).add();
 
 //console.log("sdgsdgd");
@@ -41,6 +65,7 @@ var n = SPOO.Nicole({ onCreate: {
         type: 'event',
         date: '0',
         action: 'asfasf'
+
     }},
     permissions: {
     admin: {

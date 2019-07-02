@@ -4,7 +4,7 @@ Mapper.prototype.initialize = function(millis) {
         var self = this;
 
         // first run
-        self.run(new Date());
+        //self.run(new Date());
 
         // interval
         this.interval = setInterval(function() {
@@ -14,11 +14,14 @@ Mapper.prototype.initialize = function(millis) {
         }, this.interval)
 }
 
+
 Mapper.prototype.run = function(date) {
         
         var self = this;
 
-        self.SPOO.getPersistence(this.objectFamily).listClients(function(data){
+        console.log("of", this)
+
+        self.SPOO.getPersistence(self.objectFamily).listClients(function(data){
 
             data.forEach(function(tenant) {
                     

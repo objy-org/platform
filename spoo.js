@@ -8,6 +8,11 @@ if (_nodejs) {
 
 var moment = require('moment');
 var shortid = require('shortid');
+
+var StorageTemplate = require('./catalog/storage/_template.js');
+var ProcessorTemplate = require('./catalog/processors/_template.js');
+var ObserverTemplate = require('./catalog/observers/_template.js');
+
 var DefaultStorageMapper = require('./catalog/storage/inMemory.js');
 var DefaultProcessorMapper = require('./catalog/processors/eval.js');
 var DefaultObserverMapper = require('./catalog/observers/intervalMapper.js');
@@ -465,10 +470,14 @@ var SPOO = {
         }
 
         if (params.persistence) this.plugInPersistenceMapper(params.name, params.persistence);
+        else this.plugInPersistenceMapper(params.name, new DefaultStorageMapper());
 
         if (params.processor) this.plugInProcessor(params.name, params.processor);
+        else this.plugInProcessor(params.name, new DefaultProcessorMapper(this));
 
         if (params.observer) this.plugInObserver(params.name, params.observer);
+        else this.plugInObserver(params.name, new DefaultObserverMapper(this));
+        
 
         if (params.backend) {
             this.plugInPersistenceMapper(params.name, params.backend.persistence);
@@ -492,13 +501,13 @@ var SPOO = {
     },
 
     getPersistenceMapper: function(family) {
+
         if (!this.mappers[family]) throw new Error("No such Object Family");
         return this.mappers[family];
     },
 
     getPersistence: function(family) {
-        if(Object.keys(this.mappers).length == 0) return defaultPersistence;
-        if (!this.mappers[family]) throw new Error("No such Object Family");
+        if (!this.mappers[family]) throw new Error("No such Object Family: " + family);
         return this.mappers[family];
     },
 
@@ -511,7 +520,6 @@ var SPOO = {
     processors: {},
 
     getProcessor: function(family) {
-        if(Object.keys(this.processors).length == 0) return defaultPersistence;
         if (!this.processors[family]) throw new Error("No such Object Family");
         return this.processors[family];
     },
@@ -525,7 +533,6 @@ var SPOO = {
     observers: {},
 
     getObserver: function(family) {
-        if(Object.keys(this.observers).length == 0) return defaultPersistence;
         if (!this.observers[family]) throw new Error("No such Object Family");
         return this.observers[family];
     },
@@ -534,6 +541,21 @@ var SPOO = {
         if (!name) throw new Error("No mapper name provided");
         this.observers[name] = observer;
         this.observers[name].setObjectFamily(name);
+    },
+
+    instantStorage: function(obj)
+    {
+        return Object.assign(new StorageTemplate(this), obj);
+    },
+
+    instantObserver: function(obj)
+    {
+        return Object.assign(new ObserverTemplate(this), obj);
+    },
+
+    instantProcessor: function(obj)
+    {
+        return Object.assign(new ProcessorTemplate(), obj);
     },
 
     ConditionsChecker: function(property, value) {
@@ -4045,18 +4067,5 @@ var SPOO = {
     }
 }
 
-
-var defaultPersistence = new DefaultStorageMapper();
-var defaultObserver = new DefaultObserverMapper(SPOO);
-var defaultProcessor = new DefaultProcessorMapper(SPOO);
-
-
-SPOO.ObjectFamily({
-    name: "Object",
-    pluralName: 'Objects',
-    persistence: defaultPersistence,
-    processor: defaultProcessor,
-    observer: defaultObserver
-})
 
 if (_nodejs) module.exports = SPOO;

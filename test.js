@@ -3,11 +3,19 @@ var SPOO = require('./spoo.js');
 //var MAPPER = require('./storageMappers/localStorageMapper.js');
 //var PROCESSOR = require('./processorMappers/processorMapper.js');
 
+var storageTemplate = require('./catalog/storage/_template.js');
+
 SPOO.hello();
 
 SPOO.client('sf');
 
-SPOO.Object({
+SPOO.define({
+    name: 'Item',
+    pluralName: 'Items'
+})
+
+
+SPOO.Item({
     properties: {
         evt: {
             interval: 6000,
