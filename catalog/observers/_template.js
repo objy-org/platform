@@ -10,24 +10,24 @@ Mapper = function(SPOO, options, content) {
         }
     };
     this.SPOO = SPOO;
-    this.interval =  (options || {}).interval || 60000;
+    this.interval =  (options || {}).interval || 6000;
     this.objectFamily = null;
     this.type = (options || {}).type || this.CONSTANTS.TYPES.QUERIED;
     this.multitenancy = (options || {}).multitenancy || this.CONSTANTS.MULTITENANCY.ISOLATED;
 
+    this.initialize = function(millis) {
+
+    }
+
+    this.setObjectFamily = function(value) {
+        this.objectFamily = value;
+    };
+
+    this.run = function(date) {
+
+    }
+
     if(content) Object.assign(this, content)
-}
-
-Mapper.prototype.initialize = function(millis) {
-
-}
-
-Mapper.prototype.setObjectFamily = function(value) {
-    this.objectFamily = value;
-};
-
-Mapper.prototype.run = function(date) {
-
 }
 
 module.exports = Mapper;

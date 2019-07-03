@@ -4,20 +4,20 @@ var SPOO = require('./spoo.js');
 var Queue = require('bull');
 
 
-Mapper.prototype.sandBox = new VM({ sandbox: { SPOO: this.SPOO, dsl: this, this: this }});
+Mapper.sandBox = new VM({ sandbox: { SPOO: this.SPOO, dsl: this, this: this }});
 
-Mapper.prototype.jobQueue = new Queue('spoo jobs', {redis : rediscon});
+Mapper.jobQueue = new Queue('spoo jobs', {redis : rediscon});
 
-Mapper.prototype.jobQueue.process(function(job, done) {
+Mapper.jobQueue.process(function(job, done) {
         new Mapper(SPOO).executeFromJob(job.data.dsl, JSON.parse(job.data.obj), JSON.parse(job.prop || {}), job.data.data, );
 });
 
-Mapper.prototype.jobQueue.on('completed', function(job, result) {
+Mapper.jobQueue.on('completed', function(job, result) {
         job.remove();
 })
 
 // execute from original caller
-Mapper.prototype.execute = function(dsl, obj, prop, data, callback, client, app, options) {
+Mapper.execute = function(dsl, obj, prop, data, callback, client, app, options) {
         
         if(this.multitenancy == this.CONSTANTS.MULTITENANCY.ISOLATED) {
             this.jobQueue.add({
@@ -44,7 +44,7 @@ Mapper.prototype.execute = function(dsl, obj, prop, data, callback, client, app,
 }
 
 // execute single job
-Mapper.prototype.executeFromJob = function(dsl, obj, prop, data, callback, client, app, options) {
+Mapper.executeFromJob = function(dsl, obj, prop, data, callback, client, app, options) {
         this.sandBox.run(new VMScript(dsl));
 }
 

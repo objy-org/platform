@@ -13,37 +13,7 @@ var lowDBMapper = new LOWDBMAPPER({multitenancy: 'database'}, null, function(dat
 
 SPOO.ObjectFamily({
     name: "Nicole",
-    pluralName: 'Nicoles',
-    persistence: SPOO.instantStorage({
-        add: function()
-        {
-
-        }
-    }),
-    processor: SPOO.instantProcessor({
-        execute: function()
-        {
-            console.log(444)
-        }
-    }),
-    observer: SPOO.instantObserver({
-        initialize: function()
-       {
-        console.log("observer...",  this.interval);
-        var self = this;
-         this.interval = setInterval(function() {
-
-            self.run(new Date());
-
-        }, this.interval)
-
-       },
-
-       run: function()
-       {
-            console.log("run...");
-       }
-    })
+    pluralName: 'Nicoles'
 })
 
 console.log(SPOO.mappers)
@@ -55,7 +25,6 @@ console.log(SPOO.mappers)
 SPOO.tenant('dsllj').app('demoapp')
 
 
-
 var n = SPOO.Nicole({ onCreate: {
             test:  {
                 value: "SPOO.Nicole({}).add(function(data){console.log(data)}, function(err){console.log(err)})",
@@ -63,15 +32,15 @@ var n = SPOO.Nicole({ onCreate: {
             }
     },
     properties: {
-    evt : {
+    iterval : {
         type: 'event',
-        interval: 'PT10S',
-        action: 'asfasf'
+        interval: 10000,
+        action: 'console.log("interval...")'
     },
-    evt2 : {
+    date : {
         type: 'event',
-        date: '0',
-        action: 'asfasf'
+        date: '1',
+        action: 'console.log("date...")'
 
     }},
     permissions: {
@@ -83,13 +52,13 @@ var n = SPOO.Nicole({ onCreate: {
 
     console.log(data);
 
-    SPOO.Nicole(data._id).remove(function(data)
+   /* SPOO.Nicole(data._id).remove(function(data)
     {
         console.log(data);
     }, function(err)
     {
         console.log(err)
-    })
+    })*/
     /*SPOO.Nicoles({_id : data._id}).get(function(data)
     {
         console.log(data[0].aggregatedEvents);

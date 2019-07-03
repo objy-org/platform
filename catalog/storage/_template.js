@@ -11,58 +11,58 @@ Mapper = function(options) {
 	};
     this.objectFamily = null;
 	this.multitenancy = (options || {}).multitenancy || this.CONSTANTS.MULTITENANCY.ISOLATED;
-}
 
-Mapper.prototype.connect = function(connectionString, success, error) {
+	this.connect = function(connectionString, success, error) {
 
-}
+	}
 
-Mapper.prototype.closeConnection = function(success, error) {
+	this.closeConnection = function(success, error) {
     
+	}
+
+	this.setObjectFamily = function(value) {
+	    this.objectFamily = value;
+	};
+
+	this.setMultiTenancy = function(value) {
+	    this.multitenancy = value;
+	};
+
+	this.createClient = function(client, success, error) {
+
+	};
+
+	this.getDBByMultitenancy = function(client) {
+
+	};
+
+	this.listClients = function(success, error) {
+
+	};
+
+	this.getById = function(id, success, error, app, client) {
+
+	}
+
+	this.getByCriteria = function(criteria, success, error, app, client, flags) {
+
+	}
+
+	this.count = function(criteria, success, error, app, client, flags) {
+
+	}
+
+	this.update = function(spooElement, success, error, app, client) {
+
+	};
+
+	this.add = function(spooElement, success, error, app, client) {
+
+	};
+
+	this.remove = function(spooElement, success, error, app, client) {
+
+	};
 }
-
-Mapper.prototype.setObjectFamily = function(value) {
-    this.objectFamily = value;
-};
-
-Mapper.prototype.setMultiTenancy = function(value) {
-    this.multitenancy = value;
-};
-
-Mapper.prototype.createClient = function(client, success, error) {
-
-}
-
-Mapper.prototype.getDBByMultitenancy = function(client) {
-
-};
-
-Mapper.prototype.listClients = function(success, error) {
-
-};
-
-Mapper.prototype.getById = function(id, success, error, app, client) {
-
-}
-
-Mapper.prototype.getByCriteria = function(criteria, success, error, app, client, flags) {
-
-}
-
-Mapper.prototype.count = function(criteria, success, error, app, client, flags) {
-
-}
-
-Mapper.prototype.update = function(spooElement, success, error, app, client) {
-
-};
-
-Mapper.prototype.add = function(spooElement, success, error, app, client) {
-
-};
-
-Mapper.prototype.remove = function(spooElement, success, error, app, client) {
-
-};
 
 module.exports = Mapper;

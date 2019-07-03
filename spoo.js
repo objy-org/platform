@@ -478,9 +478,12 @@ var SPOO = {
         if (params.observer)
         {
             this.plugInObserver(params.name, params.observer);
-            params.observer.initialize();
+            if(params.observer.initialize) params.observer.initialize();
         } 
-        else this.plugInObserver(params.name, new DefaultObserverMapper(this));
+        else {
+            this.plugInObserver(params.name, new DefaultObserverMapper(this));
+            if(this.observers[params.name].initialize) this.observers[params.name].initialize();
+        }
         
 
         if (params.backend) {
@@ -572,8 +575,8 @@ var SPOO = {
     },
 
     execProcessorAction: function(dsl, obj, prop, data, callback, client, options) {
-
         this.processors[obj.role].execute(dsl, obj, prop, data, callback, client, this.instance.activeUser, options);
+        console.log("gogogo");
     },
 
     getElementPermisson: function(element) {
@@ -1408,7 +1411,6 @@ var SPOO = {
 
         getValue(obj, propertyName);
 
-        console.log(thisRef);
 
         if (propertyToReturn.type == "action") {
             propertyToReturn.call = function(callback, client) {
@@ -2370,9 +2372,8 @@ var SPOO = {
 
                 if(obj.properties[access[0]].interval)
                     obj.properties[access[0]].nextOccurence = moment().add(obj.properties[access[0]].interval).toISOString();
-
-                obj.properties[access[0]].triggered = newValue;
-                obj.properties[access[0]].overwritten = true;
+                else  obj.properties[access[0]].triggered = newValue;
+                //obj.properties[access[0]].overwritten = true;
             }
         }
 
@@ -3585,11 +3586,11 @@ var SPOO = {
                         var date = null;
 
                         if (props[p].date) {
-                            if (!props[p].date.triggered) date = props[p].date;
+                            if (!props[p].triggered) date = props[p].date;
                             else date = null;
                         } else if (props[p].interval) {
                             if (props[p].nextOccurence) {
-                                date = props[p].nextOccurence;
+                                date = props[p].nextOccurence ;
                             } else date = moment().toISOString();
                         }
 
@@ -3602,8 +3603,8 @@ var SPOO = {
                                 if (aE.propName == prePropsString + "." + p) found = true;
                             })
 
-                            if (!found)
-                                if(moment().toISOString() <= moment(date).toISOString()) 
+                            if (!found && props[p].triggered != true)
+                                //if(moment().toISOString() >= moment(date).toISOString()) 
                                     thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
 
                         } else {
@@ -3615,8 +3616,10 @@ var SPOO = {
                                 if (aE.propName == p) found = true;
                             })
 
-                            if (!found)
-                                if(moment().toISOString() <= moment(date).toISOString()) 
+                            console.log(props[p], moment().toISOString(), date, moment(date).toISOString());
+
+                            if (!found && props[p].triggered != true)
+                                //if(moment().toISOString() >= moment(date).toISOString()) 
                                     thisRef.aggregatedEvents.push({ propName: p, date: date });
 
                         }
@@ -3760,7 +3763,7 @@ var SPOO = {
                         var date = null;
 
                         if (props[p].date) {
-                            if (!props[p].date.triggered) date = props[p].date;
+                            if (!props[p].triggered) date = props[p].date;
                             else date = null;
                         } else if (props[p].interval) {
                             if (props[p].nextOccurence) {
@@ -3778,8 +3781,8 @@ var SPOO = {
                             })
 
 
-                            if (!found)
-                                if(moment().toISOString() <= moment(date).toISOString())
+                            if (!found && props[p].triggered != true)
+                                //if(moment().toISOString() >= moment(date).toISOString())
                                     thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
 
                         } else {
@@ -3791,8 +3794,8 @@ var SPOO = {
                                 if (aE.propName == p) found = true;
                             })
 
-                            if (!found)
-                                 if(moment().toISOString() <= moment(date).toISOString())
+                            if (!found && props[p].triggered != true)
+                                 //if(moment().toISOString() >= moment(date).toISOString())
                                     thisRef.aggregatedEvents.push({ propName: p, date: date });
 
                         }

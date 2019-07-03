@@ -1,79 +1,79 @@
-const Mapper = require('./_template.js');
-
-Mapper.prototype.initialize = function(millis) {
-        var self = this;
-
-        // first run
-        //self.run(new Date());
-
-        // interval
-        this.interval = setInterval(function() {
-
-            self.run(new Date());
-
-        }, this.interval)
-}
+var Global = require('./_template.js');
 
 
-Mapper.prototype.run = function(date) {
+Mapper = function(SPOO) {
+    return Object.assign(new Global(SPOO), {
         
-        var self = this;
+        initialize: function(millis) {
+                var self = this;
 
-        console.log("of", this)
+                // first run
+                //self.run(new Date());
 
-        self.SPOO.getPersistence(self.objectFamily).listClients(function(data){
+                // interval
+                this.interval = setInterval(function() {
 
-            data.forEach(function(tenant) {
-                    
-                console.log("current run: ", date.toISOString());
+                    self.run(new Date());
 
-                self.SPOO.getPersistence(self.objectFamily).getByCriteria({ $or: [ { aggregatedEvents: {
-                        $elemMatch: {
-                          'date': { $lte: date.toISOString() }
-                        }} },
+                }, this.interval)
+        },
 
-                        { aggregatedEvents: {
-                        $elemMatch: {
-                          'nextInterval': { $lte: date.toISOString() }
-                        }} }
+        run: function(date) {
+        
+                var self = this;
 
-                        ]}, function(objs) {
+                self.SPOO.getPersistence(self.objectFamily).listClients(function(data){
 
-                        objs.forEach(function(obj) {
+                    //console.log("d", data);
 
-                            obj.aggregatedEvents.forEach(function(aE)
-                            {
-                                if(aE.date <= date.toISOString())
-                                {
-                                    
-                                    var prop = obj.getProperty(aE.propName);
-
-                                    self.SPOO.execProcessorAction(prop.action, obj, prop, null, function() {
-                                        
-                                        obj.setEventTriggered(aE.propName, true, tenant).update(function(d){
-                                            
-                                        }, function(err)
-                                        {
-                                            console.log(err);
-                                        }, tenant)
-
-                                      
-                                    }, tenant, {});
-                                }
-                            })
-
+                    data.forEach(function(tenant) {
                             
-                        })
+                        console.log("current run: ", date.toISOString());
+                       
 
-                    }, function(err) {
+                        self.SPOO.getPersistence(self.objectFamily).getByCriteria({  aggregatedEvents: {
+                                $elemMatch: {
+                                  'date': { $lte: date.toISOString() }
+                                }} }, function(objs) {
 
-                    }, /*app*/ undefined, tenant, /*flags*/)
-            })
+                                objs.forEach(function(obj) {
+                                   
+                                    obj.aggregatedEvents.forEach(function(aE)
+                                    {
+                                        
+                                            var prop = obj.getProperty(aE.propName);
 
-        }, function(err)
-        {
+                                            self.SPOO.execProcessorAction(prop.action, obj, prop, null, function() {
+                                               
+                                                obj.setEventTriggered(aE.propName, true, tenant).update(function(d){
+                                                    console.log("remaining events: ", d.aggregatedEvents);
+                                                    console.log(obj.getProperty(aE.propName));
+                                                }, function(err)
+                                                {
+                                                    console.log(err);
+                                                }, tenant)
 
-        })
+                                              
+                                            }, tenant, {});
+                                        
+                                    })
+
+                                    
+                                })
+
+                            }, function(err) {
+
+                            }, /*app*/ undefined, tenant, /*flags*/)
+                    })
+
+                }, function(err)
+                {
+
+                })
+        }
+
+
+    })
 }
 
 

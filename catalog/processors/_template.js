@@ -13,18 +13,19 @@ Mapper = function(SPOO) {
 	this.SPOO = SPOO;
     this.objectFamily = null;
 	this.multitenancy = this.CONSTANTS.MULTITENANCY.ISOLATED;
-}
 
-Mapper.prototype.setMultiTenancy = function(value) {
-    this.multitenancy = value;
-};
-
-Mapper.prototype.setObjectFamily = function(value) {
-    this.objectFamily = value;
-};
-
-Mapper.prototype.execute = function(dsl, obj, prop, data, callback, client, app, user, options) {
+    this.execute = function(dsl, obj, prop, data, callback, client, app, user, options) {
         
+    };
+
+    this.setMultiTenancy = function(value) {
+        this.multitenancy = value;
+    };
+
+    this.setObjectFamily = function(value) {
+        this.objectFamily = value;
+    };
+
 }
 
 module.exports = Mapper;

@@ -1,9 +1,12 @@
-const Mapper = require('./_template.js');
+var Global = require('./_template.js');
 
-Mapper.prototype.execute = function(dsl, obj, prop, data, callback, client, app, user, options) {
+Mapper = function(SPOO) {
+    return Object.assign(new Global(SPOO), {
+        
+        execute : function(dsl, obj, prop, data, callback, client, app, user, options) {
         
         var SPOO = this.SPOO;
-
+console.log("22..");
         if(this.multitenancy == this.CONSTANTS.MULTITENANCY.ISOLATED) {
             eval(dsl);
             callback();
@@ -12,6 +15,9 @@ Mapper.prototype.execute = function(dsl, obj, prop, data, callback, client, app,
             eval(dsl)
             callback();
         }
+    }
+    })
 }
+
 
 module.exports = Mapper;
