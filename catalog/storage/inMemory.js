@@ -106,7 +106,7 @@ Mapper = function(SPOO) {
             
             if(!this.index[client]) this.index[client] = {};
 
-            if(this.index[client][spooElement._id] !=== undefined)
+            if(this.index[client][spooElement._id] !== undefined)
                 return error('object with taht id already exists: ' + spooElement._id);
             if(!this.index[client]) this.index[client] = {};
 
