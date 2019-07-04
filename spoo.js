@@ -335,6 +335,8 @@ var SPOO = {
 
         var allowed = false;
 
+        console.log(privileges, app);
+
         if(app)
         {
             if(privileges['*']) {
@@ -395,6 +397,9 @@ var SPOO = {
         if (obj.permissions) {
             if (Object.keys(obj.permissions).length > 0) {
                 if (!instance.permissionSequence[obj._id]) instance.permissionSequence[obj._id] = [];
+
+                console.log("#", instance.activeUser, obj, code, SPOO.checkPermissions(instance.activeUser, instance.activeApp, obj, code, true));
+
                 if (!SPOO.checkPermissions(instance.activeUser, instance.activeApp, obj, code, true))
                     instance.permissionSequence[obj._id].push({ name: name, key: key });
             }
@@ -2048,7 +2053,7 @@ var SPOO = {
                 obj.properties[access[0]].onChange[name].trigger = trigger || 'after';
                 obj.properties[access[0]].onChange[name].type = type || 'async';
 
-                SPOO.chainPermission(obj, instance, 'w', 'setPropertyOnChangeHandler', name);
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'w', 'setPropertyOnChangeHandler', name);
             }
         }
 
@@ -2082,7 +2087,7 @@ var SPOO = {
                 obj.properties[access[0]].onCreate[name].trigger = trigger || 'after';
                 obj.properties[access[0]].onCreate[name].type = type || 'async';
 
-                SPOO.chainPermission(obj, instance, 'v', 'setPropertyOnCreateHandler', name);
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'v', 'setPropertyOnCreateHandler', name);
 
             }
         }
@@ -2114,7 +2119,7 @@ var SPOO = {
                 obj.properties[access[0]].onDelete[name].trigger = trigger || 'after';
                 obj.properties[access[0]].onDelete[name].type = type || 'async';
 
-                SPOO.chainPermission(obj, instance, 'z', 'setPropertyOnDeleteHandler', name);
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'z', 'setPropertyOnDeleteHandler', name);
             }
         }
 
@@ -2170,7 +2175,7 @@ var SPOO = {
 
                 obj.properties[access[0]].permissions[permissionKey] = permission[permissionKey];
 
-                SPOO.chainPermission(obj, instance, 'x', 'setPropertyPermission', propertyKey);
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'x', 'setPropertyPermission', propertyKey);
             }
         }
 
@@ -2254,8 +2259,8 @@ var SPOO = {
                     }
                 }
 
-                SPOO.chainPermission(obj, instance, 'u', 'setPropertyValue', propertyKey);
-
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'u', 'setPropertyValue', propertyKey);
+                console.log("-", instance.permissionSequence);
 
             }
         }
@@ -2338,7 +2343,7 @@ var SPOO = {
                     instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: nextOccurence })
                 }
 
-
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'u', 'setEventInterval', propertyKey);
 
             }
         }
@@ -2592,6 +2597,8 @@ var SPOO = {
                 instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
                 instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
 
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'u', 'setEventDate', propertyKey);
+
             }
         }
 
@@ -2635,6 +2642,8 @@ var SPOO = {
                 if (obj.properties[access[0]].template) obj.properties[access[0]].overwritten = true;
 
                 obj.properties[access[0]].action = newValue;
+
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'u', 'setEventAction', propertyKey);
 
                 //instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
                 //instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: newValue })
