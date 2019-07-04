@@ -7,6 +7,7 @@ Mapper = function(SPOO) {
         
         database: {},
         index: {},
+
         createClient :function(client, success, error) {
 
             if (this.multitenancy == this.CONSTANTS.MULTITENANCY.ISOLATED) {
@@ -44,15 +45,14 @@ Mapper = function(SPOO) {
 
         getById: function(id, success, error, app, client) {
         
-                var db = this.getDBByMultitenancy(client);
+                 var db = this.getDBByMultitenancy(client);
 
-                if(!this.index[client][id]) 
+                if(this.index[client][id] === undefined)
                     return error('object not found: ' + id);
-                
+
                 if(this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED)
-                    if(db[this.index[client][id]].tenantId != client) 
-                        error('object not found: ' + id);
-                
+                    if(this.index[client][id].tenantId != client) 
+                        return error('object not found: ' + _id);   
 
                 success(db[this.index[client][id]]);
         },
@@ -70,19 +70,17 @@ Mapper = function(SPOO) {
             success(Query.query( db, criteria));
         },
 
-        aggregateByCriteria: function(aggregation, criteria, success, error, app, client, flags) {
+        count: function(criteria, success, error, app, client, flags) {
 
             var db = this.getDBByMultitenancy(client);
 
-                 switch (aggregation) {
-                    case 'count':
-                             
-                    success(Query.query( db, criteria).length);
+            if(app) 
+                Object.assign(criteria, {applications: { $in : [app]}})
 
-                        break;
-                    default:
-                        error();
-                }
+            if(this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED)
+                Object.assign(criteria, {tenantId: client})
+
+            success(Query.query( db, criteria).length);
         },
 
         update: function(spooElement, success, error, app, client) {
@@ -108,7 +106,7 @@ Mapper = function(SPOO) {
             
             if(!this.index[client]) this.index[client] = {};
 
-            if(this.index[client][spooElement._id])
+            if(this.index[client][spooElement._id] !=== undefined)
                 return error('object with taht id already exists: ' + spooElement._id);
             if(!this.index[client]) this.index[client] = {};
 
@@ -118,9 +116,9 @@ Mapper = function(SPOO) {
                 spooElement.tenantId = client;
             }
 
-            db.push(spooElement)
+           
 
-            this.index[client][spooElement._id] = db.length-1;
+            this.index[client][spooElement._id] =  db.push(spooElement)-1;
 
             success(spooElement);
     },
@@ -128,7 +126,7 @@ Mapper = function(SPOO) {
 
                 var db = this.getDBByMultitenancy(client);
 
-                if(!this.index[client][spooElement._id])
+                if(this.index[client][spooElement._id] === undefined)
                     return error('object not found: ' + spooElement._id);
 
                 if(this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED)

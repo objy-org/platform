@@ -300,100 +300,95 @@ var SPOO = {
 
         console.log(privileges);
         var result = false;
-        // if (privileges === undefined) result = false;
 
         if (!user) return true;
+
+        /*
+            user: {
+                privileges: {
+                    app: [{name: "admin", value: "r"}],
+                    *: [manager]
+                }
+            }
+            
+            obj: {
+                permissions: {
+                    admin : {
+                        value: "*"
+                    },
+                    "*": "*"
+
+                }
+            }
+
+            permission : "r"
+        */
 
         var privileges = user.privileges;
         var permissions = obj.permissions;
 
-        if (!privileges) {
+        // if permissions present and user has no privileges
+        if (!privileges && permissions) {
             if (!soft) throw new LackOfPermissionsException();
             else return false;
         }
 
+        var allowed = false;
 
-        if (app) {
-            console.log("privofapp");
-            console.log(app);
-            console.log(privileges);
-            if (privileges[app]) {
-                var privArr = [];
-                privileges[app].forEach(function(p) {
-                    privArr.push(p.name);
+        if(app)
+        {
+            if(privileges['*']) {
+
+                console.log('***')
+
+               Object.keys(permissions).forEach(function(pKey){
+
+                    
+                    privileges['*'].forEach(function(item)
+                    {
+                        if(permissions[item.name])
+                        {   
+                            console.log("ll",((permissions[item.name] || {}).value || ""));
+                            if(((permissions[item.name] || {}).value || "").indexOf(permission) != -1 || (permissions[item.name] || {}).value == "*") allowed = true;
+                        }
+
+                        if(permissions["*"])
+                        {
+                             if(((permissions['*'] || {}).value || "").indexOf(permission) != -1 || (permissions['*'] || {}).value == "*") allowed = true;
+                        }
+                    })
+
+               }) 
+
+               if(allowed) return true;
+
+            }
+            else if(privileges[app])
+            {
+                
+                privileges[app].forEach(function(item)
+                {
+                    if(permissions[item.name])
+                    {   
+                        console.log(((permissions[item.name] || {}).value || ""));
+                        if(((permissions[item.name] || {}).value || "").indexOf(permission) != -1 || (permissions[item.name] || {}).value == "*") allowed = true;
+                    }
+
+                    if(permissions["*"])
+                    {
+                         if(((permissions['*'] || {}).value || "").indexOf(permission) != -1 || (permissions['*'] || {}).value == "*") allowed = true;
+                    }
                 })
-                privileges = privArr;
-                console.log("PRIVILEGES CHECK");
-                console.log(privileges);
-            } else {
-                if (!soft) throw new LackOfPermissionsException();
-                else return false;
-            }
-        }
 
-
-        if (permissions === undefined && privileges !== undefined) result = true;
-        if (permissions !== undefined) {
-            //if (!typeof privileges === 'array') result = false;
-            console.log("PRIVVV");
-            console.log(permissions);
-            var i;
-            for (i = 0; i < privileges.length; i++) {
-                console.log("priv name: ");
-                console.log(JSON.stringify(privileges[i]));
-                if (permissions[privileges[i]]) {
-                    //console.log("dsfdsfdsfdsfdsfdsf");
-                    //console.log(permissions);
-                    //var cloned = JSON.parse(JSON.stringify(permissions[privileges[i]]));
-                    console.log("permissions[privileges[i]]");
-                    console.log(permissions[privileges[i]]);
-
-                    if (permissions[privileges[i]].hasOwnProperty('value')) {
-                        if (permissions[privileges[i]].value == "*") return true;
-
-                        if (permissions[privileges[i]].value.indexOf(permission) != -1) return true;
-                    } else {
-                        if (permissions[privileges[i]] == "*") return true;
-
-                        if (permissions[privileges[i]].indexOf(permission) != -1) return true;
-                    }
-
-
-
-                    // if (permissions[privileges[i]].value.indexOf(permission) != -1) return true;
-                }
-            }
-
-            try {
-                if (permissions['*']) {
-                    if (permissions['*'].hasOwnProperty('value')) {
-                        if (permissions['*'].value == "*") return true;
-
-                        if (permissions['*'].value.indexOf(permission) != -1) return true;
-                    } else {
-                        if (permissions['*'] == "*") return true;
-
-                        if (permissions['*'].indexOf(permission) != -1) return true;
-                    }
-                }
-            } catch (e) {
+                console.log("allowed", allowed);
+                if(!allowed) throw new LackOfPermissionsException(); 
+                else return true
 
             }
+            else throw new LackOfPermissionsException(); 
 
-        }
-
-        if (Object.keys(permissions).length == 0) result = true;
-        //console.log("perm length: " + Object.keys(permissions).length);
-        //console.log(privileges + " " + permissions + " " + permission + " " + result);
-
-        //console.log("res: " + result);
-
-        if (result == false) {
-            if (!soft) throw new LackOfPermissionsException();
-            else return false;
-        }
-        return result;
-
+        } else throw new LackOfPermissionsException(); 
+         
     },
 
     chainPermission: function(obj, instance, code, name, key) {
@@ -576,7 +571,6 @@ var SPOO = {
 
     execProcessorAction: function(dsl, obj, prop, data, callback, client, options) {
         this.processors[obj.role].execute(dsl, obj, prop, data, callback, client, this.instance.activeUser, options);
-        console.log("gogogo");
     },
 
     getElementPermisson: function(element) {
@@ -902,7 +896,7 @@ var SPOO = {
 
 
         }, function(err) {
-            error('Error - Could not remove object');
+            error(err);
         }, app, client);
     },
 
@@ -1040,6 +1034,26 @@ var SPOO = {
                     }, client);*
             })*/
 
+
+        }, function(err) {
+            error('Error - Could get object: ' + err);
+        }, app, client, flags);
+    },
+
+    countObjects: function(criteria, role, success, error, app, client, flags) {
+
+
+        var templatesCache = [];
+        var objectsCache = [];
+
+       
+
+        this.mappers[role].count(criteria, function(data) {
+            var counter = 0;
+            var num = data.length;
+            if (num == 0) success([]);
+
+            success(data);
 
         }, function(err) {
             error('Error - Could get object: ' + err);
@@ -2809,6 +2823,26 @@ var SPOO = {
             }
 
 
+            this.count = function(success, error) {
+
+                var client = instance.activeTenant;
+                var app = instance.activeApp;
+
+                var thisRef = this;
+                var counter = 0;
+
+                var flags = {} // TODO!!!
+
+
+                SPOO.countObjects(objs, role, function(data) {
+                    success(data);
+
+                }, function(err) { error(err) }, app, client, flags);
+                
+                return;
+            }
+
+
         } else if (Array.isArray(objs)) {
             var i;
             for (i = 0; i < objs.length; i++) {
@@ -3882,7 +3916,7 @@ var SPOO = {
             var client = client || instance.activeTenant;
             var app = instance.activeApp;
 
-            var thisRef = this;
+            var thisRef = JSON.parse(JSON.stringify(this));
 
             SPOO.checkPermissions(instance.activeUser, instance.activeApp, thisRef, 'd');
 
@@ -3894,7 +3928,6 @@ var SPOO = {
                     }, client, null);
                 }
             })
-
 
             SPOO.getObjectById(this.role, this._id, function(data) {
 
@@ -3908,7 +3941,6 @@ var SPOO = {
                             }, client, null);
                         }
                     })
-
 
 
                     function aggregateAllEvents(props, prePropsString) {
@@ -4025,7 +4057,8 @@ var SPOO = {
 
             SPOO.getObjectById(this.role, this._id, function(data) {
 
-
+                SPOO.checkPermissions(instance.activeUser, instance.activeApp, data, 'r')
+                //console.log(SPOO[thisRef.role](data));
                 success(SPOO[thisRef.role](data))
 
             }, function(err) { error(err) }, app, client);

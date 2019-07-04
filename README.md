@@ -25,7 +25,7 @@ npm install spoo
 https://spoo.io/code/spoo.js
 
  - or -
- 
+
 https://spoo.io/code/spoo.min.js
 ```
 

@@ -22,12 +22,14 @@ console.log(SPOO.mappers)
 //console.log("sdgsdgd");
 //console.log(SPOO.objectFamilies);
 
-SPOO.tenant('dsllj').app('demoapp')
+SPOO.tenant('dsl').app('demoapp').user({privileges:{
+    '*': [{name: "admin"}]
+}})
 
 
-var n = SPOO.Nicole({ onCreate: {
+var n = SPOO.Nicole({ name:"n", onCreate: {
             test:  {
-                value: "SPOO.Nicole({}).add(function(data){console.log(data)}, function(err){console.log(err)})",
+                value: "/*SPOO.Nicole({}).add(function(data){console.log(data)}, function(err){console.log(err)})*/",
                 trigger: 'before'
             }
     },
@@ -41,24 +43,27 @@ var n = SPOO.Nicole({ onCreate: {
         type: 'event',
         date: '1',
         action: 'console.log("date...")'
-
     }},
     permissions: {
-    admin: {
-        value: "pux"
+    "*": {
+        value: "run"
     }
+
 }}).add(function(data)
 {
 
-    console.log(data);
+    //console.log(data);
 
-   /* SPOO.Nicole(data._id).remove(function(data)
+    console.log("mapper", SPOO.mappers.Nicole.index, SPOO.mappers.Nicole.database, SPOO.mappers.Nicole.database.dsl.length);
+
+    SPOO.Nicole(data._id).remove(function(data)
     {
-        console.log(data);
+        console.log("removed", data);
     }, function(err)
     {
         console.log(err)
-    })*/
+    })
+
     /*SPOO.Nicoles({_id : data._id}).get(function(data)
     {
         console.log(data[0].aggregatedEvents);
