@@ -38,7 +38,7 @@ https://spoo.io/code/spoo.min.js
 // Include SPOO (Node.js)
 const SPOO = require('spoo');
 
-// Initialize in the context of a client and (optionally) an app
+// OPTIONAL: Initialize in the context of a client and (optionally) an app
 SPOO.client('myComapny').app('helloWorldApp');
 
 // Create an object
@@ -99,21 +99,51 @@ SPOO is perfect for building platforms, because it has everything a platform nee
 
   
 
-## Custom Object Families with Mappers
+## Data Sources
 
 In order to build production-grade platforms and solutions, SPOO let's you plug in just the right technologies for specific use cases. This is what object families are for. They represent objects that have the same requirements for the underlying technologies used for persistence, processing and observation.
 
 See [Mappers](#mappers) for details.
 
-### Example
+
+### Example 1: Use Ready to use mappers
 ```javascript
-// Define an object family with mappers
 SPOO.define({
 	name : "Item",
 	pluralName: "Items",
 	persistence: new InMemoryMapper(),
 	observer: new RealTimeObserver(),
 	processor: new RealTimeProcessor()
+})
+```
+
+### Example 2: Use inline mappers
+```javascript
+SPOO.define({
+	name : "Item",
+	pluralName: "Items",
+	persistence: {
+		add: function() {
+
+		},
+		get: function() {
+
+		},
+		...
+	},
+	observer: {
+		initialize: function() {
+
+		},
+		run: function(){
+
+		}
+	},
+	processor: {
+		execute: function() {
+
+		}
+	}
 })
 ```
 
