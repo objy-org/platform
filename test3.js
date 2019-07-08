@@ -1,10 +1,18 @@
 var SPOO = require('./spoo.js');
+var bcrypt = require("bcrypt");
 
-
-SPOO.ObjectFamily({
+SPOO.define({
     name: "Impulse",
     pluralName: 'Impulses'
 })
+
+
+SPOO.define({
+    name: "User",
+    pluralName: 'Users',
+    authable: true
+})
+
 
 /*
 SPOO.ObjectFamily({
@@ -27,6 +35,16 @@ SPOO
 */
 
 SPOO.tenant('dsl').app('demoapp')
+
+console.log(SPOO.User({}));
+
+SPOO.Users().checkAuthentication({ username: "sfaf", password: "244" }, function(userPass, dbPass) {
+    if (bcrypt.compareSync(userPass, dbPass)) {
+        console.log("authenticated")
+    }
+}, function(err) {
+
+})
 
 
 var obj = {

@@ -1,32 +1,12 @@
 // platform.js
 
 var SPOO = require('./spoo.js');
-var Obj = require('./catalog/inMemoryObject.js')(SPOO);
+var express = require('express');
+var cors = require('cors');
+var bodyParser = require('body-parser');
 
-
-var Other = SPOO.define({
-	name: "Log",
-	pluralName: "Logs",
-	persistence: new Persistence(),
-	processor: new Processor(SPOO),
-	observer: new Observer()
+SPOO.ObjectFamily({
+    name: "Object",
+    pluralName: 'Objects'
 })
 
-
-Obj({}).addProperty('test', {type: 'boolean', value: true}).add(function(data)
-{
-	console.log(data);
-})
-
-
-function addObject(obj, client, app)
-{
-	SPOO
-		.client(client)
-		.app(app)
-		.Obj(obj).add(function(data) {
-
-		}, function(err) {
-
-		})
-}

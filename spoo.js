@@ -337,60 +337,50 @@ var SPOO = {
 
         console.log(privileges, app);
 
-        if(app)
-        {
-            if(privileges['*']) {
+        if (app) {
+            if (privileges['*']) {
 
                 console.log('***')
 
-               Object.keys(permissions).forEach(function(pKey){
+                Object.keys(permissions).forEach(function(pKey) {
 
-                    
-                    privileges['*'].forEach(function(item)
-                    {
-                        if(permissions[item.name])
-                        {   
-                            console.log("ll",((permissions[item.name] || {}).value || ""));
-                            if(((permissions[item.name] || {}).value || "").indexOf(permission) != -1 || (permissions[item.name] || {}).value == "*") allowed = true;
+
+                    privileges['*'].forEach(function(item) {
+                        if (permissions[item.name]) {
+                            console.log("ll", ((permissions[item.name] || {}).value || ""));
+                            if (((permissions[item.name] || {}).value || "").indexOf(permission) != -1 || (permissions[item.name] || {}).value == "*") allowed = true;
                         }
 
-                        if(permissions["*"])
-                        {
-                             if(((permissions['*'] || {}).value || "").indexOf(permission) != -1 || (permissions['*'] || {}).value == "*") allowed = true;
+                        if (permissions["*"]) {
+                            if (((permissions['*'] || {}).value || "").indexOf(permission) != -1 || (permissions['*'] || {}).value == "*") allowed = true;
                         }
                     })
 
-               }) 
+                })
 
-               if(allowed) return true;
+                if (allowed) return true;
 
-            }
-            else if(privileges[app])
-            {
-                
-                privileges[app].forEach(function(item)
-                {
-                    if(permissions[item.name])
-                    {   
+            } else if (privileges[app]) {
+
+                privileges[app].forEach(function(item) {
+                    if (permissions[item.name]) {
                         console.log(((permissions[item.name] || {}).value || ""));
-                        if(((permissions[item.name] || {}).value || "").indexOf(permission) != -1 || (permissions[item.name] || {}).value == "*") allowed = true;
+                        if (((permissions[item.name] || {}).value || "").indexOf(permission) != -1 || (permissions[item.name] || {}).value == "*") allowed = true;
                     }
 
-                    if(permissions["*"])
-                    {
-                         if(((permissions['*'] || {}).value || "").indexOf(permission) != -1 || (permissions['*'] || {}).value == "*") allowed = true;
+                    if (permissions["*"]) {
+                        if (((permissions['*'] || {}).value || "").indexOf(permission) != -1 || (permissions['*'] || {}).value == "*") allowed = true;
                     }
                 })
 
                 console.log("allowed", allowed);
-                if(!allowed) throw new LackOfPermissionsException(); 
+                if (!allowed) throw new LackOfPermissionsException();
                 else return true
 
-            }
-            else throw new LackOfPermissionsException(); 
+            } else throw new LackOfPermissionsException();
 
-        } else throw new LackOfPermissionsException(); 
-         
+        } else throw new LackOfPermissionsException();
+
     },
 
     chainPermission: function(obj, instance, code, name, key) {
@@ -414,58 +404,21 @@ var SPOO = {
 
     define: function(params) {
 
+        var thisRef = this;
+
         if (!params.name || !params.pluralName) {
             throw new Error("Invalid arguments");
         }
 
         this[params.name] = function(obj) {
-
-            if (params.authable) {
-                obj.username = obj.username || null;
-                obj.email = obj.email || null;
-                obj.password = obj.password || null;
-                obj.privileges = SPOO.PrivilegesChecker(obj) || {};
-                obj.spooAdmin = obj.spooAdmin || false;
-
-                obj.addPrivilege = function(privilege) {
-                    new SPOO.PrivilegeChecker(obj, privilege);
-                    return obj;
-                };
-
-                obj.setUsername = function(username) {
-                    this.username = username;
-                    SPOO.chainPermission(obj, this, 'o', 'setUsername', username);
-                    return obj;
-                }
-
-                obj.setEmail = function(email) {
-                    this.email = email;
-                    SPOO.chainPermission(obj, this, 'h', 'setEmail', email);
-                    return obj;
-                }
-
-                obj.setPassword = function(password) {
-                    // should be encrypted at this point
-                    this.password = password;
-                    return obj;
-                }
-
-                obj.removePrivilege = function(privilege) {
-                    new SPOO.PrivilegeRemover(obj, privilege);
-                    return obj;
-                };
-            }
-
-            return new SPOO.Obj(obj, params.name, this);
+            return new SPOO.Obj(obj, params.name, this, params);
         }
 
         if (this.objectFamilies.indexOf(params.name) == -1) this.objectFamilies.push(params.name);
 
         this[params.pluralName] = function(objs) {
 
-            if (!objs) throw new Error("No params defined");
-
-            return new SPOO.Objs(objs, params.name, this);
+            return new SPOO.Objs(objs, params.name, this, params);
 
         }
 
@@ -475,16 +428,14 @@ var SPOO = {
         if (params.processor) this.plugInProcessor(params.name, params.processor);
         else this.plugInProcessor(params.name, new DefaultProcessorMapper(this));
 
-        if (params.observer)
-        {
+        if (params.observer) {
             this.plugInObserver(params.name, params.observer);
-            if(params.observer.initialize) params.observer.initialize();
-        } 
-        else {
+            if (params.observer.initialize) params.observer.initialize();
+        } else {
             this.plugInObserver(params.name, new DefaultObserverMapper(this));
-            if(this.observers[params.name].initialize) this.observers[params.name].initialize();
+            if (this.observers[params.name].initialize) this.observers[params.name].initialize();
         }
-        
+
 
         if (params.backend) {
             this.plugInPersistenceMapper(params.name, params.backend.persistence);
@@ -500,10 +451,9 @@ var SPOO = {
     },
 
     mappers: {},
-  
-    getConstructor: function(role)
-    {
-        if(this.mappers[role]) return SPOO[role];
+
+    getConstructor: function(role) {
+        if (this.mappers[role]) return SPOO[role];
         throw new Error("No constructor");
     },
 
@@ -550,18 +500,15 @@ var SPOO = {
         this.observers[name].setObjectFamily(name);
     },
 
-    instantStorage: function(obj)
-    {
+    instantStorage: function(obj) {
         return Object.assign(new StorageTemplate(this), obj);
     },
 
-    instantObserver: function(obj)
-    {
+    instantObserver: function(obj) {
         return Object.assign(new ObserverTemplate(this), obj);
     },
 
-    instantProcessor: function(obj)
-    {
+    instantProcessor: function(obj) {
         return Object.assign(new ProcessorTemplate(), obj);
     },
 
@@ -892,7 +839,7 @@ var SPOO = {
 
         var self = this;
 
-       
+
 
         this.mappers[obj.role].remove(obj, function(data) {
 
@@ -975,7 +922,7 @@ var SPOO = {
 
     updateObject: function(obj, success, error, app, client) {
 
-       
+
 
         this.mappers[obj.role].update(obj, function(data) {
             success(data);
@@ -987,7 +934,7 @@ var SPOO = {
 
     getObjectById: function(role, id, success, error, app, client) {
 
-        
+
 
         this.mappers[role].getById(id, function(data) {
 
@@ -1013,7 +960,7 @@ var SPOO = {
         var templatesCache = [];
         var objectsCache = [];
 
-       
+
 
         this.mappers[role].getByCriteria(criteria, function(data) {
             var counter = 0;
@@ -1051,7 +998,7 @@ var SPOO = {
         var templatesCache = [];
         var objectsCache = [];
 
-       
+
 
         this.mappers[role].count(criteria, function(data) {
             var counter = 0;
@@ -2389,9 +2336,9 @@ var SPOO = {
                     throw new NoSuchPropertyException(propertyKey);
                 }
 
-                if(obj.properties[access[0]].interval)
+                if (obj.properties[access[0]].interval)
                     obj.properties[access[0]].nextOccurence = moment().add(obj.properties[access[0]].interval).toISOString();
-                else  obj.properties[access[0]].triggered = newValue;
+                else obj.properties[access[0]].triggered = newValue;
                 //obj.properties[access[0]].overwritten = true;
             }
         }
@@ -2772,7 +2719,7 @@ var SPOO = {
         return privilege;
     },
 
-    Objs: function(objs, role, instance) {
+    Objs: function(objs, role, instance, params) {
         var self = this;
 
         if (typeof objs === "object") {
@@ -2847,7 +2794,7 @@ var SPOO = {
                     success(data);
 
                 }, function(err) { error(err) }, app, client, flags);
-                
+
                 return;
             }
 
@@ -2859,11 +2806,22 @@ var SPOO = {
             }
 
             return objs;
+        } else {
+            this.checkAuthentication = function(userObj, callback, error) {
+
+                instance[params.pluralName]({ username: userObj.username }).get(function(data) {
+                    if (data.length != 1) error("User not found");
+
+                    callback(userObj.password, data[0].password)
+                }, function(err) {
+                    error(err);
+                })
+            };
         }
 
     },
 
-    Obj: function(obj, role, instance) {
+    Obj: function(obj, role, instance, params) {
 
         if (typeof obj === "string") {
             this._id = obj;
@@ -2875,10 +2833,7 @@ var SPOO = {
 
         this.type = obj.type || null;
 
-        if (this.role != 'application' && this.role != 'tenant') {
-
-            this.applications = SPOO.ApplicationsChecker(this, obj.applications) || [];
-        }
+        this.applications = SPOO.ApplicationsChecker(this, obj.applications) || [];
 
         this.inherits = SPOO.TemplatesChecker(this, obj.inherits) || [];
 
@@ -2904,17 +2859,41 @@ var SPOO = {
             this.removePrivilege = obj.removePrivilege;
         }
 
-        if (this.role == 'user') {
-            this.username = obj.username;
-            this.email = obj.email;
-            this.password = obj.password;
-            this.spooAdmin = obj.spooAdmin;
-            this.privileges = obj.privileges;
-            this.addPrivilege = obj.addPrivilege;
-            this.removePrivilege = obj.removePrivilege;
-            this.setUsername = obj.setUsername;
-            this.setEmail = obj.setEmail;
-            this.setPassword = obj.setPassword;
+        if (params.authable) {
+            this.username = obj.username || null;
+            this.email = obj.email || null;
+            this.password = obj.password || null;
+            this.privileges = SPOO.PrivilegesChecker(obj) || {};
+            this.spooAdmin = obj.spooAdmin || false;
+
+            this.addPrivilege = function(privilege) {
+                new SPOO.PrivilegeChecker(this, privilege);
+                return this;
+            };
+
+            this.setUsername = function(username) {
+                this.username = username;
+                SPOO.chainPermission(this, this, 'o', 'setUsername', username);
+                return this;
+            }
+
+            this.setEmail = function(email) {
+                this.email = email;
+                SPOO.chainPermission(this, this, 'h', 'setEmail', email);
+                return this;
+            }
+
+            this.setPassword = function(password) {
+                // should be encrypted at this point
+                this.password = password;
+                return this;
+            }
+
+            this.removePrivilege = function(privilege) {
+                new SPOO.PrivilegeRemover(this, privilege);
+                return this;
+            };
+
         }
 
         this.addInherit = function(templateId) {
@@ -3598,7 +3577,7 @@ var SPOO = {
             Object.keys(thisRef.onCreate).forEach(function(key) {
 
                 if (thisRef.onCreate[key].trigger == 'before') {
-                    
+
                     //dsl, obj, prop, data, callback, client, options
                     instance.execProcessorAction(thisRef.onCreate[key].value, thisRef, null, null, function(data) {
 
@@ -3633,7 +3612,7 @@ var SPOO = {
                             else date = null;
                         } else if (props[p].interval) {
                             if (props[p].nextOccurence) {
-                                date = props[p].nextOccurence ;
+                                date = props[p].nextOccurence;
                             } else date = moment().toISOString();
                         }
 
@@ -3648,7 +3627,7 @@ var SPOO = {
 
                             if (!found && props[p].triggered != true)
                                 //if(moment().toISOString() >= moment(date).toISOString()) 
-                                    thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
+                                thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
 
                         } else {
 
@@ -3663,7 +3642,7 @@ var SPOO = {
 
                             if (!found && props[p].triggered != true)
                                 //if(moment().toISOString() >= moment(date).toISOString()) 
-                                    thisRef.aggregatedEvents.push({ propName: p, date: date });
+                                thisRef.aggregatedEvents.push({ propName: p, date: date });
 
                         }
                     }
@@ -3697,7 +3676,7 @@ var SPOO = {
 
                     //var mapper = instance.observers[obj.role];
 
-                  
+
                     if (mapper.type == 'scheduled') {
 
                         instance.eventAlterationSequence.forEach(function(evt) {
@@ -3826,7 +3805,7 @@ var SPOO = {
 
                             if (!found && props[p].triggered != true)
                                 //if(moment().toISOString() >= moment(date).toISOString())
-                                    thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
+                                thisRef.aggregatedEvents.push({ propName: prePropsString + "." + p, date: date });
 
                         } else {
 
@@ -3838,8 +3817,8 @@ var SPOO = {
                             })
 
                             if (!found && props[p].triggered != true)
-                                 //if(moment().toISOString() >= moment(date).toISOString())
-                                    thisRef.aggregatedEvents.push({ propName: p, date: date });
+                                //if(moment().toISOString() >= moment(date).toISOString())
+                                thisRef.aggregatedEvents.push({ propName: p, date: date });
 
                         }
                     }
@@ -3847,8 +3826,8 @@ var SPOO = {
                 })
             }
 
-            var mapper =  instance.observers[thisRef.role];
-            
+            var mapper = instance.observers[thisRef.role];
+
             if (mapper.type != 'scheduled') aggregateAllEvents(this.properties);
 
 
