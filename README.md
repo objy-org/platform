@@ -48,13 +48,6 @@ SPOO.Object({name: "Hello World"}).add( obj => {
 	console.error(err);
 })
 
-// Get a single object by its id
-SPOO.Object("id...").get( obj => {
-	console.log(obj);
-}, err => {
-	console.error(err);
-})
-
 // Query Objects
 SPOO.Object({name: "Hello Word"}).get( objs => {
 	console.log(objs);
