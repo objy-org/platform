@@ -1546,7 +1546,7 @@ var SPOO = {
                     if (!_event[eventKey].date) throw new MissingAttributeException('date');
 
                     try {
-                        _event[eventKey].date = moment(_event[eventKey].date).format();
+                        _event[eventKey].date = moment(_event[eventKey].date).utc().format();
                     } catch (e) {
 
                     }
@@ -2811,7 +2811,7 @@ var SPOO = {
 
                 instance[params.pluralName]({ username: userObj.username }).get(function(data) {
                     if (data.length == 0) error("User not found");
-                    callback(data[0].password)
+                    callback(data[0])
                 }, function(err) {
                     error(err);
                 })

@@ -1,5 +1,5 @@
 var Global = require('./_template.js');
-
+var moment = require("moment");
 
 Mapper = function(SPOO) {
     return Object.assign(new Global(SPOO), {
@@ -13,7 +13,7 @@ Mapper = function(SPOO) {
                 // interval
                 this.interval = setInterval(function() {
 
-                    self.run(new Date());
+                    self.run(moment().utc());
 
                 }, this.interval)
         },
@@ -40,7 +40,7 @@ Mapper = function(SPOO) {
                                    
                                     obj.aggregatedEvents.forEach(function(aE)
                                     {
-                                        
+                                       
                                             var prop = obj.getProperty(aE.propName);
 
                                             self.SPOO.execProcessorAction(prop.action, obj, prop, null, function() {
