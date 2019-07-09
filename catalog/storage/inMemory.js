@@ -67,7 +67,7 @@ Mapper = function(SPOO) {
             if(this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED)
                 Object.assign(criteria, {tenantId: client})
 
-            success(Query.query( db, criteria));
+            success(Query.query( db, criteria, Query.undot));
         },
 
         count: function(criteria, success, error, app, client, flags) {
@@ -80,7 +80,7 @@ Mapper = function(SPOO) {
             if(this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED)
                 Object.assign(criteria, {tenantId: client})
 
-            success(Query.query( db, criteria).length);
+            success(Query.query( db, criteria, Query.undot).length);
         },
 
         update: function(spooElement, success, error, app, client) {
