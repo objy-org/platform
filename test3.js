@@ -14,6 +14,18 @@ SPOO.define({
 })
 
 
+SPOO.define({
+    name: "Str",
+    pluralName: 'Strs',
+    structure: {
+        blah: null
+    }
+})
+
+
+console.log(SPOO.Str({}));
+
+return
 /*
 SPOO.ObjectFamily({
     name: "Asset",
@@ -38,7 +50,8 @@ SPOO.tenant('dsl').app('demoapp')
 
 console.log(SPOO.User({}));
 
-SPOO.Users().checkAuthentication({ username: "sfaf", password: "244" }, function(userPass, dbPass) {
+
+SPOO.Users().auth({ username: "sfaf", password: "244" }, function(userPass, dbPass) {
     if (bcrypt.compareSync(userPass, dbPass)) {
         console.log("authenticated")
     }

@@ -2807,12 +2807,11 @@ var SPOO = {
 
             return objs;
         } else {
-            this.checkAuthentication = function(userObj, callback, error) {
+            this.auth = function(userObj, callback, error) {
 
                 instance[params.pluralName]({ username: userObj.username }).get(function(data) {
                     if (data.length != 1) error("User not found");
-
-                    callback(userObj.password, data[0].password)
+                    callback(data[0].password)
                 }, function(err) {
                     error(err);
                 })
@@ -2823,6 +2822,11 @@ var SPOO = {
 
     Obj: function(obj, role, instance, params) {
 
+        
+
+
+        if (obj._id) this._id = obj._id;
+
         if (typeof obj === "string") {
             this._id = obj;
         }
@@ -2831,69 +2835,75 @@ var SPOO = {
 
         this.role = role || 'object';
 
-        this.type = obj.type || null;
+        if(!params.structure) {
 
-        this.applications = SPOO.ApplicationsChecker(this, obj.applications) || [];
+            this.type = obj.type || null;
 
-        this.inherits = SPOO.TemplatesChecker(this, obj.inherits) || [];
+            this.applications = SPOO.ApplicationsChecker(this, obj.applications) || [];
 
-        if (obj._id) this._id = obj._id;
-        this.name = obj.name || null;
+            this.inherits = SPOO.TemplatesChecker(this, obj.inherits) || [];
 
-        this.onCreate = obj.onCreate || {};
-        this.onChange = obj.onChange || {};
-        this.onDelete = obj.onDelete || {};
+            
+            this.name = obj.name || null;
 
-        this.created = obj.created || moment().toDate().toISOString();
-        this.lastModified = obj.lastModified || moment().toDate().toISOString();
+            this.onCreate = obj.onCreate || {};
+            this.onChange = obj.onChange || {};
+            this.onDelete = obj.onDelete || {};
 
-        this.properties = SPOO.PropertiesChecker(this, obj.properties, instance) || {};
+            this.created = obj.created || moment().toDate().toISOString();
+            this.lastModified = obj.lastModified || moment().toDate().toISOString();
 
-        this.permissions = new SPOO.ObjectPermissionsCreateWrapper(this, obj.permissions) || {};
+            this.properties = SPOO.PropertiesChecker(this, obj.properties, instance) || {};
 
-        this.aggregatedEvents = obj.aggregatedEvents || [];
+            this.permissions = new SPOO.ObjectPermissionsCreateWrapper(this, obj.permissions) || {};
 
-        if (this.role == 'template') {
-            this.privileges = obj.privileges;
-            this.addPrivilege = obj.addPrivilege;
-            this.removePrivilege = obj.removePrivilege;
-        }
+            this.aggregatedEvents = obj.aggregatedEvents || [];
 
-        if (params.authable) {
-            this.username = obj.username || null;
-            this.email = obj.email || null;
-            this.password = obj.password || null;
-            this.privileges = SPOO.PrivilegesChecker(obj) || {};
-            this.spooAdmin = obj.spooAdmin || false;
-
-            this.addPrivilege = function(privilege) {
-                new SPOO.PrivilegeChecker(this, privilege);
-                return this;
-            };
-
-            this.setUsername = function(username) {
-                this.username = username;
-                SPOO.chainPermission(this, this, 'o', 'setUsername', username);
-                return this;
+            if (this.role == 'template') {
+                this.privileges = obj.privileges;
+                this.addPrivilege = obj.addPrivilege;
+                this.removePrivilege = obj.removePrivilege;
             }
 
-            this.setEmail = function(email) {
-                this.email = email;
-                SPOO.chainPermission(this, this, 'h', 'setEmail', email);
-                return this;
+            if (params.authable) {
+                this.username = obj.username || null;
+                this.email = obj.email || null;
+                this.password = obj.password || null;
+                this.privileges = SPOO.PrivilegesChecker(obj) || {};
+                this.spooAdmin = obj.spooAdmin || false;
+
+                this.addPrivilege = function(privilege) {
+                    new SPOO.PrivilegeChecker(this, privilege);
+                    return this;
+                };
+
+                this.setUsername = function(username) {
+                    this.username = username;
+                    SPOO.chainPermission(this, this, 'o', 'setUsername', username);
+                    return this;
+                }
+
+                this.setEmail = function(email) {
+                    this.email = email;
+                    SPOO.chainPermission(this, this, 'h', 'setEmail', email);
+                    return this;
+                }
+
+                this.setPassword = function(password) {
+                    // should be encrypted at this point
+                    this.password = password;
+                    return this;
+                }
+
+                this.removePrivilege = function(privilege) {
+                    new SPOO.PrivilegeRemover(this, privilege);
+                    return this;
+                };
+
             }
 
-            this.setPassword = function(password) {
-                // should be encrypted at this point
-                this.password = password;
-                return this;
-            }
-
-            this.removePrivilege = function(privilege) {
-                new SPOO.PrivilegeRemover(this, privilege);
-                return this;
-            };
-
+        } else {
+            Object.assign(this, params.structure)
         }
 
         this.addInherit = function(templateId) {
