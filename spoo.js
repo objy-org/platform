@@ -2810,8 +2810,10 @@ var SPOO = {
             this.auth = function(userObj, callback, error) {
 
                 instance[params.pluralName]({ username: userObj.username }).get(function(data) {
+
                     if (data.length != 1) error("User not found");
                     callback(data[0])
+
                 }, function(err) {
                     error(err);
                 })
