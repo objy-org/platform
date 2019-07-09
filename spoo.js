@@ -2811,7 +2811,7 @@ var SPOO = {
 
                 instance[params.pluralName]({ username: userObj.username }).get(function(data) {
                     if (data.length != 1) error("User not found");
-                    callback(data[0].password)
+                    callback(data[0])
                 }, function(err) {
                     error(err);
                 })
