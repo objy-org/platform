@@ -1523,7 +1523,7 @@ var SPOO = {
 
                     if (_event[eventKey].lastOccurence == undefined) _event[eventKey].lastOccurence = null;
                     else if (!moment(_event[eventKey].lastOccurence).isValid()) throw new InvalidDateException(_event[eventKey].lastOccurence);
-                    else _event[eventKey].lastOccurence = moment(_event[eventKey].lastOccurence).format();
+                    else _event[eventKey].lastOccurence = moment(_event[eventKey].lastOccurence).utc().format();
 
 
                     if (_event[eventKey].nextOccurence == undefined)
@@ -1534,14 +1534,14 @@ var SPOO = {
 
                     if (_event[eventKey].interval === undefined) throw new MissingAttributeException('interval');
 
-                    _event[eventKey].nextOccurence = moment(_event[eventKey].lastOccurence || moment()).add(_event[eventKey].interval).toISOString();
+                    _event[eventKey].nextOccurence = moment(_event[eventKey].lastOccurence || moment().utc()).utc().add(_event[eventKey].interval).toISOString();
 
                     instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: property, date: _event[eventKey].nextOccurence })
 
 
                 } else if (_event[eventKey].date !== undefined) {
 
-                    if (_event[eventKey].date == null) _event[eventKey].date = moment().toISOString();
+                    if (_event[eventKey].date == null) _event[eventKey].date = moment().utc().toISOString();
 
                     if (!_event[eventKey].date) throw new MissingAttributeException('date');
 
@@ -1733,7 +1733,7 @@ var SPOO = {
             case CONSTANTS.EVENT.TYPE_RECURRING:
                 if (_event[eventKey].lastOccurence == undefined) _event[eventKey].lastOccurence = null;
                 else if (!moment(_event[eventKey].lastOccurence).isValid()) throw new InvalidDateException(_event[eventKey].lastOccurence);
-                else _event[eventKey].lastOccurence = moment(_event[eventKey].lastOccurence).format();
+                else _event[eventKey].lastOccurence = moment(_event[eventKey].lastOccurence).utc().format();
 
                 if (_event[eventKey].action === undefined) _event[eventKey].action = 'confirm';
 
@@ -1758,7 +1758,7 @@ var SPOO = {
             case CONSTANTS.EVENT.TYPE_TERMINATING:
                 if (_event[eventKey].date === undefined) throw new MissingAttributeException('date');
                 if (!moment(_event[eventKey].date).isValid()) throw new InvalidDateException(_event[eventKey].date);
-                _event[eventKey].date = moment(_event[eventKey].date).format();
+                _event[eventKey].date = moment(_event[eventKey].date).utc().format();
                 if (_event[eventKey].action === undefined) _event[eventKey].action = 'deactivate';
                 obj.events[eventKey] = _event[eventKey];
                 break;
@@ -2285,7 +2285,7 @@ var SPOO = {
 
                 if (obj.properties[access[0]].lastOccurence) {
 
-                    var nextOccurence = moment(obj.properties[access[0]].lastOccurence).add(newValue);
+                    var nextOccurence = moment(obj.properties[access[0]].lastOccurence).utc().add(newValue);
                     instance.eventAlterationSequence.push({ operation: 'remove', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: nextOccurence })
                     instance.eventAlterationSequence.push({ operation: 'add', obj: obj, propName: propertyKey, property: obj.properties[access[0]], date: nextOccurence })
                 }
@@ -2337,7 +2337,7 @@ var SPOO = {
                 }
 
                 if (obj.properties[access[0]].interval)
-                    obj.properties[access[0]].nextOccurence = moment().add(obj.properties[access[0]].interval).toISOString();
+                    obj.properties[access[0]].nextOccurence = moment().utc().add(obj.properties[access[0]].interval).toISOString();
                 else obj.properties[access[0]].triggered = newValue;
                 //obj.properties[access[0]].overwritten = true;
             }
@@ -2389,7 +2389,7 @@ var SPOO = {
 
                 obj.properties[access[0]].lastOccurence = newValue;
 
-                obj.properties[access[0]].nextOccurence = moment(newValue).add(moment.duration(obj.properties[access[0]].interval)).toISOString();
+                obj.properties[access[0]].nextOccurence = moment(newValue).utc().add(moment.duration(obj.properties[access[0]].interval)).toISOString();
             }
         }
 
@@ -2810,8 +2810,10 @@ var SPOO = {
             this.auth = function(userObj, callback, error) {
 
                 instance[params.pluralName]({ username: userObj.username }).get(function(data) {
+
                     if (data.length == 0) error("User not found");
                     callback(data[0])
+
                 }, function(err) {
                     error(err);
                 })
@@ -2850,8 +2852,8 @@ var SPOO = {
             this.onChange = obj.onChange || {};
             this.onDelete = obj.onDelete || {};
 
-            this.created = obj.created || moment().toDate().toISOString();
-            this.lastModified = obj.lastModified || moment().toDate().toISOString();
+            this.created = obj.created || moment().utc().toDate().toISOString();
+            this.lastModified = obj.lastModified || moment().utc().toDate().toISOString();
 
             this.properties = SPOO.PropertiesChecker(this, obj.properties, instance) || {};
 
@@ -3595,8 +3597,8 @@ var SPOO = {
                 }
             })
 
-            this.created = moment().toDate().toISOString();
-            this.lastModified = moment().toDate().toISOString();
+            this.created = moment().utc().toDate().toISOString();
+            this.lastModified = moment().utc().toDate().toISOString();
 
             var thisRef = this;
 
@@ -3623,7 +3625,7 @@ var SPOO = {
                         } else if (props[p].interval) {
                             if (props[p].nextOccurence) {
                                 date = props[p].nextOccurence;
-                            } else date = moment().toISOString();
+                            } else date = moment().utc().toISOString();
                         }
 
                         if (prePropsString) {
@@ -3648,7 +3650,7 @@ var SPOO = {
                                 if (aE.propName == p) found = true;
                             })
 
-                            console.log(props[p], moment().toISOString(), date, moment(date).toISOString());
+                            console.log(props[p], moment().utc().toISOString(), date, moment(date).utc().toISOString());
 
                             if (!found && props[p].triggered != true)
                                 //if(moment().toISOString() >= moment(date).toISOString()) 
@@ -3800,7 +3802,7 @@ var SPOO = {
                         } else if (props[p].interval) {
                             if (props[p].nextOccurence) {
                                 date = props[p].nextOccurence;
-                            } else date = moment().toISOString();
+                            } else date = moment().utc().toISOString();
                         }
 
                         if (prePropsString) {
@@ -3962,7 +3964,7 @@ var SPOO = {
                                 } else if (props[p].interval) {
                                     if (props[p].nextOccurence) {
                                         date = props[p].nextOccurence;
-                                    } else date = moment().toISOString();
+                                    } else date = moment().utc().toISOString();
                                 }
 
                                 if (prePropsString) {
