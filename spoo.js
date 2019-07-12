@@ -416,13 +416,13 @@ var SPOO = {
 
         if (this.objectFamilies.indexOf(params.name) == -1) this.objectFamilies.push(params.name);
 
-        this[params.pluralName] = function(objs) {
+        this[params.pluralName] = function(objs, flags) {
 
-            return new SPOO.Objs(objs, params.name, this, params);
+            return new SPOO.Objs(objs, params.name, this, params, flags);
 
         }
 
-        if (params.persistence) this.plugInPersistenceMapper(params.name, params.persistence);
+        if (params.storage) this.plugInPersistenceMapper(params.name, params.storage);
         else this.plugInPersistenceMapper(params.name, new DefaultStorageMapper());
 
         if (params.processor) this.plugInProcessor(params.name, params.processor);
@@ -438,7 +438,7 @@ var SPOO = {
 
 
         if (params.backend) {
-            this.plugInPersistenceMapper(params.name, params.backend.persistence);
+            this.plugInPersistenceMapper(params.name, params.backend.storage);
             this.plugInProcessor(params.name, params.backend.processor);
             this.plugInObserver(params.name, params.backend.observer);
         }
@@ -872,7 +872,6 @@ var SPOO = {
     },
 
     addObject: function(obj, success, error, app, client) {
-
 
         this.mappers[obj.role].add(obj, function(data) {
             success(data);
@@ -2719,7 +2718,7 @@ var SPOO = {
         return privilege;
     },
 
-    Objs: function(objs, role, instance, params) {
+    Objs: function(objs, role, instance, params, flags) {
         var self = this;
 
         if (typeof objs === "object") {
@@ -2732,13 +2731,12 @@ var SPOO = {
                 var thisRef = this;
                 var counter = 0;
 
-                var flags = {} // TODO!!!
-
 
                 SPOO.findObjects(objs, role, function(data) {
                     success(data);
 
-                }, function(err) { error(err) }, app, client, flags);
+                }, function(err) { error(err) }, app, client, flags || {});
+
                 return;
 
                 if (this.inherits.length == 0) {
@@ -2764,6 +2762,7 @@ var SPOO = {
                                 return this;
                             }, client)
                     } else {
+
                         if (thisRef.inherits.length == 1) {
                             success(thisRef);
                             return this;
@@ -2771,11 +2770,9 @@ var SPOO = {
                             counter++;
                             return;
                         }
+                        
                     }
                 });
-
-
-
             }
 
 
@@ -2787,13 +2784,11 @@ var SPOO = {
                 var thisRef = this;
                 var counter = 0;
 
-                var flags = {} // TODO!!!
-
 
                 SPOO.countObjects(objs, role, function(data) {
                     success(data);
 
-                }, function(err) { error(err) }, app, client, flags);
+                }, function(err) { error(err) }, app, client, flags || {});
 
                 return;
             }
@@ -2824,7 +2819,7 @@ var SPOO = {
 
     Obj: function(obj, role, instance, params) {
 
-        
+
 
 
         if (obj._id) this._id = obj._id;
@@ -2837,7 +2832,7 @@ var SPOO = {
 
         this.role = role || 'object';
 
-        if(!params.structure) {
+        if (!params.structure) {
 
             this.type = obj.type || null;
 
@@ -2845,7 +2840,7 @@ var SPOO = {
 
             this.inherits = SPOO.TemplatesChecker(this, obj.inherits) || [];
 
-            
+
             this.name = obj.name || null;
 
             this.onCreate = obj.onCreate || {};
@@ -3930,7 +3925,7 @@ var SPOO = {
             })
 
             SPOO.getObjectById(this.role, this._id, function(data) {
-
+                console.log('...', data)
                 return SPOO.remove(thisRef, function(_data) {
 
                     Object.keys(thisRef.onDelete).forEach(function(key) {

@@ -3,73 +3,73 @@ var moment = require("moment");
 
 Mapper = function(SPOO) {
     return Object.assign(new Global(SPOO), {
-        
+
         initialize: function(millis) {
-                var self = this;
+            var self = this;
 
-                // first run
-                //self.run(new Date());
+            // first run
+            //self.run(new Date());
 
-                // interval
-                this.interval = setInterval(function() {
+            // interval
+            this.interval = setInterval(function() {
 
-                    self.run(moment().utc());
+                self.run(moment().utc());
 
-                }, this.interval)
+            }, this.interval)
         },
 
         run: function(date) {
-        
-                var self = this;
 
-                self.SPOO.getPersistence(self.objectFamily).listClients(function(data){
+            var self = this;
 
-                    //console.log("d", data);
+            self.SPOO.getPersistence(self.objectFamily).listClients(function(data) {
 
-                    data.forEach(function(tenant) {
-                            
-                        console.log("current run: ", date.toISOString());
-                       
+                //console.log("d", data);
 
-                        self.SPOO.getPersistence(self.objectFamily).getByCriteria({  aggregatedEvents: {
-                                $elemMatch: {
-                                  'date': { $lte: date.toISOString() }
-                                }} }, function(objs) {
+                data.forEach(function(tenant) {
 
-                                objs.forEach(function(obj) {
-                                   
-                                    obj.aggregatedEvents.forEach(function(aE)
-                                    {
-                                       
-                                            var prop = obj.getProperty(aE.propName);
+                    console.log("current run: ", date.toISOString(), tenant);
 
-                                            self.SPOO.execProcessorAction(prop.action, obj, prop, null, function() {
-                                               
-                                                obj.setEventTriggered(aE.propName, true, tenant).update(function(d){
-                                                    console.log("remaining events: ", d.aggregatedEvents);
-                                                    console.log(obj.getProperty(aE.propName));
-                                                }, function(err)
-                                                {
-                                                    console.log(err);
-                                                }, tenant)
 
-                                              
-                                            }, tenant, {});
-                                        
-                                    })
+                    self.SPOO.getPersistence(self.objectFamily).getByCriteria({
+                        aggregatedEvents: {
+                            $elemMatch: {
+                                'date': { $lte: date.toISOString() }
+                            }
+                        }
+                    }, function(objs) {
 
-                                    
-                                })
+                        objs.forEach(function(obj) {
 
-                            }, function(err) {
+                            obj.aggregatedEvents.forEach(function(aE) {
 
-                            }, /*app*/ undefined, tenant, /*flags*/)
-                    })
+                                var prop = obj.getProperty(aE.propName);
 
-                }, function(err)
-                {
+                                self.SPOO.execProcessorAction(prop.action, obj, prop, null, function() {
 
+                                    obj.setEventTriggered(aE.propName, true, tenant).update(function(d) {
+                                        console.log("remaining events: ", d.aggregatedEvents);
+                                        console.log(obj.getProperty(aE.propName));
+                                    }, function(err) {
+                                        console.log(err);
+                                    }, tenant)
+
+
+                                }, tenant, {});
+
+                            })
+
+
+                        })
+
+                    }, function(err) {
+
+                    }, /*app*/ undefined, tenant, {})
                 })
+
+            }, function(err) {
+
+            })
         }
 
 

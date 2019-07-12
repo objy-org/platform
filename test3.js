@@ -1,6 +1,63 @@
 var SPOO = require('./spoo.js');
 var bcrypt = require("bcrypt");
 
+
+
+var Mongo = require('./catalog/storage/mongoMapper.js');
+
+var m = new Mongo(SPOO, { multitenancy: 'shared' });
+
+m.connect('mongodb://localhost:27017', function(data) {
+
+    console.log("connection", data)
+
+
+
+    SPOO.define({
+        name: "Impulse",
+        pluralName: 'Impulses',
+        storage: m
+    })
+
+
+    SPOO.client('mongotest2');
+
+    SPOO.getPersistenceMapper('Impulse').createClient('createtest1', function()
+    {
+
+    }, function(e){
+        console.log(e)
+    })
+
+    SPOO.Impulses({ name: "sss" }, {$page:1}).get(function(data) {
+        console.log("mdata", data)
+
+        /*SPOO.Impulse({ name: "sss", properties: { test: 'sd' } }).add(function(data) {
+            console.log("removed", data)
+        }, function(err) {
+            console.log("err", err)
+        })*/
+
+
+        /*SPOO[data[0].role](data[0]._id).remove(function(data)
+        {
+            console.log("removed", data)
+        }, function(err)
+        {
+            console.log("err", err)
+        })*/
+
+    }, function(err) {
+        console.log("merr", err)
+    })
+
+}, function(err) {
+    console.log(err)
+})
+
+
+return;
+
 SPOO.define({
     name: "Impulse",
     pluralName: 'Impulses'

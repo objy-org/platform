@@ -10,7 +10,7 @@ Mapper = function(SPOO, options, content) {
         }
     };
     this.SPOO = SPOO;
-    this.interval =  (options || {}).interval || 6000;
+    this.interval = (options || {}).interval || 6000;
     this.objectFamily = null;
     this.type = (options || {}).type || this.CONSTANTS.TYPES.QUERIED;
     this.multitenancy = (options || {}).multitenancy || this.CONSTANTS.MULTITENANCY.ISOLATED;
@@ -27,7 +27,7 @@ Mapper = function(SPOO, options, content) {
 
     }
 
-    if(content) Object.assign(this, content)
+    if (content) Object.assign(this, content)
 }
 
 module.exports = Mapper;
