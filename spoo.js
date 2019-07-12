@@ -2770,11 +2770,10 @@ var SPOO = {
                             counter++;
                             return;
                         }
-                        
+
                     }
                 });
             }
-
 
             this.count = function(success, error) {
 
