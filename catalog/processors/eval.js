@@ -6,7 +6,7 @@ Mapper = function(SPOO) {
         execute: function(dsl, obj, prop, data, callback, client, app, user, options) {
 
             var SPOO = this.SPOO;
-            console.log("22..");
+            console.log("22..", dsl);
             if (this.multitenancy == this.CONSTANTS.MULTITENANCY.ISOLATED) {
                 try {
                     eval(dsl);
@@ -25,6 +25,5 @@ Mapper = function(SPOO) {
         }
     })
 }
-
 
 module.exports = Mapper;

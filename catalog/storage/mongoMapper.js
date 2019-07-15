@@ -49,6 +49,8 @@ Mapper = function(SPOO, options) {
             this.database.once('open', function() {
                 success();
             });
+
+            return this;
         },
 
         getDBByMultitenancy: function(client) {
@@ -224,7 +226,9 @@ Mapper = function(SPOO, options) {
             if (app) {
                 if (spooElement.applications.indexOf(app) == -1) spooElement.applications.push(app);
             }
-
+            
+            console.log(this.objectFamily);
+            
             var Obj = db.model(this.objectFamily, ObjSchema);
 
             delete spooElement._id;
