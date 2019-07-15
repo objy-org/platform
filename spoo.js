@@ -2862,6 +2862,7 @@ var SPOO = {
             }
 
             if (params.authable) {
+                console.log("authable!!!");
                 this.username = obj.username || null;
                 this.email = obj.email || null;
                 this.password = obj.password || null;
