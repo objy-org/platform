@@ -1837,12 +1837,12 @@ var SPOO = {
     ObjectOnCreateCreateWrapper: function(obj, onCreate, instance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
-        if (!onCreate) throw new InvalidHandlerException();
+        if (!onCreate) return {}
 
         Object.keys(onCreate).forEach(function(oC)
         {
-            if(!oC.trigger) oC.trigger = 'after';
-            if(!oC.trigger) oC.type = 'async';
+            if(!onCreate[oC].trigger) onCreate[oC].trigger = 'after';
+            if(!onCreate[oC].trigger) onCreate[oC].type = 'async';
         })
 
         return onCreate;
@@ -1851,12 +1851,12 @@ var SPOO = {
     ObjectOnChangeCreateWrapper: function(obj, onChange, instance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
-        if (!onChange) throw new InvalidHandlerException();
+        if (!onChange) return {}
 
         Object.keys(onChange).forEach(function(oC)
         {
-            if(!oC.trigger) oC.trigger = 'after';
-            if(!oC.trigger) oC.type = 'async';
+            if(!onChange[oC].trigger) onChange[oC].trigger = 'after';
+            if(!onChange[oC].trigger) onChange[oC].type = 'async';
         })
 
         return onChange;
@@ -1865,12 +1865,12 @@ var SPOO = {
     ObjectOnDeleteCreateWrapper: function(obj, onDelete, instance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
-        if (!onDelete) throw new InvalidHandlerException();
+        if (!onDelete) return {}
 
         Object.keys(onDelete).forEach(function(oC)
         {
-            if(!oC.trigger) oC.trigger = 'after';
-            if(!oC.trigger) oC.type = 'async';
+            if(!onDelete[oC].trigger) onDelete[oC].trigger = 'after';
+            if(!onDelete[oC].trigger) onDelete[oC].type = 'async';
         })
 
         return onCreate;
@@ -2884,9 +2884,9 @@ var SPOO = {
 
             this.name = obj.name || null;
 
-            this.onCreate = SPOO.ObjectOnCreateCreateWrapper(obj.onCreate) || {};
-            this.onChange = SPOO.ObjectOnChangeCreateWrapper(obj.onChange) || {};
-            this.onDelete = SPOO.ObjectOnDeleteCreateWrapper(obj.onDelete) || {};
+            this.onCreate = SPOO.ObjectOnCreateCreateWrapper(this, obj.onCreate, instance) || {};
+            this.onChange = SPOO.ObjectOnChangeCreateWrapper(this, obj.onChange, instance) || {};
+            this.onDelete = SPOO.ObjectOnDeleteCreateWrapper(this, obj.onDelete, instance) || {};
 
             this.created = obj.created || moment().utc().toDate().toISOString();
             this.lastModified = obj.lastModified || moment().utc().toDate().toISOString();
@@ -3717,7 +3717,7 @@ var SPOO = {
                     Object.keys(data.onCreate).forEach(function(key) {
                         if (data.onCreate[key].trigger == 'after') {
                             //dsl, obj, prop, data, callback, client, options
-                            instance.execProcessorAction(data.onCreate[key].value, data, null, null, function(data) {
+                            instance.execProcessorAction(data.onCreate[key].action, data, null, null, function(data) {
 
                             }, client, null);
                         }
@@ -3789,7 +3789,7 @@ var SPOO = {
 
             Object.keys(thisRef.onChange).forEach(function(key) {
                 if (thisRef.onChange[key].trigger == 'before') {
-                    instance.execProcessorAction(thisRef.onChange[key].value, thisRef, null, null, function(data) {
+                    instance.execProcessorAction(thisRef.onChange[key].action, thisRef, null, null, function(data) {
 
                     }, client, null);
                 }
@@ -3802,7 +3802,7 @@ var SPOO = {
 
                         for (var handlerItem in handlerObj.handler) {
                             if (handlerObj.handler[handlerItem].trigger == 'before') {
-                                instance.execProcessorAction(handlerObj.handler[handlerItem].value, thisRef, handlerObj.prop, null, function(data) {
+                                instance.execProcessorAction(handlerObj.handler[handlerItem].action, thisRef, handlerObj.prop, null, function(data) {
 
                                 }, client, null);
                             }
@@ -3885,7 +3885,7 @@ var SPOO = {
                     Object.keys(data.onChange).forEach(function(key) {
                         if (data.onChange[key].trigger == 'after') {
                             //dsl, obj, prop, data, callback, client, options
-                            instance.execProcessorAction(data.onChange[key].value, data, null, null, function(data) {
+                            instance.execProcessorAction(data.onChange[key].action, data, null, null, function(data) {
 
                             }, client, null);
                         }
@@ -3899,7 +3899,7 @@ var SPOO = {
 
                                 for (var handlerItem in handlerObj.handler) {
                                     if (handlerObj.handler[handlerItem].trigger == 'after') {
-                                        instance.execProcessorAction(handlerObj.handler[handlerItem].value, thisRef, handlerObj.prop, null, function(data) {
+                                        instance.execProcessorAction(handlerObj.handler[handlerItem].action, thisRef, handlerObj.prop, null, function(data) {
 
                                         }, client, null);
                                     }
@@ -3960,7 +3960,7 @@ var SPOO = {
             Object.keys(thisRef.onDelete).forEach(function(key) {
                 if (thisRef.onDelete[key].trigger == 'before') {
                     //dsl, obj, prop, data, callback, client, options
-                    instance.execProcessorAction(thisRef.onDelete[key].value, thisRef, null, null, function(data) {
+                    instance.execProcessorAction(thisRef.onDelete[key].action, thisRef, null, null, function(data) {
 
                     }, client, null);
                 }
@@ -3973,7 +3973,7 @@ var SPOO = {
                     Object.keys(thisRef.onDelete).forEach(function(key) {
                         if (thisRef.onDelete[key].trigger == 'after') {
                             //dsl, obj, prop, data, callback, client, options
-                            instance.execProcessorAction(thisRef.onDelete[key].value, thisRef, null, null, function(data) {
+                            instance.execProcessorAction(thisRef.onDelete[key].action, thisRef, null, null, function(data) {
 
                             }, client, null);
                         }
