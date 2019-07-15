@@ -23,7 +23,10 @@ var generalObjectModel = {
     created: String,
     lastModified: String,
     aggregatedEvents: [],
-    tenantId: String
+    tenantId: String,
+    password:String,
+    username:String,
+    email:String
 };
 
 var ObjSchema = new Schema(generalObjectModel);
