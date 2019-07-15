@@ -41,6 +41,8 @@ Mapper = function(SPOO) {
 
                         objs.forEach(function(obj) {
 
+                            obj = SPOO[self.objectFamily](obj);
+
                             obj.aggregatedEvents.forEach(function(aE) {
 
                                 var prop = obj.getProperty(aE.propName);

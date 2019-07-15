@@ -52,7 +52,6 @@ Mapper.prototype.listTenants = function(success, error) {
     success(Object.keys(this.database));
 };
 
-
 Mapper.prototype.getEvent = function(objId, propName, success, error, client) {
 
     var db = this.getDBByMultitenancy(client);
