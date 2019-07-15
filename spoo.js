@@ -1834,6 +1834,48 @@ var SPOO = {
         return onCreate;
     },
 
+    ObjectOnCreateCreateWrapper: function(obj, onCreate, instance) {
+        //if (!typeof onchange == 'object') throw new InvalidPermissionException();
+
+        if (!onCreate) throw new InvalidHandlerException();
+
+        Object.keys(onCreate).forEach(function(oC)
+        {
+            if(!oC.trigger) oC.trigger = 'after';
+            if(!oC.trigger) oC.type = 'async';
+        })
+
+        return onCreate;
+    },
+
+    ObjectOnChangeCreateWrapper: function(obj, onChange, instance) {
+        //if (!typeof onchange == 'object') throw new InvalidPermissionException();
+
+        if (!onChange) throw new InvalidHandlerException();
+
+        Object.keys(onChange).forEach(function(oC)
+        {
+            if(!oC.trigger) oC.trigger = 'after';
+            if(!oC.trigger) oC.type = 'async';
+        })
+
+        return onChange;
+    },
+
+    ObjectOnDeleteCreateWrapper: function(obj, onDelete, instance) {
+        //if (!typeof onchange == 'object') throw new InvalidPermissionException();
+
+        if (!onDelete) throw new InvalidHandlerException();
+
+        Object.keys(onDelete).forEach(function(oC)
+        {
+            if(!oC.trigger) oC.trigger = 'after';
+            if(!oC.trigger) oC.type = 'async';
+        })
+
+        return onCreate;
+    },
+
     ObjectOnChangeSetWrapper: function(obj, name, onChange, trigger, type, instance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
@@ -2842,9 +2884,9 @@ var SPOO = {
 
             this.name = obj.name || null;
 
-            this.onCreate = obj.onCreate || {};
-            this.onChange = obj.onChange || {};
-            this.onDelete = obj.onDelete || {};
+            this.onCreate = SPOO.ObjectOnCreateCreateWrapper(obj.onCreate) || {};
+            this.onChange = SPOO.ObjectOnChangeCreateWrapper(obj.onChange) || {};
+            this.onDelete = SPOO.ObjectOnDeleteCreateWrapper(obj.onDelete) || {};
 
             this.created = obj.created || moment().utc().toDate().toISOString();
             this.lastModified = obj.lastModified || moment().utc().toDate().toISOString();
