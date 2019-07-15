@@ -1873,7 +1873,7 @@ var SPOO = {
             if(!onDelete[oC].trigger) onDelete[oC].type = 'async';
         })
 
-        return onCreate;
+        return onDelete;
     },
 
     ObjectOnChangeSetWrapper: function(obj, name, onChange, trigger, type, instance) {
