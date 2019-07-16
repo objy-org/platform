@@ -4217,7 +4217,6 @@ var SPOO = {
                         }
                     })
 
-
                     function aggregateAllEvents(props, prePropsString) {
 
                         Object.keys(props).forEach(function(p) {
