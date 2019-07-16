@@ -675,6 +675,93 @@ var SPOO = {
 
     },
 
+    removeTemplateFieldsForObject: function(obj, templateId, success, error, client) {
+
+                if (!templateId) {
+                    error('template not found');
+                    return;
+                }
+                // Object handlers
+
+                ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+                    if (obj[h]) {
+                        Object.keys(obj[h]).forEach(function(oC) {
+                            if (obj[h][oC]) {
+                                if(obj[h][oC].template == templateId && !obj[h][oC].overwritten)
+                                    delete obj[h][oC];
+                            }
+                        })
+                    }
+                })
+
+
+                // Properties
+                function doTheProps(obj) {
+
+                    Object.keys(obj.properties).forEach(function(p) {
+
+                        if (obj.properties[p].type == 'bag') {
+                            doTheProps(obj.properties[p]);
+                        }
+
+                        if(obj.properties[p])
+                        {
+                            if(obj.properties[p].template == templateId && !obj.properties[p].overwritten)
+                                delete obj.properties[p];
+                        }
+
+                        if (obj.permissions) {
+                            Object.keys(obj.permissions).forEach(function(p) {
+                                if (obj.permissions[p]) {
+                                    if(obj.permissions[p].template == templateId && !obj.permissions[p].overwritten)
+                                        delete obj.permissions[p]
+                                } 
+                            })
+                        }
+
+                        ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+                            if (obj.properties[p][h]) {
+                               
+                                Object.keys(obj.properties[p][h]).forEach(function(oC) {
+
+                                    if (obj.properties[p][h][oC]) {
+                                        if(obj.properties[p][h][oC].template == templateId && !obj.properties[p][h][oC].overwritten)
+                                            delete obj.properties[p][h][oC];                                        
+                                    }
+                                })
+                            }
+                        })
+                    })
+                }
+
+                doTheProps(obj);
+
+
+                // Applications TODO
+
+                // Permissions
+                if (obj.permissions) {
+                    Object.keys(obj.permissions).forEach(function(p) {
+                        if (obj.permissions[p]) {
+                            if(obj.permissions[p].template == templateId && !obj.permissions[p].overwritten)
+                                delete obj.permissions[p];
+                        } 
+                    })
+                }
+
+                // Privileges
+                if (obj.privileges) {
+                    Object.keys(obj.privileges).forEach(function(a) {
+                        
+                        obj.privileges[a].forEach(function(tP, i) {
+                            if(tP.template == templateId && !tP.overwritten)
+                                obj.privileges[a].splice(i,1);
+                        })
+                    })
+                }
+                success(obj);
+    },
+
     ID: function() {
         var text = "";
         var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,;-_"; // NO DOT!!! 
@@ -751,12 +838,13 @@ var SPOO = {
 
     removeTemplateFromObject: function(obj, templateId, success, error, instance) {
         var contains = false;
+        
         obj.inherits.forEach(function(templ) {
             if (templ == templateId) contains = true;
         });
 
-        if (contains) {
-            var propKeys = Object.keys(obj.properties);
+        if (obj.inherits.indexOf(templateId) != -1) {
+            /*var propKeys = Object.keys(obj.properties);
             var i;
             for (i = 0; i < propKeys.length; i++) {
                 console.log("properties inherit");
@@ -776,14 +864,21 @@ var SPOO = {
             var i;
             for (i = 0; i < obj.inherits.length; i++) {
                 if (obj.inherits[i] == templateId) obj.inherits.splice(i, 1);
-            }
+            }*/
 
+
+            obj.inherits.splice(obj.inherits.indexOf(templateId), 1);
+            
             SPOO.chainPermission(obj, instance, 'i', 'removeInherit', templateId);
+            SPOO.chainCommand(obj, instance, 'removeInherit', templateId);
 
             success(obj);
+
         } else {
             error('Template not found in object');
         }
+
+        
     },
 
     remove: function(obj, success, error, app, client) {
@@ -834,7 +929,7 @@ var SPOO = {
             success(data);
 
         }, function(err) {
-            error('Error - Could not add object');
+            error(err);
         }, app, client);
 
     },
@@ -877,8 +972,6 @@ var SPOO = {
     },
 
     updateObject: function(obj, success, error, app, client) {
-
-
 
         this.mappers[obj.role].update(obj, function(data) {
             success(data);
@@ -2967,14 +3060,13 @@ var SPOO = {
 
         this.removeInherit = function(templateId, success, error) {
             SPOO.removeTemplateFromObject(this, templateId, function(data) {
-                    //if (success) success(templateId);
+                    if (success) success(templateId);
                 },
                 function(err) {
-                    //if (error) error(err);
+                    if (error) error(err);
                 }, instance);
             return this;
         };
-
 
         this.addApplication = function(application) {
             SPOO.addApplicationToObject(this, application, instance);
@@ -3750,7 +3842,6 @@ var SPOO = {
 
                         obj._id = data._id;
 
-
                         Object.keys(data.onCreate).forEach(function(key) {
                             if (data.onCreate[key].trigger == 'after') {
                                 //dsl, obj, prop, data, callback, client, options
@@ -3925,8 +4016,10 @@ var SPOO = {
 
             if (mapper.type != 'scheduled') aggregateAllEvents(this.properties);
 
-
-            SPOO.updateO(this, function(data) {
+            function updateFn()
+            { 
+            
+            SPOO.updateO(thisRef, function(data) {
 
                     Object.keys(data.onChange).forEach(function(key) {
                         if (data.onChange[key].trigger == 'after') {
@@ -3970,53 +4063,78 @@ var SPOO = {
                         })
                     }
 
-
                     instance.eventAlterationSequence = [];
 
-
-
-                    //if (this.role == 'template') this.inherit();
                     if (success) success(data);
-
-                    /*
-                        Call event Aggregator
-                        method(this)
-                            -> get with template
-                            -> add all events
-                    */
 
                 },
                 function(err) {
                     if (error) error(err);
-                    //throw new CallbackErrorException(err);
                 }, app, client);
 
+        }
+
+
             if (instance.commandSequence.length > 0) {
-                // .....
+                
+                var found = false;
+                var foundCounter = 0;
+                instance.commandSequence.forEach(function(i)
+                {
+                    if(i.name == 'addInherit' || i.name == 'removeInherit') 
+                        {
+                            foundCounter++;
+                            found = true;
+                        } 
+                })
+
+                console.log("founter",  instance.commandSequence);
+                if(foundCounter == 0) updateFn(thisRef);
+
+                var execCounter = 0;
+                instance.commandSequence.forEach(function(i)
+                {
+                    console.log(i)
+                    if(i.name == 'addInherit' && thisRef.inherits.indexOf(i.value) != -1) 
+                        {
+                            execCounter++;
+                            
+                            SPOO.getTemplateFieldsForObject(thisRef, i.value, function() {
+                                   
+                                    if (execCounter == foundCounter) {
+                                        updateFn(thisRef)
+                                        return thisRef;
+                                    }
+                                },
+                                function(err) {
+                                    success(thisRef);
+                                    return thisRef;
+                                }, client)
+
+                        } 
 
 
-                var counter = 0;
-                this.inherits.forEach(function(template) {
+                    if(i.name == 'removeInherit' && thisRef.inherits.indexOf(i.value) == -1) 
+                        {
+                            console.log("ölsfökdsmgsdg");
+                            execCounter++;
+                             SPOO.removeTemplateFieldsForObject(thisRef, i.value, function() {
+                                   
+                                    if (execCounter == foundCounter) {
+                                        updateFn(thisRef)
+                                        return thisRef;
+                                    }
+                                },
+                                function(err) {
+                                    success(thisRef);
+                                    return thisRef;
+                                }, client)
+                        } 
+                })
 
-                    if (thisRef._id != template) {
+            } else updateFn(thisRef)
 
-                        SPOO.getTemplateFieldsForObject(thisRef, template, function() {
-                                counter++;
-                                if (counter == thisRef.inherits.length) {
-                                    addFn(thisRef)
-                                    return this;
-                                }
-                            },
-                            function(err) {
-
-                                success(thisRef);
-                                return this;
-                            }, client)
-                    }
-                });
-
-
-            }
+            instance.commandSequence = [];
 
             return this;
         };
@@ -4172,6 +4290,7 @@ var SPOO = {
                 success(SPOO[thisRef.role](data))
 
             }, function(err) { error(err) }, app, client);
+            
             return;
 
             if (this.inherits.length == 0) {
