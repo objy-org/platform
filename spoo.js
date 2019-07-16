@@ -762,6 +762,11 @@ var SPOO = {
                 success(obj);
     },
 
+    updateObjAfterTemplateChange: function(templateId)
+    {
+
+    },
+
     ID: function() {
         var text = "";
         var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,;-_"; // NO DOT!!! 
@@ -868,7 +873,7 @@ var SPOO = {
 
 
             obj.inherits.splice(obj.inherits.indexOf(templateId), 1);
-            
+
             SPOO.chainPermission(obj, instance, 'i', 'removeInherit', templateId);
             SPOO.chainCommand(obj, instance, 'removeInherit', templateId);
 
@@ -3884,9 +3889,11 @@ var SPOO = {
                     }, app, client);
             }
 
-            if (this.inherits.length == 0) addFn(thisRef);
+            addFn(thisRef)
 
-            var counter = 0;
+           // if (this.inherits.length == 0) addFn(thisRef);
+
+            /*var counter = 0;
             this.inherits.forEach(function(template) {
 
                 if (thisRef._id != template) {
@@ -3904,7 +3911,7 @@ var SPOO = {
                             return this;
                         }, client)
                 }
-            });
+            });*/
 
 
             return this;
@@ -4074,8 +4081,10 @@ var SPOO = {
 
         }
 
+        updateFn();
 
-            if (instance.commandSequence.length > 0) {
+
+           /*if (instance.commandSequence.length > 0) {
                 
                 var found = false;
                 var foundCounter = 0;
@@ -4132,8 +4141,7 @@ var SPOO = {
                         } 
                 })
 
-            } else updateFn(thisRef)
-
+            } else updateFn(thisRe*/
             instance.commandSequence = [];
 
             return this;
@@ -4287,44 +4295,47 @@ var SPOO = {
 
                 SPOO.checkPermissions(instance.activeUser, instance.activeApp, data, 'r')
                 //console.log(SPOO[thisRef.role](data));
-                success(SPOO[thisRef.role](data))
+                //success(SPOO[thisRef.role](data))
 
-            }, function(err) { error(err) }, app, client);
-            
-            return;
-
-            if (this.inherits.length == 0) {
-                success(thisRef);
-                return this;
+                 if (data.inherits.length == 0) {
+                success(data);
+                return data;
             }
 
 
-            this.inherits.forEach(function(template) {
+            data.inherits.forEach(function(template) {
 
-                if (thisRef._id != template) {
+                if (data._id != template) {
 
-                    SPOO.getTemplateFieldsForObject(thisRef, template, function() {
+                    SPOO.getTemplateFieldsForObject(data, template, function() {
                             counter++;
-                            if (counter == thisRef.inherits.length) {
-                                success(thisRef);
-                                return this;
+                            if (counter == data.inherits.length) {
+                                success(data);
+                                return data;
                             }
                         },
                         function(err) {
 
-                            success(thisRef);
-                            return this;
+                            success(data);
+                            return data;
                         }, client)
                 } else {
                     if (thisRef.inherits.length == 1) {
-                        success(thisRef);
-                        return this;
+                        success(data);
+                        return data;
                     } else {
                         counter++;
                         return;
                     }
                 }
             });
+
+            
+            }, function(err) { error(err) }, app, client);
+            
+           
+
+           
 
         }
 

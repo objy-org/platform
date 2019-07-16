@@ -17,12 +17,12 @@ SPOO.Object({name: "test123"}).add(function(data)
 
 		SPOO.Object(data_._id).get(function(data__)
 			{
-				//console.log(data_)
+				console.log(data_)
 
-				data__.removeInherit(data._id).update(function(data___)
+				/*data__.removeInherit(data._id).update(function(data___)
 				{
 					console.log(data___)
-				})
+				})*/
 
 			}, function(err)
 			{
