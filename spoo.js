@@ -2860,9 +2860,6 @@ var SPOO = {
 
     Obj: function(obj, role, instance, params) {
 
-
-
-
         if (obj._id) this._id = obj._id;
 
         if (typeof obj === "string") {
