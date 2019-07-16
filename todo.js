@@ -1,11 +1,17 @@
 var SPOO = require('./spoo.js');
-var Obj = require('./catalog/inMemoryObject.js')(SPOO);
 
-Obj({}).addProperty('test', {type: 'boolean', value: true, evt : {
-	type: 'event',
-	interval: 'P10D',
-	action: 'dfsfd'
-}}).add(function(data)
+SPOO.define({
+	name : "Object",
+	pluralName: "Objects"
+});
+
+
+SPOO.Object({name: "test122"}).add(function(data)
 {
-	console.log(data);
+	console.log("data", data);
+
+	SPOO.Object({inherits: [data._id, "2323"]}).add(function(data_)
+	{
+		console.log(data_)
+	})
 })

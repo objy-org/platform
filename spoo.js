@@ -265,6 +265,7 @@ var SPOO = {
 
     handlerSequence: [],
     permissionSequence: [],
+    commandSequence: [],
     eventAlterationSequence: [],
 
     tenant: function(tenant) {
@@ -394,6 +395,10 @@ var SPOO = {
                     instance.permissionSequence[obj._id].push({ name: name, key: key });
             }
         }
+    },
+
+    chainCommand: function(obj, instance, key, value) {
+        instance.commandSequence.push({ name: key, value: value });
     },
 
     objectFamilies: [],
@@ -534,190 +539,139 @@ var SPOO = {
 
     getTemplateFieldsForObject: function(obj, templateId, success, error, client) {
 
-        this.getTemplateById(templateId, function(template) {
+        this.getObjectById(obj.role, templateId, function(template) {
 
                 if (!template) {
-                    error('no such template');
+                    error('template not found');
                     return;
+                }
+
+                if (template.name) {
+                    if (!obj.name) obj.name = template.name;
                 }
 
                 if (template.type) {
                     if (!obj.type) obj.type = template.type;
                 }
 
-                if (template.onCreate) {
-                    if (!obj.onCreate) obj.onCreate = template.onCreate;
-                    if (!obj.onCreateOverwritten) {
-                        if (!obj.onCreate) obj.onCreate = template.onCreate;
-                    }
-                }
+                // Object handlers
 
-
-
-                if (template.onDelete) {
-                    if (!obj.onDelete) obj.onDelete = template.onDelete;
-                    if (!obj.onDeleteOverwritten) {
-                        if (!obj.onDelete) obj.onDelete = template.onDelete;
-                    }
-                }
-
-                var propertyKeys = Object.keys(template.properties);
-
-                var derievedProps = {};
-                propertyKeys.forEach(function(property) {
-                    if (!obj.properties.hasOwnProperty(property)) {
-
-                        template.properties[property].template = templateId;
-
-                        if (template.properties[property].overwritten) delete template.properties[property].overwritten;
-
-                        var cloned = JSON.parse(JSON.stringify(template.properties[property]));
-
-                        obj.properties[property] = cloned;
-
-                    } else {
-                        obj.properties[property].template = templateId;
-                        obj.properties[property].overwritten = true;
-
-                        if (!obj.properties[property].overwrittenOnCreate) {
-                            if (!obj.properties[property].onCreate) obj.properties[property].onCreate = template.properties[property].onCreate;
-                        }
-                        if (!obj.properties[property].overwrittenOnChange) {
-                            if (!obj.properties[property].onChange) obj.properties[property].onChange = template.properties[property].onChange;
-                        }
-                        if (!obj.properties[property].overwrittenOnDelete) {
-                            if (!obj.properties[property].onDelete) obj.properties[property].onDelete = template.properties[property].onDelete;
-                        }
-                        if (!obj.properties[property].overwrittenMeta) {
-                            if (!obj.properties[property].meta) obj.properties[property].meta = template.properties[property].meta;
-                        }
-
-                        function getBagProperties(objBag, tmplBag) {
-
-
-                            if (!objBag) {
-                                objBag = {};
-                                objBag[Object.keys(tmplBag)[0]] = tmplBag;
-
-
-                            } else {
-                                if (!objBag.overwritten) {
-                                    if (objBag.permissions) objBag.permissions = Object.assign(objBag.permissions, tmplBag.permissions);
-                                    else objBag.permissions = tmplBag.permissions;
-                                }
-
+                ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+                    if (template[h]) {
+                        Object.keys(template[h]).forEach(function(oC) {
+                            if (!obj[h][oC]) {
+                                obj[h][oC] = template[h][oC];
+                                obj[h][oC].template = templateId;
                             }
-
-                            objBag.template = template._id;
-
-
-
-                            if (!objBag.overwrittenOnCreate) objBag.onCreate = tmplBag.onCreate;
-                            if (!objBag.overwrittenOnChange) objBag.onChange = tmplBag.onChange;
-                            if (!objBag.overwrittenOnDelete) objBag.onDelete = tmplBag.onDelete;
-                            if (!objBag.overwrittenMeta) objBag.onDelete = tmplBag.meta;
-
-                            if (objBag.type == CONSTANTS.PROPERTY.TYPE_PROPERTY_BAG && tmplBag.type == CONSTANTS.PROPERTY.TYPE_PROPERTY_BAG) {
-
-                                var templateInnerKeys = Object.keys(tmplBag.properties);
-                                templateInnerKeys.forEach(function(templKey) {
-
-
-                                    var hasProp = false;
-                                    var innerPropKeys = Object.keys(objBag.properties);
-                                    innerPropKeys.forEach(function(objKey) {
-                                        if (templKey == objKey) hasProp = true;
-                                    })
-
-                                    if (!hasProp) {
-
-
-                                        objBag.properties[templKey] = tmplBag.properties[templKey];
-                                        objBag.properties[templKey].template = template._id;
-                                    } else {
-                                        if (objBag.properties[templKey].value === undefined && tmplBag.properties[templKey].hasOwnProperty('value')) {
-                                            if (objBag.properties[templKey].triggered) tmplBag.properties[templKey].triggered = objBag.properties[templKey].triggered;
-                                            objBag.properties[templKey] = tmplBag.properties[templKey];
-                                            objBag.properties[templKey].template = template._id;
-                                        }
-
-
-                                    }
-
-
-                                    if (tmplBag.properties[templKey].type == CONSTANTS.PROPERTY.TYPE_PROPERTY_BAG)
-                                        getBagProperties(objBag.properties[templKey], tmplBag.properties[templKey])
-                                    else objBag.properties[templKey].template = template._id;
-
-                                })
-
-                            } else {
-                                objBag.template = template._id;
-                            }
-                        }
-
-                        getBagProperties(obj.properties[property], template.properties[property]);
-
-
-
-                    }
-                });
-
-
-
-                if (template.applications)
-                    if (Array.isArray(template.applications)) {
-
-                        if (!obj.applications) obj.applications = [];
-
-                        template.applications.forEach(function(app) {
-
-                            if (obj.applications.indexOf(app) == -1) obj.applications.push(app);
                         })
-                    }
-
-                var permissionKeys = Object.keys(template.permissions);
-                var derievedPermissions = {};
-                permissionKeys.forEach(function(permission) {
-                    if (!obj.permissions.hasOwnProperty(permission)) {
-                        template.permissions[permission].template = templateId;
-                        var cloned = JSON.parse(JSON.stringify(template.permissions[permission]));
-                        obj.permissions[permission] = cloned;
-                    }
-                });
-
-
-                var privilegeAppKeys = Object.keys(template.privileges);
-                var derievedPrivileges = {};
-                if (!obj.privileges) obj.privileges = {};
-
-
-                privilegeAppKeys.forEach(function(tApp) {
-
-
-                    if (!obj.privileges[tApp]) obj.privileges[tApp] = [];
-
-                    var j;
-                    for (j = 0; j < template.privileges[tApp].length; j++) {
-                        var contains = false;
-                        var i;
-                        for (i = 0; i < obj.privileges[tApp].length; i++) {
-                            if (obj.privileges[tApp][i].name == template.privileges[tApp][j].name) contains = true;
-                        }
-                        if (!contains) {
-                            obj.privileges[tApp].push(Object.assign({ template: templateId }, template.privileges[tApp][j]));
-                        }
                     }
                 })
 
 
+                // Properties
+                function doTheProps(template, obj) {
 
-                success();
+                    Object.keys(template.properties).forEach(function(p) {
+
+                        if (template.properties[p].type == 'bag') {
+                            doTheProps(template.properties[p], obj.properties[p]);
+                        }
+
+                        if (!obj.properties[p]) {
+                            obj.properties[p] = template.properties[p];
+                            obj.properties[p].template = templateId;
+                        } else {
+                            obj.properties[p].template = templateId;
+                            obj.properties[p].overwritten = true;
+                        }
+
+                        if (template.permissions) {
+                            if (!obj.permissions) obj.permissions = {};
+                            Object.keys(template.permissions).forEach(function(p) {
+                                if (!obj.permissions[p]) {
+                                    obj.permissions[p] = template.permissions[p];
+                                    obj.permissions[p].template = templateId;
+                                } else {
+                                    obj.permissions[p].template = templateId;
+                                    obj.permissions[p].overwritten = true;
+                                }
+                            })
+                        }
+
+                        ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+                            if (template.properties[p][h]) {
+                                if (!obj.properties[p][h]) obj.properties[p][h] = {};
+
+                                Object.keys(template.properties[p][h]).forEach(function(oC) {
+
+                                    if (!obj.properties[p][h][oC]) {
+                                        obj.properties[p][h][oC] = template.properties[p][h][oC];
+                                        obj.properties[p][h][oC].template = templateId;
+                                    }
+                                })
+                            }
+                        })
+                    })
+                }
+
+                doTheProps(template, obj);
+
+
+                // Applications
+
+                if (template.applications) {
+                    template.applications.forEach(function(a) {
+                        if (obj.applications.indexOf(a) == -1) obj.applications.push(a);
+                    })
+                }
+
+
+                // Permissions
+
+                if (template.permissions) {
+                    if (!obj.permissions) obj.permissions = {};
+                    Object.keys(template.permissions).forEach(function(p) {
+                        if (!obj.permissions[p]) {
+                            obj.permissions[p] = template.permissions[p];
+                            obj.permissions[p].template = templateId;
+                        } else {
+                            obj.permissions[p].template = templateId;
+                            obj.permissions[p].overwritten = true;
+                        }
+                    })
+                }
+
+                // Privileges
+
+                if (template.privileges) {
+                    if (!obj.privileges) obj.privileges = {};
+                    Object.keys(template.privileges).forEach(function(a) {
+                        if (!obj.privileges[a]) obj.privileges[a] = [];
+
+                        template.privileges[a].forEach(function(tP) {
+                            var contains = false;
+
+                            obj.privileges[a].forEach(function(oP) {
+                                if (oP.name == tP.name) contains = true;
+                            })
+                        })
+
+                        if (!contains) {
+                            obj.privileges[a].push({ name: tP.name, template: templateId })
+                        }
+
+                    })
+                }
+
+
+
+                success(obj);
             },
             function(err) {
 
                 error(err);
             }, {}, client)
+
 
     },
 
@@ -754,9 +708,12 @@ var SPOO = {
         obj.inherits.forEach(function(templ) {
             if (templ == templateId) contains = true;
         });
+
+
         if (!contains) {
             obj.inherits.push(templateId);
             SPOO.chainPermission(obj, instance, 'i', 'addInherit', templateId);
+            SPOO.chainCommand(obj, instance, 'addInherit', templateId);
         }
 
     },
@@ -1837,12 +1794,13 @@ var SPOO = {
     ObjectOnCreateCreateWrapper: function(obj, onCreate, instance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
-        if (!onCreate) return {}
 
-        Object.keys(onCreate).forEach(function(oC)
-        {
-            if(!onCreate[oC].trigger) onCreate[oC].trigger = 'after';
-            if(!onCreate[oC].trigger) onCreate[oC].type = 'async';
+        if (!onCreate) onCreate = {};
+
+        Object.keys(onCreate).forEach(function(oC) {
+            if (!oC.trigger) oC.trigger = 'after';
+            if (!oC.trigger) oC.type = 'async';
+
         })
 
         return onCreate;
@@ -1851,12 +1809,13 @@ var SPOO = {
     ObjectOnChangeCreateWrapper: function(obj, onChange, instance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
-        if (!onChange) return {}
 
-        Object.keys(onChange).forEach(function(oC)
-        {
-            if(!onChange[oC].trigger) onChange[oC].trigger = 'after';
-            if(!onChange[oC].trigger) onChange[oC].type = 'async';
+        if (!onChange) onChange = {};
+
+        Object.keys(onChange).forEach(function(oC) {
+            if (!oC.trigger) oC.trigger = 'after';
+            if (!oC.trigger) oC.type = 'async';
+
         })
 
         return onChange;
@@ -1865,12 +1824,13 @@ var SPOO = {
     ObjectOnDeleteCreateWrapper: function(obj, onDelete, instance) {
         //if (!typeof onchange == 'object') throw new InvalidPermissionException();
 
-        if (!onDelete) return {}
 
-        Object.keys(onDelete).forEach(function(oC)
-        {
-            if(!onDelete[oC].trigger) onDelete[oC].trigger = 'after';
-            if(!onDelete[oC].trigger) onDelete[oC].type = 'async';
+        if (!onDelete) onDelete = {};
+
+        Object.keys(onDelete).forEach(function(oC) {
+            if (!oC.trigger) oC.trigger = 'after';
+            if (!oC.trigger) oC.type = 'async';
+
         })
 
         return onDelete;
@@ -2278,6 +2238,64 @@ var SPOO = {
                     throw new NoSuchTemplateException(error);
                 });
         }*/
+    },
+
+
+    PropertySetFullWrapper: function(obj, propertyKey, newValue, instance, notPermitted) {
+
+
+        function setValue(obj, access, value) {
+            if (typeof(access) == 'string') {
+                access = access.split('.');
+            }
+            if (access.length > 1) {
+
+                var shift = access.shift();
+                try {
+                    if (obj.properties[shift].type) {
+                        if (obj.properties[shift].type == CONSTANTS.PROPERTY.TYPE_PROPERTY_BAG) {
+                            if (obj.properties[shift].template) obj.properties[shift].overwritten = true;
+                            //obj.properties[shift].hello = true;
+                        }
+                        if (obj.properties[shift].type == CONSTANTS.PROPERTY.TYPE_ARRAY) {
+                            if (obj.properties[shift].template) obj.properties[shift].overwritten = true;
+                            //obj.properties[shift].hello = true;
+                        }
+                    }
+                } catch (e) {}
+
+                setValue(obj.properties[shift], access, value);
+            } else {
+                //obj[access[0]] = value;
+                try {
+                    var t = obj.properties[access[0]].value;
+                } catch (e) {
+                    throw new NoSuchPropertyException(propertyKey);
+                }
+
+                if (obj.properties[access[0]].template) {
+                    newValue.overwritten = true;
+                    newValue.template = obj.properties[access[0]].template
+                }
+
+                obj.properties[acdcess[0]] = newValue;
+
+                if (obj.properties[access[0]].onChange) {
+                    if (Object.keys(obj.properties[access[0]].onChange).length > 0) {
+                        if (!instance.handlerSequence[obj._id]) instance.handlerSequence[obj._id] = {};
+                        if (!instance.handlerSequence[obj._id].onChange) instance.handlerSequence[obj._id].onChange = [];
+                        instance.handlerSequence[obj._id].onChange.push({ handler: obj.properties[access[0]].onChange, prop: obj.properties[access[0]] });
+                    }
+                }
+
+                SPOO.chainPermission(obj.properties[access[0]], instance, 'u', 'setPropertyValue', propertyKey);
+                console.log("-", instance.permissionSequence);
+
+            }
+        }
+
+        setValue(obj, propertyKey, newValue);
+
     },
 
     EventIntervalSetWrapper: function(obj, propertyKey, newValue, client, instance) {
@@ -3073,6 +3091,26 @@ var SPOO = {
             return this;
         };
 
+        this.setProperty = function(property, value, client) {
+
+            /*var propertyKey = Object.keys(property)[0];
+            if (propertyKey.indexOf('.') != -1) {
+                var lastDot = propertyKey.lastIndexOf(".");
+                var bag = propertyKey.substring(0, lastDot);
+                var newProKey = propertyKey.substring(lastDot + 1, propertyKey.length);
+                var newProp = {};
+                this.setBagPropertyValue(bag, newProKey, value,  client);
+                return;
+            }
+
+            new SPOO.ConditionsChecker(this.getProperty(property), value);*/
+
+            new SPOO.PropertySetFullWrapper(this, property, value, instance, ['addObject']);
+
+
+            return this;
+        };
+
         this.setEventDate = function(property, value, client) {
 
             var propertyKey = Object.keys(property)[0];
@@ -3707,65 +3745,76 @@ var SPOO = {
                 if (this.applications.indexOf(app) == -1) this.applications.push(app);
 
 
-            SPOO.add(this, function(data) {
+            var addFn = function(obj) {
+                SPOO.add(obj, function(data) {
 
-                    this._id = data._id;
-
-                    Object.keys(data.onCreate).forEach(function(key) {
-                        if (data.onCreate[key].trigger == 'after') {
-                            //dsl, obj, prop, data, callback, client, options
-                            instance.execProcessorAction(data.onCreate[key].action, data, null, null, function(data) {
-
-                            }, client, null);
-                        }
-                    })
-
-                    //var mapper = instance.observers[obj.role];
+                        obj._id = data._id;
 
 
-                    if (mapper.type == 'scheduled') {
+                        Object.keys(data.onCreate).forEach(function(key) {
+                            if (data.onCreate[key].trigger == 'after') {
+                                //dsl, obj, prop, data, callback, client, options
+                                instance.execProcessorAction(data.onCreate[key].value, data, null, null, function(data) {
 
-                        instance.eventAlterationSequence.forEach(function(evt) {
-
-                            if (evt.operation == 'add') {
-                                mapper.addEvent(this._id, evt.propName, evt.property, function(evtData) {
-
-                                }, function(evtErr) {
-
-                                }, instance.activeTenant)
-                            } else if (evt.operation == 'remove') {
-                                mapper.addEvent(this._id, evt.propName, function(evtData) {
-
-                                }, function(evtErr) {
-
-                                }, instance.activeTenant)
+                                }, client, null);
                             }
-
                         })
-                    }
+                      
+                        if (mapper.type == 'scheduled') {
 
-                    instance.eventAlterationSequence = [];
+                            instance.eventAlterationSequence.forEach(function(evt) {
 
-                    //if(this.role == 'template') this.inherit();
+                                if (evt.operation == 'add') {
+                                    mapper.addEvent(obj._id, evt.propName, evt.property, function(evtData) {
 
+                                    }, function(evtErr) {
 
-                    /*
-                        Call event Aggregator
-                        method(this)
-                            -> get with template
-                            -> add all events
-                    */
+                                    }, instance.activeTenant)
+                                } else if (evt.operation == 'remove') {
+                                    mapper.addEvent(obj._id, evt.propName, function(evtData) {
 
+                                    }, function(evtErr) {
 
-                    success(data);
+                                    }, instance.activeTenant)
+                                }
 
-                    delete thisRef.instance;
+                            })
+                        }
 
-                },
-                function(err) {
-                    error(err);
-                    //throw new CallbackErrorException(error);
-                }, app, client);
+                        instance.eventAlterationSequence = [];
+
+                        success(data);
+
+                        delete thisRef.instance;
+
+                    },
+                    function(err) {
+                        error(err);
+                    }, app, client);
+            }
+
+            if (this.inherits.length == 0) addFn(thisRef);
+
+            var counter = 0;
+            this.inherits.forEach(function(template) {
+
+                if (thisRef._id != template) {
+
+                    SPOO.getTemplateFieldsForObject(thisRef, template, function() {
+                            counter++;
+                            if (counter == thisRef.inherits.length) {
+                                addFn(thisRef)
+                                return this;
+                            }
+                        },
+                        function(err) {
+
+                            success(thisRef);
+                            return this;
+                        }, client)
+                }
+            });
+
 
             return this;
         };
@@ -3941,6 +3990,33 @@ var SPOO = {
                     if (error) error(err);
                     //throw new CallbackErrorException(err);
                 }, app, client);
+
+            if (instance.commandSequence.length > 0) {
+                // .....
+
+
+                var counter = 0;
+                this.inherits.forEach(function(template) {
+
+                    if (thisRef._id != template) {
+
+                        SPOO.getTemplateFieldsForObject(thisRef, template, function() {
+                                counter++;
+                                if (counter == thisRef.inherits.length) {
+                                    addFn(thisRef)
+                                    return this;
+                                }
+                            },
+                            function(err) {
+
+                                success(thisRef);
+                                return this;
+                            }, client)
+                    }
+                });
+
+
+            }
 
             return this;
         };
