@@ -1,6 +1,7 @@
 const Global = require('./_template.js');
 const { VM, VMScript } = require('vm2');
 
+
 Mapper = function(SPOO) {
     return Object.assign(new Global(SPOO), {
 
