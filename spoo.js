@@ -941,6 +941,45 @@ var SPOO = {
 
 
     updateO: function(obj, success, error, app, client) {
+        
+        var thisRef = this;
+
+
+        if(obj.inherits.length == 0) thisRef.updateObject(obj, success, error, app, client);
+
+        var counter = 0;
+        obj.inherits.forEach(function(template) {
+
+                if (obj._id != template) {
+
+                    SPOO.removeTemplateFieldsForObject(obj, template, function() {
+                            counter++;
+                            if (counter == data.inherits.length) {
+                                
+                                thisRef.updateObject(obj, success, error, app, client);
+                                
+                                return data;
+                            }
+                        },
+                        function(err) {
+
+                            thisRef.updateObject(obj, success, error, app, client);
+                            return data;
+                        }, client)
+                } else {
+                    if (obj.inherits.length == 1) {
+                        thisRef.updateObject(obj, success, error, app, client);
+                        return obj;
+                    } else {
+                        counter++;
+                        return;
+                    }
+                }
+            });
+
+        return;
+
+/*
         var propKeys = Object.keys(obj.properties);
 
 
@@ -970,7 +1009,7 @@ var SPOO = {
             })
         }
 
-        this.updateObject(obj, success, error, app, client);
+        this.updateObject(obj, success, error, app, client);*/
 
 
         // ADD TENANT AND APPLICATION!!!
@@ -4330,7 +4369,7 @@ var SPOO = {
                 }
             });
 
-            
+
             }, function(err) { error(err) }, app, client);
             
            
