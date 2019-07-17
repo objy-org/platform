@@ -4060,7 +4060,7 @@ var SPOO = {
 
 
         };
-
+ 
 
         this.get = function(success, error) {
 
@@ -4099,6 +4099,7 @@ var SPOO = {
                 success(SPOO[thisRef.role](data))
 
             }, function(err) { error(err) }, app, client);
+
             return;
 
             if (this.inherits.length == 0) {
