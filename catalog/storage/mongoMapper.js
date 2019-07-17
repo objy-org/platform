@@ -66,7 +66,6 @@ Mapper = function(SPOO, options) {
 
             var db = this.getDBByMultitenancy(client);
 
-
             var ClientInfo = db.model('clientinfos', ClientSchema);
 
 
