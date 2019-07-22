@@ -537,26 +537,33 @@ var SPOO = {
         else return element.permissions;
     },
 
-    updateInheritedObjs: function(templateId, success, error)
+    updateInheritedObjs: function(templ, pluralName, success, error, client)
     {
         var code = `  
-            dsl.Objects({inherits: : {$in: ["'${templateId}"]}}).get(function(data){
+            SPOO['${pluralName}']({inherits: {$in: ["${templ._id}"]}}).get(function(data){
                 data.forEach(function(d){
                     d.update();
                 })
-            })`
+            })`;
 
+        this.execProcessorAction(code, templ, null, null, function(data){
+
+        }, client, {}) 
     },
 
-    removeInheritedObjs: function(templateId, success, error)
+    removeInheritedObjs: function(templ, pluralName, success, error, client)
     {
          var code = ` 
-            dsl.Objects({inherits: : {$in: ["${templateId}"]}}).get(function(data){
+            SPOO['${pluralName}']({inherits: {$in: ["${templ._id}"]}}).get(function(data){
                 data.forEach(function(d){
-                    d.removeInherit(${templateId})
+                    d.removeInherit(${templ._id})
                     d.update();
                 })
-            })`
+            })`;
+
+            this.execProcessorAction(code, templ, null, null, function(data){
+
+            }, client, {}) 
     },
 
 
@@ -4032,11 +4039,11 @@ var SPOO = {
                     }, app, client);
             }
 
-            addFn(thisRef)
+            //addFn(thisRef)
 
-            // if (this.inherits.length == 0) addFn(thisRef);
+             if (this.inherits.length == 0) addFn(thisRef);
 
-            /*var counter = 0;
+            var counter = 0;
             this.inherits.forEach(function(template) {
 
                 if (thisRef._id != template) {
@@ -4050,11 +4057,11 @@ var SPOO = {
                         },
                         function(err) {
 
-                            success(thisRef);
+                            error(thisRef);
                             return this;
                         }, client)
                 }
-            });*/
+            });
 
 
             return this;
@@ -4155,7 +4162,6 @@ var SPOO = {
                             if (!found && props[p].triggered != true)
                                 //if(moment().toISOString() >= moment(date).toISOString())
                                 thisRef.aggregatedEvents.push({ propName: p, date: date });
-
                         }
                     }
 
@@ -4213,6 +4219,14 @@ var SPOO = {
 
                         instance.eventAlterationSequence = [];
 
+                        SPOO.updateInheritedObjs(thisRef, params.pluralName, function(data)
+                        {
+
+                        }, function(err)
+                        {
+
+                        }, client)
+
                         if (success) success(data);
 
                     },
@@ -4222,10 +4236,9 @@ var SPOO = {
 
             }
 
-            updateFn();
+            //updateFn();
 
-
-            /*if (instance.commandSequence.length > 0) {
+            if (instance.commandSequence.length > 0) {
                  
                  var found = false;
                  var foundCounter = 0;
@@ -4244,7 +4257,8 @@ var SPOO = {
                  var execCounter = 0;
                  instance.commandSequence.forEach(function(i)
                  {
-                     console.log(i)
+                     console.log(i);
+
                      if(i.name == 'addInherit' && thisRef.inherits.indexOf(i.value) != -1) 
                          {
                              execCounter++;
@@ -4252,15 +4266,13 @@ var SPOO = {
                              SPOO.getTemplateFieldsForObject(thisRef, i.value, function() {
                                     
                                      if (execCounter == foundCounter) {
-                                         updateFn(thisRef)
-                                         return thisRef;
+                                         updateFn(thisRef);
                                      }
                                  },
                                  function(err) {
-                                     success(thisRef);
+                                     error(thisRef);
                                      return thisRef;
                                  }, client)
-
                          } 
 
 
@@ -4271,18 +4283,18 @@ var SPOO = {
                               SPOO.removeTemplateFieldsForObject(thisRef, i.value, function() {
                                     
                                      if (execCounter == foundCounter) {
-                                         updateFn(thisRef)
-                                         return thisRef;
+                                         updateFn(thisRef);
                                      }
                                  },
                                  function(err) {
-                                     success(thisRef);
+                                     error(thisRef);
                                      return thisRef;
                                  }, client)
                          } 
                  })
 
-             } else updateFn(thisRe*/
+             } else updateFn(thisRef);
+
             instance.commandSequence = [];
 
             return this;
@@ -4387,6 +4399,12 @@ var SPOO = {
                         })
                     }
 
+                     SPOO.removeInheritedObjs(thisRef, params.pluralName, function(data) {
+
+                        }, function(err) {
+                            
+                        }, client);
+
                     success(data);
 
 
@@ -4394,11 +4412,7 @@ var SPOO = {
 
 
             }, function(err) { error(err) }, app, client);
-
-
-
         };
-
 
         this.get = function(success, error) {
 

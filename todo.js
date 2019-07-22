@@ -19,6 +19,9 @@ SPOO.Object({name: "test123"}).add(function(data)
 			{
 				console.log(data_)
 
+				data_.setName('as').update(function(data){
+					console.log('updates')
+				})
 				/*data__.removeInherit(data._id).update(function(data___)
 				{
 					console.log(data___)
