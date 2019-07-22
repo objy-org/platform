@@ -537,6 +537,29 @@ var SPOO = {
         else return element.permissions;
     },
 
+    updateInheritedObjs: function(templateId, success, error)
+    {
+        var code = `  
+            dsl.Objects({inherits: : {$in: ["'${templateId}"]}}).get(function(data){
+                data.forEach(function(d){
+                    d.update();
+                })
+            })`
+
+    },
+
+    removeInheritedObjs: function(templateId, success, error)
+    {
+         var code = ` 
+            dsl.Objects({inherits: : {$in: ["${templateId}"]}}).get(function(data){
+                data.forEach(function(d){
+                    d.removeInherit(${templateId})
+                    d.update();
+                })
+            })`
+    },
+
+
     getTemplateFieldsForObject: function(obj, templateId, success, error, client) {
 
         this.getObjectById(obj.role, templateId, function(template) {
@@ -938,7 +961,6 @@ var SPOO = {
         }, app, client);
 
     },
-
 
     updateO: function(obj, success, error, app, client) {
         
@@ -2928,8 +2950,8 @@ var SPOO = {
                 var thisRef = this;
                 var counter = 0;
 
-
                 SPOO.findObjects(objs, role, function(data) {
+                    
                     success(data);
 
                 }, function(err) { error(err) }, app, client, flags || {});
@@ -4282,7 +4304,6 @@ var SPOO = {
                                     console.log(evtErr);
                                 }, instance.activeTenant)
                             }
-
                         })
                     }
 
