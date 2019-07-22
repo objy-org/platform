@@ -540,7 +540,7 @@ var SPOO = {
     getTemplateFieldsForObject: function(obj, templateId, success, error, client) {
 
         this.getObjectById(obj.role, templateId, function(template) {
-            
+
                 if (!template) {
                     error('template not found');
                     return;
@@ -2942,13 +2942,21 @@ var SPOO = {
 
                 SPOO.findObjects(objs, role, function(data) {
 
-                  //  success(data);
-                  //  return;
+                    //  success(data);
+                    //  return;
 
 
                     data.forEach(function(d) {
 
-                         var counter = 0;
+                        var counter = 0;
+
+                        if (d.inherits.length == 0) {
+                            allCounter++;
+                             if (allCounter == data.length) {
+                                            success(data);
+                                            return d;
+                                        }
+                        }
 
                         d.inherits.forEach(function(template) {
 
@@ -2960,10 +2968,10 @@ var SPOO = {
 
                                         counter++;
 
-                                        if(counter == d.inherits.length) allCounter++;
+                                        if (counter == d.inherits.length) allCounter++;
 
 
-                                      
+
                                         console.info(d.inherits.length, counter, data.length, allCounter)
 
                                         if (allCounter == data.length) {
@@ -3072,8 +3080,10 @@ var SPOO = {
         } else {
             this.auth = function(userObj, callback, error) {
 
-                instance[params.pluralName]({ username: userObj.username }).get(function(data) {
+                console.info('auth...', userObj)
 
+                instance[params.pluralName]({ username: userObj.username }).get(function(data) {
+                    console.info('auth... data', data)
                     if (data.length == 0) error("User not found");
                     callback(data[0])
 
