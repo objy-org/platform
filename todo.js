@@ -32,8 +32,8 @@ SPOO.Template({ name: "test123" }).add(function(data) {
   
 
 
-    SPOO.Item({ inherits: [data._id] }).add(function(data_) {
-        //console.log(data_)
+    SPOO.Items([{ inherits: [data._id] },{ inherits: [data._id] }]).add(function(data_) {
+        console.log("d", data_)
 
         SPOO.Item(data_._id).get(function(data__) {
             console.log("data_", data_)
@@ -45,7 +45,7 @@ SPOO.Template({ name: "test123" }).add(function(data) {
             })*/
 
         }, function(err) {
-            console.log(err);
+            console.log("rerr", err);
         })
 
 
@@ -55,4 +55,6 @@ SPOO.Template({ name: "test123" }).add(function(data) {
     	
         console.log(err);
     })
+}, function(err){
+    console.info("ttt", err)
 })
