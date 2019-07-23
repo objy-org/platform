@@ -428,16 +428,16 @@ var SPOO = {
         }
 
         if (params.storage) this.plugInPersistenceMapper(params.name, params.storage);
-        else this.plugInPersistenceMapper(params.name, new DefaultStorageMapper());
+        else this.plugInPersistenceMapper(params.name, new DefaultStorageMapper(thisRef));
 
         if (params.processor) this.plugInProcessor(params.name, params.processor);
-        else this.plugInProcessor(params.name, new DefaultProcessorMapper(this));
+        else this.plugInProcessor(params.name, new DefaultProcessorMapper(thisRef));
 
         if (params.observer) {
             this.plugInObserver(params.name, params.observer);
             if (params.observer.initialize) params.observer.initialize();
         } else {
-            this.plugInObserver(params.name, new DefaultObserverMapper(this));
+            this.plugInObserver(params.name, new DefaultObserverMapper(thisRef));
             if (this.observers[params.name].initialize) this.observers[params.name].initialize();
         }
 
@@ -566,10 +566,11 @@ var SPOO = {
             }, client, {}) 
     },
 
+    getTemplateFieldsForObject: function(obj, templateId, success, error, client, templateRole) {
 
-    getTemplateFieldsForObject: function(obj, templateId, success, error, client) {
+        console.log("rt", templateRole || obj.role, client)
 
-        this.getObjectById(obj.role, templateId, function(template) {
+        this.getObjectById(templateRole || obj.role, templateId, function(template) {
 
                 if (!template) {
                     error('template not found');
@@ -1056,7 +1057,6 @@ var SPOO = {
     },
 
     getObjectById: function(role, id, success, error, app, client) {
-
 
 
         this.mappers[role].getById(id, function(data) {
@@ -2994,7 +2994,6 @@ var SPOO = {
 
                                 SPOO.getTemplateFieldsForObject(d, template, function() {
 
-
                                         counter++;
 
                                         if (counter == d.inherits.length) allCounter++;
@@ -3011,7 +3010,7 @@ var SPOO = {
                                     function(err) {
                                         error(err);
                                         return d;
-                                    }, client)
+                                    }, client, params.templateFamily)
                             } else {
 
                                 if (d.inherits.length == 1) {
@@ -3052,7 +3051,7 @@ var SPOO = {
 
                                 success(thisRef);
                                 return this;
-                            }, client)
+                            }, client, params.templateFamily)
                     } else {
 
                         if (thisRef.inherits.length == 1) {
@@ -4048,6 +4047,8 @@ var SPOO = {
 
                 if (thisRef._id != template) {
 
+                    console.log("client; ", client)
+
                     SPOO.getTemplateFieldsForObject(thisRef, template, function() {
                             counter++;
                             if (counter == thisRef.inherits.length) {
@@ -4059,7 +4060,7 @@ var SPOO = {
 
                             error(thisRef);
                             return this;
-                        }, client)
+                        }, client, params.templateFamily)
                 }
             });
 
@@ -4219,13 +4220,13 @@ var SPOO = {
 
                         instance.eventAlterationSequence = [];
 
-                        SPOO.updateInheritedObjs(thisRef, params.pluralName, function(data)
+                        /*SPOO.updateInheritedObjs(thisRef, params.pluralName, function(data)
                         {
 
                         }, function(err)
                         {
 
-                        }, client)
+                        }, client)*/
 
                         if (success) success(data);
 
@@ -4272,7 +4273,7 @@ var SPOO = {
                                  function(err) {
                                      error(thisRef);
                                      return thisRef;
-                                 }, client)
+                                 }, client, params.templateFamily)
                          } 
 
 
@@ -4399,11 +4400,11 @@ var SPOO = {
                         })
                     }
 
-                     SPOO.removeInheritedObjs(thisRef, params.pluralName, function(data) {
+                    /* SPOO.removeInheritedObjs(thisRef, params.pluralName, function(data) {
 
                         }, function(err) {
                             
-                        }, client);
+                        }, client);*/
 
                     success(data);
 
@@ -4460,7 +4461,6 @@ var SPOO = {
                 data.inherits.forEach(function(template) {
 
 
-
                     if (data._id != template) {
 
                         SPOO.getTemplateFieldsForObject(data, template, function() {
@@ -4475,7 +4475,7 @@ var SPOO = {
                                 console.log(err);
                                 error(err);
                                 return data;
-                            }, client)
+                            }, client, params.templateFamily)
                     } else {
                         if (thisRef.inherits.length == 1) {
                             success(SPOO[data.role](data));

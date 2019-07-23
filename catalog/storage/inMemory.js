@@ -3,6 +3,7 @@ var Query = require("query");
 var Global = require('./_template.js')
 
 Mapper = function(SPOO, options) {
+
     return Object.assign(new Global(SPOO, options), {
 
         database: {},
