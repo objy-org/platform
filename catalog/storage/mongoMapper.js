@@ -135,7 +135,7 @@ Mapper = function(SPOO, options) {
             var db = this.getDBByMultitenancy(client);
 
             var constrains = { _id: id };
-
+            console.log("app", app)
             if (app) constrains['applications'] = { $in: [app] }
 
             if (this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED && client) constrains['tenantId'] = client;
@@ -162,15 +162,18 @@ Mapper = function(SPOO, options) {
             var Obj = db.model(this.objectFamily, ObjSchema);
 
             if (flags.$page == 1) flags.$page = 0;
+            else flags.$page-=1;
 
             if (this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED && client) criteria['tenantId'] = client;
 
           
             Obj.find(criteria).limit(this.globalPaging).skip(this.globalPaging * (flags.$page || 0)).sort(flags.$sort || '_id').exec(function(err, data) {
+
                 if (err) {
                     error(err);
                     return;
                 }
+                
                 success(data);
                 return;
             });

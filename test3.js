@@ -10,8 +10,7 @@ var m = new Mongo(SPOO, { multitenancy: 'shared' });
 m.connect('mongodb://localhost:27017', function(data) {
 
     console.log("connection", data)
-
-
+    
 
     SPOO.define({
         name: "Impulse",
