@@ -52,6 +52,9 @@ var CONSTANTS = {
     TYPES: {
         SCHEDULED: 'scheduled',
         QUERIED: 'queried'
+    },
+    TEMPLATEMODES: {
+        STRICT: 'strict'
     }
 }
 
@@ -422,9 +425,7 @@ var SPOO = {
         if (this.objectFamilies.indexOf(params.name) == -1) this.objectFamilies.push(params.name);
 
         this[params.pluralName] = function(objs, flags) {
-
             return new SPOO.Objs(objs, params.name, this, params, flags);
-
         }
 
         if (params.storage) this.plugInPersistenceMapper(params.name, params.storage);
@@ -565,7 +566,7 @@ var SPOO = {
 
             }, client, {}) 
     },
- 
+
     getTemplateFieldsForObject: function(obj, templateId, success, error, client, templateRole) {
 
         console.log("rt", templateRole || obj.role, client)
@@ -2971,9 +2972,11 @@ var SPOO = {
 
                 SPOO.findObjects(objs, role, function(data) {
 
-                    //  success(data);
-                    //  return;
-
+                    if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
+                    {
+                        success(data);
+                        return;
+                    } 
 
                     data.forEach(function(d) {
 
@@ -3096,7 +3099,18 @@ var SPOO = {
                 for (i = 0; i < objs.length; i++) {
                     objs[i] = SPOO[role](objs[i]).add(function(data) {
                         counter++;
-                        if (objs.length == counter) success(objs);
+                        if (objs.length == counter) {
+
+                            
+                            if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
+                                success(objs);
+                                return;
+                            } else success(objs);
+
+                            // @TODO : load templates + retthink above
+
+
+                        }
                     }, function(err) {
                         counter++;
                         if (objs.length == counter) error(err);
@@ -4042,7 +4056,9 @@ var SPOO = {
 
              if (this.inherits.length == 0) addFn(thisRef);
 
-            var counter = 0;
+             if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
+
+                var counter = 0;
             this.inherits.forEach(function(template) {
 
                 if (thisRef._id != template) {
@@ -4052,6 +4068,10 @@ var SPOO = {
                     SPOO.getTemplateFieldsForObject(thisRef, template, function() {
                             counter++;
                             if (counter == thisRef.inherits.length) {
+
+                            
+
+
                                 addFn(thisRef)
                                 return this;
                             }
@@ -4063,6 +4083,10 @@ var SPOO = {
                         }, client, params.templateFamily)
                 }
             });
+        
+         } else addFn(thisRef);
+
+           
 
 
             return this;
@@ -4239,7 +4263,8 @@ var SPOO = {
 
             //updateFn();
 
-            if (instance.commandSequence.length > 0) {
+
+            if (instance.commandSequence.length > 0 && params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
                  
                  var found = false;
                  var foundCounter = 0;
@@ -4451,6 +4476,13 @@ var SPOO = {
                 SPOO.checkPermissions(instance.activeUser, instance.activeApp, data, 'r')
                 //console.log(SPOO[thisRef.role](data));
                 //success(SPOO[thisRef.role](data))
+
+
+                if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
+                {
+                    success(SPOO[data.role](data));
+                    return data;
+                }
 
                 if (data.inherits.length == 0) {
                     success(SPOO[data.role](data));

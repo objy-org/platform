@@ -11,16 +11,15 @@ SPOO.define({
 SPOO.define({
     name: "Item",
     pluralName: "Items",
-    templateFamily:'Template'
+    templateFamily:'Template',
+    templateMode: 'strict'
 });
-
 
 
 SPOO.define({
     name: "sdgsdg",
     pluralName: "dsdsgsdg"
 });
-
 
 
 SPOO.client("test")
