@@ -165,6 +165,7 @@ Mapper = function(SPOO, options) {
 
             if (this.multitenancy == this.CONSTANTS.MULTITENANCY.SHARED && client) criteria['tenantId'] = client;
 
+          
             Obj.find(criteria).limit(this.globalPaging).skip(this.globalPaging * (flags.$page || 0)).sort(flags.$sort || '_id').exec(function(err, data) {
                 if (err) {
                     error(err);
