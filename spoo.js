@@ -565,7 +565,7 @@ var SPOO = {
 
             }, client, {}) 
     },
-
+ 
     getTemplateFieldsForObject: function(obj, templateId, success, error, client, templateRole) {
 
         console.log("rt", templateRole || obj.role, client)
