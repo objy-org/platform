@@ -574,8 +574,7 @@ var SPOO = {
         this.getObjectById(templateRole || obj.role, templateId, function(template) {
 
                 if (!template) {
-                    error('template not found');
-                    return;
+                    
                 }
 
                 if (template.name) {
@@ -2972,11 +2971,25 @@ var SPOO = {
 
                 SPOO.findObjects(objs, role, function(data) {
 
+                     success(data);
+                        return;
+
+
+                        // TODO : change!!!
+
+                    console.info('ferrinf', data)
                     if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
                     {
                         success(data);
                         return;
                     } 
+
+                    if(data.length == 0)
+                    {
+                        console.info(data)
+                        success(data);
+                        return;
+                    }
 
                     data.forEach(function(d) {
 
@@ -2992,15 +3005,15 @@ var SPOO = {
 
                         d.inherits.forEach(function(template) {
 
+                            console.info('t1')
 
                             if (d._id != template) {
 
                                 SPOO.getTemplateFieldsForObject(d, template, function() {
 
                                         counter++;
-
+  console.info('t2')
                                         if (counter == d.inherits.length) allCounter++;
-
 
 
                                         console.info(d.inherits.length, counter, data.length, allCounter)
@@ -3011,8 +3024,18 @@ var SPOO = {
                                         }
                                     },
                                     function(err) {
-                                        error(err);
-                                        return d;
+                                        counter++;
+  console.info('t1')
+                                        if (counter == d.inherits.length) allCounter++;
+
+
+                                        console.info(d.inherits.length, counter, data.length, allCounter)
+
+                                        if (allCounter == data.length) {
+                                            success(data);
+                                            return d;
+                                        }
+
                                     }, client, params.templateFamily)
                             } else {
 
@@ -4113,6 +4136,8 @@ var SPOO = {
 
         this.update = function(success, error, client) {
 
+        console.info('updatefn')
+
             var client = client || instance.activeTenant;
             var app = instance.activeApp;
 
@@ -4280,7 +4305,6 @@ var SPOO = {
 
             }
 
-            //updateFn();
 
 
             if (instance.commandSequence.length > 0 && params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
@@ -4496,9 +4520,13 @@ var SPOO = {
                 //console.log(SPOO[thisRef.role](data));
                 //success(SPOO[thisRef.role](data))
 
-
+                console.info(params.templateMode)
+                //success(SPOO[data.role](data));
+                //    return data;
+                
                 if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
                 {
+                    console.info('sdfdsf')
                     success(SPOO[data.role](data));
                     return data;
                 }
@@ -4511,6 +4539,7 @@ var SPOO = {
 
                 data.inherits.forEach(function(template) {
 
+                    console.info('template', template)
 
                     if (data._id != template) {
 
