@@ -567,10 +567,150 @@ var SPOO = {
             }, client, {}) 
     },
 
+
+    prepareObjectDelta: function(oldObj, newObj) {
+
+        //console.info('----------------obj', obj, 'tmpl', template)
+
+        // Object handlers
+
+        //console.info('objdetlta1', obj)
+
+        ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+            if (newObj[h]) {
+                Object.keys(newObj[h]).forEach(function(oC) {
+                    if (newObj[h][oC]) {
+                        if (newObj[h][oC].value != oldObj[h][oC].value)
+                            oldObj[h][oC].value = newObj[h][oC].value;
+                            oldObj[h][oC].overwritten = true;
+                    }
+                })
+            }
+        })
+
+        // Properties
+        function doTheProps(newObj) {
+
+            console.info('doing the props...')
+
+            Object.keys(newObj.properties).forEach(function(p) {
+
+                if (newObj.properties[p].type == 'bag') {
+                    doTheProps(newObj.properties[p]);
+                }
+
+                if (newObj.properties[p]) {
+                    if(newObj.properties[p].template && oldObj.properties[p])
+                    {
+                        console.info('it has a template', newObj.properties[p], oldObj.properties[p])
+                        if(newObj.properties[p].value != oldObj.properties[p].value) 
+                            {
+                                console.info('its a difference !!!!!! ------- ')
+                                oldObj.properties[p].value = newObj.properties[p].value;
+                                oldObj.properties[p].overwritten = true;
+                            }
+
+                            if(newObj.properties[p].action != oldObj.properties[p].action) 
+                            {
+                                console.info('its a difference !!!!!! ------- ')
+                                oldObj.properties[p].action = newObj.properties[p].action;
+                                oldObj.properties[p].overwritten = true;
+                            }
+
+                            if(newObj.properties[p].date != oldObj.properties[p].date) 
+                            {
+                                console.info('its a difference !!!!!! ------- ')
+                                oldObj.properties[p].date = newObj.properties[p].date;
+                                oldObj.properties[p].overwritten = true;
+                            }
+
+                             if(newObj.properties[p].interval != oldObj.properties[p].interval) 
+                            {
+                                console.info('its a difference !!!!!! ------- ')
+                                oldObj.properties[p].interval = newObj.properties[p].interval;
+                                oldObj.properties[p].overwritten = true;
+                            }
+
+                              if(JSON.stringify(newObj.properties[p].meta) != JSON.stringify(oldObj.properties[p].interval)) 
+                            {
+                                console.info('its a difference !!!!!! ------- ')
+                                oldObj.properties[p].meta = newObj.properties[p].meta;
+                                oldObj.properties[p].overwritten = true;
+                            }
+                    }
+                    
+                }
+
+                if (newObj.permissions) {
+                    Object.keys(newObj.permissions).forEach(function(p) {
+                        if (newObj.permissions[p]) {
+                            if (JSON.stringify(newObj.permissions[p]) != JSON.stringify(oldObj.permissions[p]))
+                                oldObj.permissions[p] = newObj.permissions[p]
+                                oldObj.permissions[p].overwritten = true;
+                        }
+                    })
+                }
+
+                if (newObj.properties[p]) {
+                    ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+                        if (newObj.properties[p][h]) {
+
+                            Object.keys(newObj.properties[p][h]).forEach(function(oC) {
+
+                                if (newObj.properties[p][h][oC]) {
+                                    if (newObj.properties[p][h][oC].value != oldObj.properties[p][h][oC].value)
+                                        oldObj.properties[p][h][oC].value = newObj.properties[p][h][oC].value;
+                                        oldObj.properties[p][h][oC].overwritten = true;
+                                }
+                            })
+                        }
+                    })
+                }
+
+            })
+        }
+
+        doTheProps(newObj);
+
+        console.info('objdetlta2')
+        // Applications TODO
+
+        // Permissions
+        if (newObj.permissions) {
+            Object.keys(newObj.permissions).forEach(function(p) {
+                if (newObj.permissions[p]) {
+                    if (newObj.permissions[p].value != oldObj.permissions[p].value)
+                        oldObj.permissions[p].value = newObj.permissions[p].value
+                        oldObj.permissions[p].overwritten = true;
+                }
+            })
+        }
+
+        // Privileges
+       /* if (newObj.privileges) {
+            Object.keys(newObj.privileges).forEach(function(a) {
+
+                newObj.privileges[a].forEach(function(tP, i) {
+                    
+                    oldObj.privileges[a].forEach(function(t_P, i_) {
+                        if (JSON.stringify(tP) != JSON.stringify(t_P))
+                            
+                            oldObj.privileges[a].overwritten = true;
+
+                            oldObj.privileges[a].overwritten = true;
+                        
+                    })                       
+                })
+            })
+        }*/
+        return oldObj;
+
+
+    },
+
     getTemplateFieldsForObject: function(obj, templateId, success, error, client, templateRole) {
 
-        console.log("rt", templateRole || obj.role, client)
-
+       
         this.getObjectById(templateRole || obj.role, templateId, function(template) {
 
                 if (!template) {
@@ -601,13 +741,38 @@ var SPOO = {
 
                 // Properties
                 function doTheProps(template, obj) {
+                   
+                    if(!obj) obj = {}
 
+                     if(!obj.properties)
+                    {
+                       obj.properties = {};          
+                    } 
+
+                    console.info('compare', template, 'obj:', obj)
+
+                    if(!template.properties) template.properties = {};
+               
                     Object.keys(template.properties).forEach(function(p) {
 
                         if (template.properties[p].type == 'bag') {
+
+                            if (!obj.properties[p]) {
+                                obj.properties[p] = template.properties[p];
+                                obj.properties[p].template = templateId;
+                            } else {
+                                if(!obj.properties[p].overwritten)
+                                {
+                                    obj.properties[p] = template.properties[p];
+                                }
+                                obj.properties[p].template = templateId;
+                                //obj.properties[p].overwritten = true;
+                            }
+
                             doTheProps(template.properties[p], obj.properties[p]);
                         }
 
+                      
                         if (!obj.properties[p]) {
                             obj.properties[p] = template.properties[p];
                             obj.properties[p].template = templateId;
@@ -642,9 +807,11 @@ var SPOO = {
                                 })
                             }
                         })
+
                     })
                 }
 
+               
                 doTheProps(template, obj);
 
 
@@ -718,7 +885,7 @@ var SPOO = {
             if (obj[h]) {
                 Object.keys(obj[h]).forEach(function(oC) {
                     if (obj[h][oC]) {
-                        if (obj[h][oC].template == templateId && !obj[h][oC].overwritten)
+                        if (obj[h][oC].template == templateId && !obj[h][oC].overwritten )
                             delete obj[h][oC];
                     }
                 })
@@ -737,7 +904,10 @@ var SPOO = {
 
                 if (obj.properties[p]) {
                     if (obj.properties[p].template == templateId && !obj.properties[p].overwritten)
+                    { 
+                        console.info('deleting obj', p, obj.properties[p])
                         delete obj.properties[p];
+                    }
                 }
 
                 if (obj.permissions) {
@@ -974,6 +1144,8 @@ var SPOO = {
     updateO: function(obj, success, error, app, client) {
 
         var thisRef = this;
+
+        console.info('thisRef', obj)
 
 
         if (obj.inherits.length == 0) thisRef.updateObject(obj, success, error, app, client);
@@ -2971,13 +3143,13 @@ var SPOO = {
 
                 SPOO.findObjects(objs, role, function(data) {
 
-                     success(data);
-                        return;
+                    // success(data);
+                    //    return;
 
 
                         // TODO : change!!!
 
-                    console.info('ferrinf', data)
+
                     if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
                     {
                         success(data);
@@ -3005,18 +3177,17 @@ var SPOO = {
 
                         d.inherits.forEach(function(template) {
 
-                            console.info('t1')
 
                             if (d._id != template) {
 
                                 SPOO.getTemplateFieldsForObject(d, template, function() {
 
-                                        counter++;
-  console.info('t2')
+                                    counter++;
+
                                         if (counter == d.inherits.length) allCounter++;
 
 
-                                        console.info(d.inherits.length, counter, data.length, allCounter)
+                                       // console.info(d.inherits.length, counter, data.length, allCounter)
 
                                         if (allCounter == data.length) {
                                             success(data);
@@ -3025,11 +3196,11 @@ var SPOO = {
                                     },
                                     function(err) {
                                         counter++;
-  console.info('t1')
+
                                         if (counter == d.inherits.length) allCounter++;
 
 
-                                        console.info(d.inherits.length, counter, data.length, allCounter)
+                                        //console.info(d.inherits.length, counter, data.length, allCounter)
 
                                         if (allCounter == data.length) {
                                             success(data);
@@ -3052,9 +3223,7 @@ var SPOO = {
 
                     })
 
-
                 }, function(err) { error(err) }, app, client, flags || {});
-
 
             }
 
@@ -3288,6 +3457,13 @@ var SPOO = {
         this.removeApplication = function(application) {
             SPOO.removeApplicationFromObject(this, application, instance);
             return this;
+        };
+
+        this.replace = function(newObj)
+        {
+
+            SPOO.prepareObjectDelta(this, newObj);
+
         };
 
         this.addProperty = function(name, property) {
@@ -4127,12 +4303,10 @@ var SPOO = {
             });
         
          } else addFn(thisRef);
-
-           
-
-
             return this;
         };
+
+
 
         this.update = function(success, error, client) {
 
@@ -4142,7 +4316,6 @@ var SPOO = {
             var app = instance.activeApp;
 
             var thisRef = this;
-
 
             SPOO.checkPermissions(instance.activeUser, instance.activeApp, thisRef, 'u')
 
@@ -4242,6 +4415,8 @@ var SPOO = {
             if (mapper.type != 'scheduled') aggregateAllEvents(this.properties);
 
             function updateFn() {
+
+                console.info('ufn', thisRef)
 
                 SPOO.updateO(thisRef, function(data) {
 
@@ -4444,7 +4619,7 @@ var SPOO = {
                     var mapper = instance.observers[thisRef.role];
 
 
-                    aggregateAllEvents(data.properties);
+                    aggregateAllEvents(data.properties || {});
 
 
 
@@ -4531,7 +4706,10 @@ var SPOO = {
                     return data;
                 }
 
+                console.info('ööölllkkkkkk', data);
+
                 if (data.inherits.length == 0) {
+
                     success(SPOO[data.role](data));
                     return data;
                 }
@@ -4543,8 +4721,11 @@ var SPOO = {
 
                     if (data._id != template) {
 
+                        console.info('asfddd', data, template)
+
                         SPOO.getTemplateFieldsForObject(data, template, function() {
 
+                            console.info('got')
                                 counter++;
                                 if (counter == data.inherits.length) {
                                     success(SPOO[data.role](data));
@@ -4552,11 +4733,15 @@ var SPOO = {
                                 }
                             },
                             function(err) {
-                                console.log(err);
-                                error(err);
-                                return data;
+                                console.info('err', err)
+                                counter++;
+                                if (counter == data.inherits.length) {
+                                    success(SPOO[data.role](data));
+                                    return data;
+                                }
                             }, client, params.templateFamily)
                     } else {
+
                         if (thisRef.inherits.length == 1) {
                             success(SPOO[data.role](data));
                             return data;
