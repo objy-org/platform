@@ -538,12 +538,34 @@ var SPOO = {
         else return element.permissions;
     },
 
-    updateInheritedObjs: function(templ, pluralName, success, error, client)
+    updateInheritedObjs: function(templ, pluralName, success, error, client, params)
     {
+        var templateFamily;
+
+        if(params.templateFamily) templateFamily = `'${params.templateFamily}'`
+
         var code = `  
             SPOO['${pluralName}']({inherits: {$in: ["${templ._id}"]}}).get(function(data){
+                console.info('data', data)
                 data.forEach(function(d){
-                    d.update();
+                    d = SPOO['${params.name}'](d);
+                    console.info('found', d)
+                    if(d.inherits.length == 0) d.update();
+                    else
+                    {
+                        d.inherits.forEach(function(templateId)
+                        {
+                            console.info('i', templateId)
+                             SPOO.getTemplateFieldsForObject(d, templateId, function(data){
+                                console.info('found in', data);
+                                console.info('d', d)
+                                d.replace(data);
+                                d.update();
+                            }, function(err){
+                                console.info('err', err)
+                            }, '${client}', ${templateFamily})
+                        })   
+                    }
                 })
             })`;
 
@@ -3149,6 +3171,9 @@ var SPOO = {
 
                         // TODO : change!!!
 
+                    data.forEach(function(d){
+                        d = SPOO[params.name](d)
+                    })
 
                     if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
                     {
@@ -3276,7 +3301,6 @@ var SPOO = {
                         }
 
                         data.inherits.forEach(function(template) {
-
 
                             if (data._id != template) {
 
@@ -4463,13 +4487,13 @@ var SPOO = {
 
                         instance.eventAlterationSequence = [];
 
-                        /*SPOO.updateInheritedObjs(thisRef, params.pluralName, function(data)
+                        SPOO.updateInheritedObjs(thisRef, params.pluralName, function(data)
                         {
 
                         }, function(err)
                         {
 
-                        }, client)*/
+                        }, client, params)
 
                         if (success) success(data);
 
@@ -4518,7 +4542,6 @@ var SPOO = {
                                      return thisRef;
                                  }, client, params.templateFamily)
                          } 
-
 
                      if(i.name == 'removeInherit' && thisRef.inherits.indexOf(i.value) == -1) 
                          {
@@ -4643,11 +4666,11 @@ var SPOO = {
                         })
                     }
 
-                    /* SPOO.removeInheritedObjs(thisRef, params.pluralName, function(data) {
+                     SPOO.removeInheritedObjs(thisRef, params.pluralName, function(data) {
 
                         }, function(err) {
                             
-                        }, client);*/
+                        }, client, params);
 
                     success(data);
 

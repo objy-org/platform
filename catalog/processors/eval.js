@@ -6,19 +6,22 @@ Mapper = function(SPOO) {
         execute: function(dsl, obj, prop, data, callback, client, app, user, options) {
 
             var SPOO = this.SPOO;
-            console.log("22..", dsl);
+            console.info("22..", dsl);
             if (this.multitenancy == this.CONSTANTS.MULTITENANCY.ISOLATED) {
                 try {
+                    console.info('pre eval')
+
                     eval(dsl);
+                    console.info('after eval')
                 } catch (e) {
-                    console.log(e);
+                    console.info(e);
                 }
                 callback();
             } else {
                 try {
                     eval(dsl);
                 } catch (e) {
-                    console.log(e);
+                    console.info(e);
                 }
                 callback();
             }
