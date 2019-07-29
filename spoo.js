@@ -480,7 +480,19 @@ var SPOO = {
         this.mappers[name] = mapper;
         this.mappers[name].setObjectFamily(name);
 
-        this.caches[name] = {};
+        this.caches[name] = {
+            data: {},
+            add: function(k, v)
+            {
+                if(Object.keys(this.data).length >= 50) delete this.data[Object.keys(this.data).length];
+                this.data[k] = v;
+                //console.info('adding to cache', this.data)
+            },
+            get: function(k)
+            {
+                return this.data[k];
+            }
+        };
     },
 
     processors: {},
@@ -810,7 +822,6 @@ var SPOO = {
 
                                if(!obj.properties[p].metaOverwritten)
                                     {
-                                        console.info('metaOverwritten', template.properties[p])
                                         obj.properties[p].meta = template.properties[p].meta;
                                     }
                         }
@@ -901,14 +912,16 @@ var SPOO = {
 
         }
 
-        if(self.caches[templateRole || obj.role][templateId])
+        if(self.caches[templateRole || obj.role].get(templateId))
         {
-            run(self.caches[templateRole || obj.role][templateId])
+            console.info('got cache!!!')
+            run(self.caches[templateRole || obj.role].get(templateId))
+
         } else{
 
                SPOO[templateRole || obj.role](templateId).get(function(template){
 
-                    if(!self.caches[templateRole || obj.role][template._id]) self.caches[templateRole || obj.role][template._id] = template;
+                    if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
                     
                     run(template)
 
@@ -1195,9 +1208,7 @@ var SPOO = {
 
         var thisRef = this;
 
-        console.info('thisRef', obj)
-
-
+     
         if (obj.inherits.length == 0) thisRef.updateObject(obj, success, error, app, client);
 
         var counter = 0;
@@ -4468,8 +4479,7 @@ var SPOO = {
 
             function updateFn() {
 
-                console.info('ufn', thisRef)
-
+            
                 SPOO.updateO(thisRef, function(data) {
 
                         Object.keys(data.onChange).forEach(function(key) {

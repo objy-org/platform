@@ -30,8 +30,7 @@ SPOO.Template({ name: "test123" }).add(function(data) {
 
     console.log("mappers", SPOO.mappers)
   
-
-
+  
     SPOO.Items([{ inherits: [data._id] },{ inherits: [data._id] }]).add(function(data_) {
         console.log("d", data_)
 
