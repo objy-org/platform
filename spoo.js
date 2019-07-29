@@ -442,7 +442,6 @@ var SPOO = {
             if (this.observers[params.name].initialize) this.observers[params.name].initialize();
         }
 
-
         if (params.backend) {
             this.plugInPersistenceMapper(params.name, params.backend.storage);
             this.plugInProcessor(params.name, params.backend.processor);
@@ -457,6 +456,8 @@ var SPOO = {
     },
 
     mappers: {},
+
+    caches: {},
 
     getConstructor: function(role) {
         if (this.mappers[role]) return SPOO[role];
@@ -478,6 +479,8 @@ var SPOO = {
         if (!name) throw new Error("No mapper name provided");
         this.mappers[name] = mapper;
         this.mappers[name].setObjectFamily(name);
+
+        this.caches[name] = {};
     },
 
     processors: {},
@@ -732,10 +735,11 @@ var SPOO = {
 
     getTemplateFieldsForObject: function(obj, templateId, success, error, client, templateRole) {
 
-       
-        this.getObjectById(templateRole || obj.role, templateId, function(template) {
+        var self = this;
 
-                if (!template) {
+        function run(template){
+
+             if (!template) {
                     
                 }
 
@@ -771,7 +775,7 @@ var SPOO = {
                        obj.properties = {};          
                     } 
 
-                    console.info('compare', template, 'obj:', obj)
+                    //console.info('compare', template, 'obj:', obj)
 
                     if(!template.properties) template.properties = {};
                
@@ -787,6 +791,7 @@ var SPOO = {
                                 {
                                     obj.properties[p] = template.properties[p];
                                 }
+
                                 obj.properties[p].template = templateId;
                                 //obj.properties[p].overwritten = true;
                             }
@@ -801,6 +806,13 @@ var SPOO = {
                         } else {
                             obj.properties[p].template = templateId;
                             obj.properties[p].overwritten = true;
+
+
+                               if(!obj.properties[p].metaOverwritten)
+                                    {
+                                        console.info('metaOverwritten', template.properties[p])
+                                        obj.properties[p].meta = template.properties[p].meta;
+                                    }
                         }
 
                         if (template.permissions) {
@@ -886,12 +898,28 @@ var SPOO = {
 
 
                 success(obj);
-            },
-            function(err) {
 
-                error(err);
-            }, undefined, client)
+        }
 
+        if(self.caches[templateRole || obj.role][templateId])
+        {
+            run(self.caches[templateRole || obj.role][templateId])
+        } else{
+
+               SPOO[templateRole || obj.role](templateId).get(function(template){
+
+                    if(!self.caches[templateRole || obj.role][template._id]) self.caches[templateRole || obj.role][template._id] = template;
+                    
+                    run(template)
+
+                }, function(err){
+
+                })
+
+        }
+
+     
+      
 
     },
 
@@ -927,7 +955,7 @@ var SPOO = {
                 if (obj.properties[p]) {
                     if (obj.properties[p].template == templateId && !obj.properties[p].overwritten)
                     { 
-                        console.info('deleting obj', p, obj.properties[p])
+                        //console.info('deleting obj', p, obj.properties[p])
                         delete obj.properties[p];
                     }
                 }
@@ -3183,7 +3211,7 @@ var SPOO = {
 
                     if(data.length == 0)
                     {
-                        console.info(data)
+                        //console.info(data)
                         success(data);
                         return;
                     }
@@ -3310,7 +3338,7 @@ var SPOO = {
 
                                         if (counter == data.inherits.length) allCounter++;
 
-                                        console.info(data.inherits.length, counter, objs.length, allCounter)
+                                        //console.info(data.inherits.length, counter, objs.length, allCounter)
 
                                         if (allCounter == objs.length) {
                                             success(objs);
@@ -4711,25 +4739,21 @@ var SPOO = {
             }
             // arrayDeserialize(this);
 
-
             SPOO.getObjectById(this.role, this._id, function(data) {
 
                 SPOO.checkPermissions(instance.activeUser, instance.activeApp, data, 'r')
                 //console.log(SPOO[thisRef.role](data));
                 //success(SPOO[thisRef.role](data))
 
-                console.info(params.templateMode)
+              
                 //success(SPOO[data.role](data));
                 //    return data;
                 
                 if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
                 {
-                    console.info('sdfdsf')
                     success(SPOO[data.role](data));
                     return data;
                 }
-
-                console.info('ööölllkkkkkk', data);
 
                 if (data.inherits.length == 0) {
 
@@ -4740,15 +4764,12 @@ var SPOO = {
 
                 data.inherits.forEach(function(template) {
 
-                    console.info('template', template)
-
+                 
                     if (data._id != template) {
 
-                        console.info('asfddd', data, template)
-
+                       
                         SPOO.getTemplateFieldsForObject(data, template, function() {
 
-                            console.info('got')
                                 counter++;
                                 if (counter == data.inherits.length) {
                                     success(SPOO[data.role](data));
