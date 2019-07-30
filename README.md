@@ -1,6 +1,6 @@
-# SPOO - A framework that uses dynamic, behaviour-driven objects to build apps, backends, platforms.
+# SPOO - Single Point of Object
 
-An object-driven framework for building dynamic, infrastructure-agnostic digitalisation platforms.
+A framework that uses dynamic, behaviour-driven objects to build apps, backends, platforms.
 
 ## Table of Contents
 
