@@ -914,7 +914,6 @@ var SPOO = {
 
         if(self.caches[templateRole || obj.role].get(templateId))
         {
-            console.info('got cache!!!')
             run(self.caches[templateRole || obj.role].get(templateId))
 
         } else{
@@ -928,12 +927,7 @@ var SPOO = {
                 }, function(err){
 
                 })
-
         }
-
-     
-      
-
     },
 
     removeTemplateFieldsForObject: function(obj, templateId, success, error, client) {
@@ -4479,7 +4473,6 @@ var SPOO = {
 
             function updateFn() {
 
-            
                 SPOO.updateO(thisRef, function(data) {
 
                         Object.keys(data.onChange).forEach(function(key) {
@@ -4525,13 +4518,17 @@ var SPOO = {
 
                         instance.eventAlterationSequence = [];
 
-                        SPOO.updateInheritedObjs(thisRef, params.pluralName, function(data)
+                        if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
                         {
+                              SPOO.updateInheritedObjs(thisRef, params.pluralName, function(data)
+                            {
 
-                        }, function(err)
-                        {
+                            }, function(err)
+                            {
 
-                        }, client, params)
+                            }, client, params)
+                        }
+                      
 
                         if (success) success(data);
 
@@ -4704,11 +4701,16 @@ var SPOO = {
                         })
                     }
 
-                     SPOO.removeInheritedObjs(thisRef, params.pluralName, function(data) {
+                    if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT){
+
+                         SPOO.removeInheritedObjs(thisRef, params.pluralName, function(data) {
 
                         }, function(err) {
                             
                         }, client, params);
+                         
+                    }
+                    
 
                     success(data);
 
