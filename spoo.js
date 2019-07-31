@@ -607,13 +607,28 @@ var SPOO = {
 
     prepareObjectDelta: function(oldObj, newObj) {
 
+        console.info('n', newObj)
+
         //console.info('----------------obj', obj, 'tmpl', template)
 
         // Object handlers
 
         //console.info('objdetlta1', obj)
 
-        ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+        var meta = ['name', 'type'];
+        meta.forEach(function(p)
+        {
+            if(newObj[p] != oldObj[p]) oldObj[p] = newObj[p];
+        })
+        
+        /*Object.keys(newObj).forEach(function(p)
+        {
+            if(typeof newObj[p] !== "object")
+                if(newObj[p] != oldObj[p]) oldObj[p] = newObj[p];
+        })*/
+
+        var handlers = ['onCreate', 'onChange', 'onDelete'];
+        handlers.forEach(function(h) {
             if (newObj[h]) {
                 Object.keys(newObj[h]).forEach(function(oC) {
                     if (newObj[h][oC]) {
@@ -628,13 +643,14 @@ var SPOO = {
         // Properties
         function doTheProps(newObj) {
 
-            console.info('doing the props...')
+            console.info('doing the props...', newObj)
 
             Object.keys(newObj.properties).forEach(function(p) {
 
                 if (newObj.properties[p].type == 'bag') {
                     doTheProps(newObj.properties[p]);
                 }
+
 
                 if (newObj.properties[p]) {
                     if(newObj.properties[p].template && oldObj.properties[p])
@@ -676,7 +692,10 @@ var SPOO = {
                             }
                     }
                     
-                }
+                } 
+
+                if(!oldObj.properties[p]) oldObj.properties[p] = newObj.properties[p];
+
 
                 if (newObj.permissions) {
                     Object.keys(newObj.permissions).forEach(function(p) {
@@ -689,7 +708,7 @@ var SPOO = {
                 }
 
                 if (newObj.properties[p]) {
-                    ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+                    handlers.forEach(function(h) {
                         if (newObj.properties[p][h]) {
 
                             Object.keys(newObj.properties[p][h]).forEach(function(oC) {
@@ -4708,7 +4727,7 @@ var SPOO = {
                         }, function(err) {
                             
                         }, client, params);
-                         
+
                     }
                     
 
