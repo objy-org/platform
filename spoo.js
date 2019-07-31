@@ -939,7 +939,7 @@ var SPOO = {
 
                SPOO[templateRole || obj.role](templateId).get(function(template){
 
-                    //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
+                    if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
                     
                     run(template)
 
