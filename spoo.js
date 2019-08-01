@@ -933,19 +933,18 @@ var SPOO = {
 
         if(self.caches[templateRole || obj.role].get(templateId))
         {
-           // run(self.caches[templateRole || obj.role].get(templateId))
-
+            run(self.caches[templateRole || obj.role].get(templateId))
         } else {
 
                SPOO[templateRole || obj.role](templateId).get(function(template){
 
-                    //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
+                    if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
                     
                     run(template)
 
                 }, function(err){
 
-                })
+                }, true)
         }
     },
 
@@ -4740,7 +4739,7 @@ var SPOO = {
             }, function(err) { error(err) }, app, client);
         };
 
-        this.get = function(success, error) {
+        this.get = function(success, error, dontInherit) {
 
             var client = instance.activeTenant;
             var app = instance.activeApp;
@@ -4779,6 +4778,12 @@ var SPOO = {
               
                 //success(SPOO[data.role](data));
                 //    return data;
+
+                if(dontInherit) 
+                {
+                    success(SPOO[data.role](data));
+                    return data;
+                }
                 
                 if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
                 {
