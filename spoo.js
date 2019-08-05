@@ -482,14 +482,12 @@ var SPOO = {
 
         this.caches[name] = {
             data: {},
-            add: function(k, v)
-            {
-                if(Object.keys(this.data).length >= 50) delete this.data[Object.keys(this.data).length];
+            add: function(k, v) {
+                if (Object.keys(this.data).length >= 50) delete this.data[Object.keys(this.data).length];
                 this.data[k] = v;
                 //console.info('adding to cache', this.data)
             },
-            get: function(k)
-            {
+            get: function(k) {
                 return this.data[k];
             }
         };
@@ -553,11 +551,10 @@ var SPOO = {
         else return element.permissions;
     },
 
-    updateInheritedObjs: function(templ, pluralName, success, error, client, params)
-    {
+    updateInheritedObjs: function(templ, pluralName, success, error, client, params) {
         var templateFamily;
 
-        if(params.templateFamily) templateFamily = `'${params.templateFamily}'`
+        if (params.templateFamily) templateFamily = `'${params.templateFamily}'`
 
         var code = `  
             SPOO['${pluralName}']({inherits: {$in: ["${templ._id}"]}}).get(function(data){
@@ -584,14 +581,13 @@ var SPOO = {
                 })
             })`;
 
-        this.execProcessorAction(code, templ, null, null, function(data){
+        this.execProcessorAction(code, templ, null, null, function(data) {
 
-        }, client, {}) 
+        }, client, {})
     },
 
-    removeInheritedObjs: function(templ, pluralName, success, error, client)
-    {
-         var code = ` 
+    removeInheritedObjs: function(templ, pluralName, success, error, client) {
+        var code = ` 
             SPOO['${pluralName}']({inherits: {$in: ["${templ._id}"]}}).get(function(data){
                 data.forEach(function(d){
                     d.removeInherit(${templ._id})
@@ -599,9 +595,9 @@ var SPOO = {
                 })
             })`;
 
-            this.execProcessorAction(code, templ, null, null, function(data){
+        this.execProcessorAction(code, templ, null, null, function(data) {
 
-            }, client, {}) 
+        }, client, {})
     },
 
 
@@ -616,11 +612,10 @@ var SPOO = {
         //console.info('objdetlta1', obj)
 
         var meta = ['name', 'type'];
-        meta.forEach(function(p)
-        {
-            if(newObj[p] != oldObj[p]) oldObj[p] = newObj[p];
+        meta.forEach(function(p) {
+            if (newObj[p] != oldObj[p]) oldObj[p] = newObj[p];
         })
-        
+
         /*Object.keys(newObj).forEach(function(p)
         {
             if(typeof newObj[p] !== "object")
@@ -634,7 +629,7 @@ var SPOO = {
                     if (newObj[h][oC]) {
                         if (newObj[h][oC].value != oldObj[h][oC].value)
                             oldObj[h][oC].value = newObj[h][oC].value;
-                            oldObj[h][oC].overwritten = true;
+                        oldObj[h][oC].overwritten = true;
                     }
                 })
             }
@@ -653,48 +648,42 @@ var SPOO = {
 
 
                 if (newObj.properties[p]) {
-                    if(newObj.properties[p].template && oldObj.properties[p])
-                    {
+                    if (newObj.properties[p].template && oldObj.properties[p]) {
                         console.info('it has a template', newObj.properties[p], oldObj.properties[p])
-                        if(newObj.properties[p].value != oldObj.properties[p].value) 
-                            {
-                                console.info('its a difference !!!!!! ------- ')
-                                oldObj.properties[p].value = newObj.properties[p].value;
-                                oldObj.properties[p].overwritten = true;
-                            }
+                        if (newObj.properties[p].value != oldObj.properties[p].value) {
+                            console.info('its a difference !!!!!! ------- ')
+                            oldObj.properties[p].value = newObj.properties[p].value;
+                            oldObj.properties[p].overwritten = true;
+                        }
 
-                            if(newObj.properties[p].action != oldObj.properties[p].action) 
-                            {
-                                console.info('its a difference !!!!!! ------- ')
-                                oldObj.properties[p].action = newObj.properties[p].action;
-                                oldObj.properties[p].overwritten = true;
-                            }
+                        if (newObj.properties[p].action != oldObj.properties[p].action) {
+                            console.info('its a difference !!!!!! ------- ')
+                            oldObj.properties[p].action = newObj.properties[p].action;
+                            oldObj.properties[p].overwritten = true;
+                        }
 
-                            if(newObj.properties[p].date != oldObj.properties[p].date) 
-                            {
-                                console.info('its a difference !!!!!! ------- ')
-                                oldObj.properties[p].date = newObj.properties[p].date;
-                                oldObj.properties[p].overwritten = true;
-                            }
+                        if (newObj.properties[p].date != oldObj.properties[p].date) {
+                            console.info('its a difference !!!!!! ------- ')
+                            oldObj.properties[p].date = newObj.properties[p].date;
+                            oldObj.properties[p].overwritten = true;
+                        }
 
-                             if(newObj.properties[p].interval != oldObj.properties[p].interval) 
-                            {
-                                console.info('its a difference !!!!!! ------- ')
-                                oldObj.properties[p].interval = newObj.properties[p].interval;
-                                oldObj.properties[p].overwritten = true;
-                            }
+                        if (newObj.properties[p].interval != oldObj.properties[p].interval) {
+                            console.info('its a difference !!!!!! ------- ')
+                            oldObj.properties[p].interval = newObj.properties[p].interval;
+                            oldObj.properties[p].overwritten = true;
+                        }
 
-                              if(JSON.stringify(newObj.properties[p].meta) != JSON.stringify(oldObj.properties[p].interval)) 
-                            {
-                                console.info('its a difference !!!!!! ------- ')
-                                oldObj.properties[p].meta = newObj.properties[p].meta;
-                                oldObj.properties[p].overwritten = true;
-                            }
+                        if (JSON.stringify(newObj.properties[p].meta) != JSON.stringify(oldObj.properties[p].interval)) {
+                            console.info('its a difference !!!!!! ------- ')
+                            oldObj.properties[p].meta = newObj.properties[p].meta;
+                            oldObj.properties[p].overwritten = true;
+                        }
                     }
-                    
-                } 
 
-                if(!oldObj.properties[p]) oldObj.properties[p] = newObj.properties[p];
+                }
+
+                if (!oldObj.properties[p]) oldObj.properties[p] = newObj.properties[p];
 
 
                 if (newObj.permissions) {
@@ -702,7 +691,7 @@ var SPOO = {
                         if (newObj.permissions[p]) {
                             if (JSON.stringify(newObj.permissions[p]) != JSON.stringify(oldObj.permissions[p]))
                                 oldObj.permissions[p] = newObj.permissions[p]
-                                oldObj.permissions[p].overwritten = true;
+                            oldObj.permissions[p].overwritten = true;
                         }
                     })
                 }
@@ -716,7 +705,7 @@ var SPOO = {
                                 if (newObj.properties[p][h][oC]) {
                                     if (newObj.properties[p][h][oC].value != oldObj.properties[p][h][oC].value)
                                         oldObj.properties[p][h][oC].value = newObj.properties[p][h][oC].value;
-                                        oldObj.properties[p][h][oC].overwritten = true;
+                                    oldObj.properties[p][h][oC].overwritten = true;
                                 }
                             })
                         }
@@ -737,28 +726,28 @@ var SPOO = {
                 if (newObj.permissions[p]) {
                     if (newObj.permissions[p].value != oldObj.permissions[p].value)
                         oldObj.permissions[p].value = newObj.permissions[p].value
-                        oldObj.permissions[p].overwritten = true;
+                    oldObj.permissions[p].overwritten = true;
                 }
             })
         }
 
         // Privileges
-       /* if (newObj.privileges) {
-            Object.keys(newObj.privileges).forEach(function(a) {
+        /* if (newObj.privileges) {
+             Object.keys(newObj.privileges).forEach(function(a) {
 
-                newObj.privileges[a].forEach(function(tP, i) {
-                    
-                    oldObj.privileges[a].forEach(function(t_P, i_) {
-                        if (JSON.stringify(tP) != JSON.stringify(t_P))
-                            
-                            oldObj.privileges[a].overwritten = true;
+                 newObj.privileges[a].forEach(function(tP, i) {
+                     
+                     oldObj.privileges[a].forEach(function(t_P, i_) {
+                         if (JSON.stringify(tP) != JSON.stringify(t_P))
+                             
+                             oldObj.privileges[a].overwritten = true;
 
-                            oldObj.privileges[a].overwritten = true;
-                        
-                    })                       
-                })
-            })
-        }*/
+                             oldObj.privileges[a].overwritten = true;
+                         
+                     })                       
+                 })
+             })
+         }*/
         return oldObj;
 
 
@@ -768,184 +757,189 @@ var SPOO = {
 
         var self = this;
 
-        function run(template){
+        function run(template) {
 
-             if (!template) {
-                    
-                }
+            if (!template) {
 
-                if (template.name) {
-                    if (!obj.name) obj.name = template.name;
-                }
+            }
 
-                if (template.type) {
-                    if (!obj.type) obj.type = template.type;
-                }
+            if (template.name) {
+                if (!obj.name) obj.name = template.name;
+            }
 
-                // Object handlers
+            if (template.type) {
+                if (!obj.type) obj.type = template.type;
+            }
 
-                ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
-                    if (template[h]) {
-                        Object.keys(template[h]).forEach(function(oC) {
-                            if (!obj[h][oC]) {
-                                obj[h][oC] = template[h][oC];
-                                obj[h][oC].template = templateId;
-                            }
-                        })
-                    }
-                })
+            // Object handlers
 
-
-                // Properties
-                function doTheProps(template, obj) {
-                   
-                    if(!obj) obj = {}
-
-                     if(!obj.properties)
-                    {
-                       obj.properties = {};          
-                    } 
-
-                    //console.info('compare', template, 'obj:', obj)
-
-                    if(!template.properties) template.properties = {};
-               
-                    Object.keys(template.properties).forEach(function(p) {
-
-                        if (template.properties[p].type == 'bag') {
-
-                            if (!obj.properties[p]) {
-                                obj.properties[p] = template.properties[p];
-                                obj.properties[p].template = templateId;
-                            } else {
-                                if(!obj.properties[p].overwritten)
-                                {
-                                    obj.properties[p] = template.properties[p];
-                                }
-
-                                obj.properties[p].template = templateId;
-                                //obj.properties[p].overwritten = true;
-                            }
-
-                            doTheProps(template.properties[p], obj.properties[p]);
+            ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+                if (template[h]) {
+                    Object.keys(template[h]).forEach(function(oC) {
+                        if (!obj[h][oC]) {
+                            obj[h][oC] = template[h][oC];
+                            obj[h][oC].template = templateId;
                         }
+                    })
+                }
+            })
 
-                      
+
+            // Properties
+            function doTheProps(template, obj) {
+
+                if (!obj) obj = {}
+
+                if (!obj.properties) {
+                    obj.properties = {};
+                }
+
+                //console.info('compare', template, 'obj:', obj)
+
+                if (!template.properties) template.properties = {};
+
+                Object.keys(template.properties).forEach(function(p) {
+
+                    if (template.properties[p].type == 'bag') {
+
                         if (!obj.properties[p]) {
                             obj.properties[p] = template.properties[p];
                             obj.properties[p].template = templateId;
                         } else {
+                            if (!obj.properties[p].overwritten) {
+                                obj.properties[p] = template.properties[p];
+                            }
+
                             obj.properties[p].template = templateId;
-                            obj.properties[p].overwritten = true;
-
-
-                               if(!obj.properties[p].metaOverwritten)
-                                    {
-                                        obj.properties[p].meta = template.properties[p].meta;
-                                    }
+                            //obj.properties[p].overwritten = true;
                         }
 
-                        if (template.permissions) {
-                            if (!obj.permissions) obj.permissions = {};
-                            Object.keys(template.permissions).forEach(function(p) {
-                                if (!obj.permissions[p]) {
-                                    obj.permissions[p] = template.permissions[p];
-                                    obj.permissions[p].template = templateId;
-                                } else {
-                                    obj.permissions[p].template = templateId;
-                                    obj.permissions[p].overwritten = true;
+                        doTheProps(template.properties[p], obj.properties[p]);
+                    }
+
+
+                    if (!obj.properties[p]) {
+                        obj.properties[p] = template.properties[p];
+                        obj.properties[p].template = templateId;
+                    } else {
+                        obj.properties[p].template = templateId;
+                        obj.properties[p].overwritten = true;
+
+
+                        if (!obj.properties[p].metaOverwritten) {
+                            obj.properties[p].meta = template.properties[p].meta;
+                        }
+                    }
+
+                    if (template.permissions) {
+                        if (!obj.permissions) obj.permissions = {};
+                        Object.keys(template.permissions).forEach(function(p) {
+                            if (!obj.permissions[p]) {
+                                obj.permissions[p] = template.permissions[p];
+                                obj.permissions[p].template = templateId;
+                            } else {
+                                obj.permissions[p].template = templateId;
+                                obj.permissions[p].overwritten = true;
+                            }
+                        })
+                    }
+
+                    ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
+                        if (template.properties[p][h]) {
+                            if (!obj.properties[p][h]) obj.properties[p][h] = {};
+
+                            Object.keys(template.properties[p][h]).forEach(function(oC) {
+
+                                if (!obj.properties[p][h][oC]) {
+                                    obj.properties[p][h][oC] = template.properties[p][h][oC];
+                                    obj.properties[p][h][oC].template = templateId;
                                 }
                             })
                         }
+                    })
 
-                        ['onCreate', 'onChange', 'onDelete'].forEach(function(h) {
-                            if (template.properties[p][h]) {
-                                if (!obj.properties[p][h]) obj.properties[p][h] = {};
+                })
+            }
 
-                                Object.keys(template.properties[p][h]).forEach(function(oC) {
 
-                                    if (!obj.properties[p][h][oC]) {
-                                        obj.properties[p][h][oC] = template.properties[p][h][oC];
-                                        obj.properties[p][h][oC].template = templateId;
-                                    }
-                                })
-                            }
+            doTheProps(template, obj);
+
+
+            // Applications
+
+            if (template.applications) {
+                template.applications.forEach(function(a) {
+                    if (obj.applications.indexOf(a) == -1) obj.applications.push(a);
+                })
+            }
+
+
+            // Permissions
+
+            if (template.permissions) {
+                if (!obj.permissions) obj.permissions = {};
+                Object.keys(template.permissions).forEach(function(p) {
+                    if (!obj.permissions[p]) {
+                        obj.permissions[p] = template.permissions[p];
+                        obj.permissions[p].template = templateId;
+                    } else {
+                        obj.permissions[p].template = templateId;
+                        obj.permissions[p].overwritten = true;
+                    }
+                })
+            }
+
+            // Privileges
+
+            if (template.privileges) {
+                if (!obj.privileges) obj.privileges = {};
+                Object.keys(template.privileges).forEach(function(a) {
+                    if (!obj.privileges[a]) obj.privileges[a] = [];
+
+                    template.privileges[a].forEach(function(tP) {
+                        var contains = false;
+
+                        obj.privileges[a].forEach(function(oP) {
+                            if (oP.name == tP.name) contains = true;
                         })
-
                     })
-                }
 
-               
-                doTheProps(template, obj);
+                    if (!contains) {
+                        obj.privileges[a].push({ name: tP.name, template: templateId })
+                    }
 
-
-                // Applications
-
-                if (template.applications) {
-                    template.applications.forEach(function(a) {
-                        if (obj.applications.indexOf(a) == -1) obj.applications.push(a);
-                    })
-                }
+                })
+            }
 
 
-                // Permissions
-
-                if (template.permissions) {
-                    if (!obj.permissions) obj.permissions = {};
-                    Object.keys(template.permissions).forEach(function(p) {
-                        if (!obj.permissions[p]) {
-                            obj.permissions[p] = template.permissions[p];
-                            obj.permissions[p].template = templateId;
-                        } else {
-                            obj.permissions[p].template = templateId;
-                            obj.permissions[p].overwritten = true;
-                        }
-                    })
-                }
-
-                // Privileges
-
-                if (template.privileges) {
-                    if (!obj.privileges) obj.privileges = {};
-                    Object.keys(template.privileges).forEach(function(a) {
-                        if (!obj.privileges[a]) obj.privileges[a] = [];
-
-                        template.privileges[a].forEach(function(tP) {
-                            var contains = false;
-
-                            obj.privileges[a].forEach(function(oP) {
-                                if (oP.name == tP.name) contains = true;
-                            })
-                        })
-
-                        if (!contains) {
-                            obj.privileges[a].push({ name: tP.name, template: templateId })
-                        }
-
-                    })
-                }
-
-
-
-                success(obj);
+            success(obj);
 
         }
 
-        if(self.caches[templateRole || obj.role].get(templateId))
-        {
-            //run(self.caches[templateRole || obj.role].get(templateId))
+        if (self.caches[templateRole || obj.role].get(templateId)) {
+            run(self.caches[templateRole || obj.role].get(templateId))
 
         } else {
 
-               SPOO[templateRole || obj.role](templateId).get(function(template){
+            self.getObjectById(templateRole || obj.role, templateId, function(template) {
+                run(template);
+                if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
+            }, function(err) {
 
-                    //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
-                    
-                    run(template)
+            }, undefined, client)
 
-                }, function(err){
 
-                })
+
+
+            /*SPOO[templateRole || obj.role](templateId).get(function(template) {
+
+                //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
+
+                run(template)
+
+            }, function(err) {
+
+            })*/
         }
     },
 
@@ -961,7 +955,7 @@ var SPOO = {
             if (obj[h]) {
                 Object.keys(obj[h]).forEach(function(oC) {
                     if (obj[h][oC]) {
-                        if (obj[h][oC].template == templateId && !obj[h][oC].overwritten )
+                        if (obj[h][oC].template == templateId && !obj[h][oC].overwritten)
                             delete obj[h][oC];
                     }
                 })
@@ -979,8 +973,7 @@ var SPOO = {
                 }
 
                 if (obj.properties[p]) {
-                    if (obj.properties[p].template == templateId && !obj.properties[p].overwritten)
-                    { 
+                    if (obj.properties[p].template == templateId && !obj.properties[p].overwritten) {
                         //console.info('deleting obj', p, obj.properties[p])
                         delete obj.properties[p];
                     }
@@ -1221,7 +1214,7 @@ var SPOO = {
 
         var thisRef = this;
 
-     
+
         if (obj.inherits.length == 0) thisRef.updateObject(obj, success, error, app, client);
 
         var counter = 0;
@@ -3221,20 +3214,18 @@ var SPOO = {
                     //    return;
 
 
-                        // TODO : change!!!
+                    // TODO : change!!!
 
-                    data.forEach(function(d){
+                    data.forEach(function(d) {
                         d = SPOO[params.name](d)
                     })
 
-                    if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
-                    {
+                    if (params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
                         success(data);
                         return;
-                    } 
+                    }
 
-                    if(data.length == 0)
-                    {
+                    if (data.length == 0) {
                         //console.info(data)
                         success(data);
                         return;
@@ -3246,10 +3237,10 @@ var SPOO = {
 
                         if (d.inherits.length == 0) {
                             allCounter++;
-                             if (allCounter == data.length) {
-                                            success(data);
-                                            return d;
-                                        }
+                            if (allCounter == data.length) {
+                                success(data);
+                                return d;
+                            }
                         }
 
                         d.inherits.forEach(function(template) {
@@ -3259,12 +3250,12 @@ var SPOO = {
 
                                 SPOO.getTemplateFieldsForObject(d, template, function() {
 
-                                    counter++;
+                                        counter++;
 
                                         if (counter == d.inherits.length) allCounter++;
 
 
-                                       // console.info(d.inherits.length, counter, data.length, allCounter)
+                                        // console.info(d.inherits.length, counter, data.length, allCounter)
 
                                         if (allCounter == data.length) {
                                             success(data);
@@ -3338,66 +3329,65 @@ var SPOO = {
                 var allCounter = 0;
                 for (i = 0; i < objs.length; i++) {
                     objs[i] = SPOO[role](objs[i]).add(function(data) {
-                       
-                    if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
 
-                        var counter = 0;
+                        if (params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
 
-                        if (data.inherits.length == 0) {
+                            var counter = 0;
 
-                            allCounter++;
-                             if (allCounter == objs.length) {
-                                            success(objs);
-                                            return data;
-                                        }
-                        }
+                            if (data.inherits.length == 0) {
 
-                        data.inherits.forEach(function(template) {
-
-                            if (data._id != template) {
-
-                                SPOO.getTemplateFieldsForObject(data, template, function() {
-
-                                        counter++;
-
-                                        if (counter == data.inherits.length) allCounter++;
-
-                                        //console.info(data.inherits.length, counter, objs.length, allCounter)
-
-                                        if (allCounter == objs.length) {
-                                            success(objs);
-                                            return data;
-                                        }
-                                    },
-                                    function(err) {
-                                        error(err);
-                                        return data;
-                                    }, client, params.templateFamily)
-                            } else {
-
-                                if (data.inherits.length == 1) {
-                                    success(objs);
-                                    return data;
-                                } else {
-                                    counter++;
-                                    return;
-                                }
-
-                            }
-                        });
-
-
-
-                            } else 
-                            {
                                 allCounter++;
                                 if (allCounter == objs.length) {
-                                            success(objs);
-                                            return data;
-                                        }
+                                    success(objs);
+                                    return data;
+                                }
                             }
 
-                        
+                            data.inherits.forEach(function(template) {
+
+                                if (data._id != template) {
+
+                                    SPOO.getTemplateFieldsForObject(data, template, function() {
+
+                                            counter++;
+
+                                            if (counter == data.inherits.length) allCounter++;
+
+                                            //console.info(data.inherits.length, counter, objs.length, allCounter)
+
+                                            if (allCounter == objs.length) {
+                                                success(objs);
+                                                return data;
+                                            }
+                                        },
+                                        function(err) {
+                                            error(err);
+                                            return data;
+                                        }, client, params.templateFamily)
+                                } else {
+
+                                    if (data.inherits.length == 1) {
+                                        success(objs);
+                                        return data;
+                                    } else {
+                                        counter++;
+                                        return;
+                                    }
+
+                                }
+                            });
+
+
+
+                        } else {
+                            allCounter++;
+                            if (allCounter == objs.length) {
+                                success(objs);
+                                return data;
+                            }
+                        }
+
+
                     }, function(err) {
                         counter++;
                         if (objs.length == counter) error(err);
@@ -3409,7 +3399,7 @@ var SPOO = {
         } else {
             this.auth = function(userObj, callback, error) {
 
-                console.info('auth...', userObj)
+                console.info('auth...', userObj, params.pluralName, instance[params.pluralName])
 
                 instance[params.pluralName]({ username: userObj.username }).get(function(data) {
                     console.info('auth... data', data)
@@ -3417,6 +3407,7 @@ var SPOO = {
                     callback(data[0])
 
                 }, function(err) {
+                    console.info(err);
                     error(err);
                 })
             };
@@ -3426,7 +3417,7 @@ var SPOO = {
 
     Obj: function(obj, role, instance, params) {
 
-        if(!obj) throw new Error("Invalid param");
+        if (!obj) throw new Error("Invalid param");
 
         if (obj._id) this._id = obj._id;
 
@@ -3535,8 +3526,7 @@ var SPOO = {
             return this;
         };
 
-        this.replace = function(newObj)
-        {
+        this.replace = function(newObj) {
 
             SPOO.prepareObjectDelta(this, newObj);
 
@@ -4349,36 +4339,36 @@ var SPOO = {
             }
 
             //addFn(thisRef)
-             
 
-             if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
+
+            if (params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
 
                 if (this.inherits.length == 0) addFn(thisRef);
 
                 var counter = 0;
-            this.inherits.forEach(function(template) {
+                this.inherits.forEach(function(template) {
 
-                if (thisRef._id != template) {
+                    if (thisRef._id != template) {
 
-                    console.log("client; ", client)
+                        console.log("client; ", client)
 
-                    SPOO.getTemplateFieldsForObject(thisRef, template, function() {
-                            counter++;
-                            if (counter == thisRef.inherits.length) {
+                        SPOO.getTemplateFieldsForObject(thisRef, template, function() {
+                                counter++;
+                                if (counter == thisRef.inherits.length) {
 
-                                addFn(thisRef)
+                                    addFn(thisRef)
+                                    return this;
+                                }
+                            },
+                            function(err) {
+
+                                error(thisRef);
                                 return this;
-                            }
-                        },
-                        function(err) {
+                            }, client, params.templateFamily)
+                    }
+                });
 
-                            error(thisRef);
-                            return this;
-                        }, client, params.templateFamily)
-                }
-            });
-        
-         } else addFn(thisRef);
+            } else addFn(thisRef);
             return this;
         };
 
@@ -4386,7 +4376,7 @@ var SPOO = {
 
         this.update = function(success, error, client) {
 
-        console.info('updatefn')
+            console.info('updatefn')
 
             var client = client || instance.activeTenant;
             var app = instance.activeApp;
@@ -4537,17 +4527,14 @@ var SPOO = {
 
                         instance.eventAlterationSequence = [];
 
-                        if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
-                        {
-                              SPOO.updateInheritedObjs(thisRef, params.pluralName, function(data)
-                            {
+                        if (params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
+                            SPOO.updateInheritedObjs(thisRef, params.pluralName, function(data) {
 
-                            }, function(err)
-                            {
+                            }, function(err) {
 
                             }, client, params)
                         }
-                      
+
 
                         if (success) success(data);
 
@@ -4561,60 +4548,55 @@ var SPOO = {
 
 
             if (instance.commandSequence.length > 0 && params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
-                 
-                 var found = false;
-                 var foundCounter = 0;
-                 instance.commandSequence.forEach(function(i)
-                 {
-                     if(i.name == 'addInherit' || i.name == 'removeInherit') 
-                         {
-                             foundCounter++;
-                             found = true;
-                         } 
-                 })
 
-                 console.log("founter",  instance.commandSequence);
-                 if(foundCounter == 0) updateFn(thisRef);
+                var found = false;
+                var foundCounter = 0;
+                instance.commandSequence.forEach(function(i) {
+                    if (i.name == 'addInherit' || i.name == 'removeInherit') {
+                        foundCounter++;
+                        found = true;
+                    }
+                })
 
-                 var execCounter = 0;
-                 instance.commandSequence.forEach(function(i)
-                 {
-                     console.log(i);
+                console.log("founter", instance.commandSequence);
+                if (foundCounter == 0) updateFn(thisRef);
 
-                     if(i.name == 'addInherit' && thisRef.inherits.indexOf(i.value) != -1) 
-                         {
-                             execCounter++;
-                             
-                             SPOO.getTemplateFieldsForObject(thisRef, i.value, function() {
-                                    
-                                     if (execCounter == foundCounter) {
-                                         updateFn(thisRef);
-                                     }
-                                 },
-                                 function(err) {
-                                     error(thisRef);
-                                     return thisRef;
-                                 }, client, params.templateFamily)
-                         } 
+                var execCounter = 0;
+                instance.commandSequence.forEach(function(i) {
+                    console.log(i);
 
-                     if(i.name == 'removeInherit' && thisRef.inherits.indexOf(i.value) == -1) 
-                         {
-                             console.log("ölsfökdsmgsdg");
-                             execCounter++;
-                              SPOO.removeTemplateFieldsForObject(thisRef, i.value, function() {
-                                    
-                                     if (execCounter == foundCounter) {
-                                         updateFn(thisRef);
-                                     }
-                                 },
-                                 function(err) {
-                                     error(thisRef);
-                                     return thisRef;
-                                 }, client)
-                         } 
-                 })
+                    if (i.name == 'addInherit' && thisRef.inherits.indexOf(i.value) != -1) {
+                        execCounter++;
 
-             } else updateFn(thisRef);
+                        SPOO.getTemplateFieldsForObject(thisRef, i.value, function() {
+
+                                if (execCounter == foundCounter) {
+                                    updateFn(thisRef);
+                                }
+                            },
+                            function(err) {
+                                error(thisRef);
+                                return thisRef;
+                            }, client, params.templateFamily)
+                    }
+
+                    if (i.name == 'removeInherit' && thisRef.inherits.indexOf(i.value) == -1) {
+                        console.log("ölsfökdsmgsdg");
+                        execCounter++;
+                        SPOO.removeTemplateFieldsForObject(thisRef, i.value, function() {
+
+                                if (execCounter == foundCounter) {
+                                    updateFn(thisRef);
+                                }
+                            },
+                            function(err) {
+                                error(thisRef);
+                                return thisRef;
+                            }, client)
+                    }
+                })
+
+            } else updateFn(thisRef);
 
             instance.commandSequence = [];
 
@@ -4720,16 +4702,16 @@ var SPOO = {
                         })
                     }
 
-                    if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT){
+                    if (params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
 
-                         SPOO.removeInheritedObjs(thisRef, params.pluralName, function(data) {
+                        SPOO.removeInheritedObjs(thisRef, params.pluralName, function(data) {
 
                         }, function(err) {
-                            
+
                         }, client, params);
 
                     }
-                    
+
 
                     success(data);
 
@@ -4776,18 +4758,16 @@ var SPOO = {
                 //console.log(SPOO[thisRef.role](data));
                 //success(SPOO[thisRef.role](data))
 
-              
+
                 //success(SPOO[data.role](data));
                 //    return data;
 
-                if(dontInherit) 
-                {
+                if (dontInherit) {
                     success(SPOO[data.role](data));
                     return data;
                 }
-                
-                if(params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT)
-                {
+
+                if (params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
                     success(SPOO[data.role](data));
                     return data;
                 }
@@ -4801,10 +4781,10 @@ var SPOO = {
 
                 data.inherits.forEach(function(template) {
 
-                 
+
                     if (data._id != template) {
 
-                       
+
                         SPOO.getTemplateFieldsForObject(data, template, function() {
 
                                 counter++;
