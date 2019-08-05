@@ -917,13 +917,13 @@ var SPOO = {
         }
 
         if (self.caches[templateRole || obj.role].get(templateId)) {
-            //run(self.caches[templateRole || obj.role].get(templateId))
+            run(self.caches[templateRole || obj.role].get(templateId))
 
         } else {
 
             self.getObjectById(templateRole || obj.role, templateId, function(template) {
                 run(template);
-                //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
+                if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
             }, function(err) {
 
             }, undefined, client)
