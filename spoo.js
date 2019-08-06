@@ -925,10 +925,8 @@ var SPOO = {
                 run(template);
                 //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
             }, function(err) {
-
+                error(err);
             }, undefined, client)
-
-
 
 
             /*SPOO[templateRole || obj.role](templateId).get(function(template) {
@@ -3212,7 +3210,6 @@ var SPOO = {
                     // success(data);
                     //    return;
 
-
                     // TODO : change!!!
 
                     data.forEach(function(d) {
@@ -3232,6 +3229,10 @@ var SPOO = {
 
                     data.forEach(function(d) {
 
+                        d.inherits = d.inherits.filter(function(item, pos) { return d.inherits.indexOf(item) == pos; });
+
+
+                        //onsole.info(d)
                         var counter = 0;
 
                         if (d.inherits.length == 0) {
@@ -3242,6 +3243,7 @@ var SPOO = {
                             }
                         }
 
+                        
                         d.inherits.forEach(function(template) {
 
 
@@ -3254,7 +3256,7 @@ var SPOO = {
                                         if (counter == d.inherits.length) allCounter++;
 
 
-                                        // console.info(d.inherits.length, counter, data.length, allCounter)
+                                       // console.info(d.inherits.length, counter, data.length, allCounter)
 
                                         if (allCounter == data.length) {
                                             success(data);
@@ -3265,7 +3267,6 @@ var SPOO = {
                                         counter++;
 
                                         if (counter == d.inherits.length) allCounter++;
-
 
                                         //console.info(d.inherits.length, counter, data.length, allCounter)
 
