@@ -759,6 +759,8 @@ var SPOO = {
 
         function run(template) {
 
+            console.info(template.properties)
+
             if (!template) {
 
             }
@@ -801,6 +803,11 @@ var SPOO = {
                 Object.keys(template.properties).forEach(function(p) {
 
                     if (template.properties[p].type == 'bag') {
+
+                        if(p == "forms")
+                        {
+                            console.info(p, template.properties[p], obj.properties[p])
+                        }
 
                         if (!obj.properties[p]) {
                             obj.properties[p] = template.properties[p];
@@ -927,23 +934,23 @@ var SPOO = {
 
         } else {
 
-            self.getObjectById(templateRole || obj.role, templateId, function(template) {
+            /*self.getObjectById(templateRole || obj.role, templateId, function(template) {
                 run(template);
                 //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
             }, function(err) {
                 error(err);
-            }, undefined, client)
+            }, undefined, client)*/
 
 
-            /*SPOO[templateRole || obj.role](templateId).get(function(template) {
+            SPOO[templateRole || obj.role](templateId).get(function(template) {
 
                 //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
 
                 run(template)
 
             }, function(err) {
-
-            })*/
+                error(err);
+            })
         }
     },
 
@@ -4791,21 +4798,24 @@ var SPOO = {
 
                 data.inherits.forEach(function(template) {
 
-
                     if (data._id != template) {
-
 
                         SPOO.getTemplateFieldsForObject(data, template, function() {
 
                                 counter++;
+                                console.info('yyy', counter);
+
                                 if (counter == data.inherits.length) {
+                                    console.info('xax')
                                     success(SPOO[data.role](data));
                                     return data;
                                 }
                             },
                             function(err) {
-                                console.info('err', err)
+                                
                                 counter++;
+
+                                console.info('err--', err, counter, data.inherits.length)
                                 if (counter == data.inherits.length) {
                                     success(SPOO[data.role](data));
                                     return data;
