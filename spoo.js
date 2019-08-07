@@ -804,9 +804,8 @@ var SPOO = {
 
                     if (template.properties[p].type == 'bag') {
 
-                        if(p == "forms")
-                        {
-                            console.info(p, template.properties[p], obj.properties[p])
+                        if (p == "forms") {
+                            // console.info(p, template.properties[p], obj.properties[p])
                         }
 
                         if (!obj.properties[p]) {
@@ -830,14 +829,13 @@ var SPOO = {
                         obj.properties[p].template = templateId;
                         delete obj.properties[p].overwritten;
                     } else {
-                        
-                        if(!obj.properties[p].overwritten)
-                        {
+
+                        if (!obj.properties[p].overwritten) {
                             obj.properties[p].template = templateId;
-                            if(obj.properties[p].value == null) obj.properties[p].value = template.properties[p].value;
+                            if (obj.properties[p].value == null) obj.properties[p].value = template.properties[p].value;
                             //obj.properties[p].overwritten = true;
                         }
-                       
+
 
                         if (!obj.properties[p].metaOverwritten) {
                             obj.properties[p].meta = template.properties[p].meta;
@@ -940,7 +938,6 @@ var SPOO = {
             }, function(err) {
                 error(err);
             }, undefined, client)*/
-
 
             SPOO[templateRole || obj.role](templateId).get(function(template) {
 
@@ -3256,7 +3253,7 @@ var SPOO = {
                             }
                         }
 
-                        
+
                         d.inherits.forEach(function(template) {
 
 
@@ -3269,7 +3266,7 @@ var SPOO = {
                                         if (counter == d.inherits.length) allCounter++;
 
 
-                                       // console.info(d.inherits.length, counter, data.length, allCounter)
+                                        // console.info(d.inherits.length, counter, data.length, allCounter)
 
                                         if (allCounter == data.length) {
                                             success(data);
@@ -4770,7 +4767,7 @@ var SPOO = {
             }
             // arrayDeserialize(this);
 
-            SPOO.getObjectById(this.role, this._id, function(data) {
+            function prepareObj(data) {
 
                 SPOO.checkPermissions(instance.activeUser, instance.activeApp, data, 'r')
                 //console.log(SPOO[thisRef.role](data));
@@ -4803,19 +4800,18 @@ var SPOO = {
                         SPOO.getTemplateFieldsForObject(data, template, function() {
 
                                 counter++;
-                                console.info('yyy', counter);
 
                                 if (counter == data.inherits.length) {
-                                    console.info('xax')
+
                                     success(SPOO[data.role](data));
                                     return data;
                                 }
                             },
                             function(err) {
-                                
+
                                 counter++;
 
-                                console.info('err--', err, counter, data.inherits.length)
+
                                 if (counter == data.inherits.length) {
                                     success(SPOO[data.role](data));
                                     return data;
@@ -4832,12 +4828,25 @@ var SPOO = {
                         }
                     }
                 });
+            }
 
 
-            }, function(err) { error(err) }, app, client);
+            //console.warn('cccache', thisRef._id, instance.caches[thisRef.role].data[thisRef._id])
+            if (instance.caches[thisRef.role].data[thisRef._id]) {
+                //console.warn('________________id', thisRef._id)
+                prepareObj(instance.caches[thisRef.role].data[thisRef._id]);
+            } else {
+                SPOO.getObjectById(thisRef.role, thisRef._id, function(data) {
 
+                    prepareObj(data);
 
+                    if (!instance.caches[thisRef.role].data[thisRef._id]) {
+                        //console.warn('writing to cache', thisRef._id, data)
+                        //instance.caches[thisRef.role].add(thisRef._id, data);
+                    }
 
+                }, function(err) { error(err) }, app, client);
+            }
 
 
         }
