@@ -821,10 +821,16 @@ var SPOO = {
                     if (!obj.properties[p]) {
                         obj.properties[p] = template.properties[p];
                         obj.properties[p].template = templateId;
+                        delete obj.properties[p].overwritten;
                     } else {
-                        obj.properties[p].template = templateId;
-                        obj.properties[p].overwritten = true;
-
+                        
+                        if(!obj.properties[p].overwritten)
+                        {
+                            obj.properties[p].template = templateId;
+                            if(obj.properties[p].value == null) obj.properties[p].value = template.properties[p].value;
+                            //obj.properties[p].overwritten = true;
+                        }
+                       
 
                         if (!obj.properties[p].metaOverwritten) {
                             obj.properties[p].meta = template.properties[p].meta;
@@ -4342,6 +4348,7 @@ var SPOO = {
 
 
             if (params.templateMode == CONSTANTS.TEMPLATEMODES.STRICT) {
+                console.info('adding strict')
 
                 if (this.inherits.length == 0) addFn(thisRef);
 
@@ -4368,7 +4375,11 @@ var SPOO = {
                     }
                 });
 
-            } else addFn(thisRef);
+            } else {
+                console.info('adding unsctrict');
+                console.info(thisRef)
+                addFn(thisRef);
+            }
             return this;
         };
 
