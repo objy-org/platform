@@ -7,9 +7,12 @@ Mapper = function(SPOO) {
     return Object.assign(new Global(SPOO), {
 
         sandBox: new VM({ sandbox: { SPOO: this.SPOO, dsl: this, this: this } }),
-        jobQueue: new Queue('spoo jobs', 'redis://127.0.0.1:6379'),
+        jobQueue: null,
 
-        init: function() {
+        init: function(redisCon) {
+
+            this.jobQueue = new Queue('spoo jobs', redisCon);
+
             this.jobQueue.process(function(job, done) {
                 console.info('executing...')
                 new Mapper(SPOO).executeFromJob(job.data.dsl, JSON.parse(job.data.obj), JSON.parse(job.prop || {}), job.data.data, );
