@@ -932,14 +932,14 @@ var SPOO = {
 
         } else {
 
-            /*self.getObjectById(templateRole || obj.role, templateId, function(template) {
+            self.getObjectById(templateRole || obj.role, templateId, function(template) {
                 run(template);
                 //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
             }, function(err) {
                 error(err);
-            }, undefined, client)*/
+            }, undefined, client)
 
-            SPOO[templateRole || obj.role](templateId).get(function(template) {
+            /*SPOO[templateRole || obj.role](templateId).get(function(template) {
 
                 //if(!self.caches[templateRole || obj.role].get(templateId)) self.caches[templateRole || obj.role].add(templateId,  template);
 
@@ -947,7 +947,7 @@ var SPOO = {
 
             }, function(err) {
                 error(err);
-            })
+            })*/
         }
     },
 
