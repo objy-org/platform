@@ -4771,6 +4771,8 @@ var SPOO = {
                 //success(SPOO[data.role](data));
                 //    return data;
 
+                console.warn('dontInherit', dontInherit)
+
                 if (dontInherit) {
                     success(SPOO[data.role](data));
                     return data;
