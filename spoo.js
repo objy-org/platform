@@ -719,6 +719,17 @@ var SPOO = {
 
         console.info('objdetlta2')
         // Applications TODO
+        oldObj.applications = newObj.applications;
+
+        oldObj.inherits = newObj.inherits;
+
+        /*if(newObj.inherits)
+        {
+            newObj.inherits.forEach(function(i)
+            {
+                if(oldObj.inherits.indexOf(i) == -1) oldObj.inherits.push(i);
+            })
+        }*/
 
         // Permissions
         if (newObj.permissions) {
