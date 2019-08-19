@@ -6,22 +6,28 @@ var Queue = require('bull');
 Mapper = function(SPOO) {
     return Object.assign(new Global(SPOO), {
 
-        sandBox: new NodeVM({  console: 'inherit', sandbox: { SPOO: this.SPOO, dsl: this, this: this } }),
+        sandBox: new NodeVM({ console: 'inherit', sandbox: { SPOO: this.SPOO, dsl: this, this: this } }),
         jobQueue: null,
 
         init: function(redisCon) {
+
+            var self = this;
 
             console.warn('initializing');
 
             this.jobQueue = new Queue('spoo jobs', redisCon);
 
-            this.sandBox.on('console.info', function(message){
+            this.sandBox.on('console.info', function(message) {
                 console.warn('msg', message);
             })
 
             this.jobQueue.process(function(job, done) {
                 console.warn('executing...')
-                new Mapper(SPOO).executeFromJob(job.data.dsl, JSON.parse(job.data.obj), JSON.parse(job.prop || {}), job.data.data, );
+                try {
+                    self.sandBox.run(dsl);
+                } catch (e) {
+                    console.warn('error', e)
+                }
             });
 
             this.jobQueue.on('completed', function(job, result) {
