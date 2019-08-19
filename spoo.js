@@ -750,7 +750,6 @@ var SPOO = {
          }*/
         return oldObj;
 
-
     },
 
     getTemplateFieldsForObject: function(obj, templateId, success, error, client, templateRole) {
@@ -813,7 +812,7 @@ var SPOO = {
                             //}
 
                             obj.properties[p].template = templateId;
-                            //obj.properties[p].overwritten = true;
+                            obj.properties[p].overwritten = true;
                         }
 
                         doTheProps(template.properties[p], obj.properties[p]);
