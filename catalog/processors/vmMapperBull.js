@@ -24,7 +24,7 @@ Mapper = function(SPOO) {
             this.jobQueue.process(function(job, done) {
                 console.warn('executing...')
                 try {
-                    self.sandBox.run(dsl);
+                    self.sandBox.run(job.data.dsl);
                 } catch (e) {
                     console.warn('error', e)
                 }
