@@ -58,7 +58,7 @@ Mapper = function(SPOO) {
         executeFromJob: function(dsl, obj, prop, data, callback, client, app, options) {
 
             try {
-                this.sandBox.run(new VMScript(dsl));
+                this.sandBox.run(dsl);
             } catch (e) {
                 console.warn('error', e)
             }
