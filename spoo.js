@@ -3211,8 +3211,8 @@ var SPOO = {
 
                 SPOO.findObjects(objs, role, function(data) {
 
-                    // success(data);
-                    //    return;
+                     success(data);
+                        return;
 
                     // TODO : change!!!
 
