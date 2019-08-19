@@ -808,9 +808,9 @@ var SPOO = {
                             obj.properties[p] = template.properties[p];
                             obj.properties[p].template = templateId;
                         } else {
-                            if (!obj.properties[p].overwritten) {
+                            //if (!obj.properties[p].overwritten) {
                                 obj.properties[p] = template.properties[p];
-                            }
+                            //}
 
                             obj.properties[p].template = templateId;
                             //obj.properties[p].overwritten = true;
@@ -3211,8 +3211,8 @@ var SPOO = {
 
                 SPOO.findObjects(objs, role, function(data) {
 
-                     success(data);
-                        return;
+                    // success(data);
+                    //    return;
 
                     // TODO : change!!!
 
