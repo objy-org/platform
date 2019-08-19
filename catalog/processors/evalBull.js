@@ -12,8 +12,8 @@ Mapper = function(SPOO) {
         init: function(redisCon) {
 
             var self = this;
-            
-            console.warn('initializing');
+
+            console.warn('initializing eval');
 
             this.jobQueue = new Queue('spoo jobs', redisCon);
 
