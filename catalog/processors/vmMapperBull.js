@@ -6,13 +6,13 @@ var Queue = require('bull');
 Mapper = function(SPOO) {
     return Object.assign(new Global(SPOO), {
 
-        sandBox: new VM({ sandbox: { SPOO: this.SPOO, dsl: this, this: this } }),
+        sandBox: new VM({  console: 'inherit', sandbox: { SPOO: this.SPOO, dsl: this, this: this } }),
         jobQueue: null,
 
         init: function(redisCon) {
 
             console.warn('initializing');
-            
+
             this.jobQueue = new Queue('spoo jobs', redisCon);
 
             this.jobQueue.process(function(job, done) {
@@ -56,6 +56,7 @@ Mapper = function(SPOO) {
 
 
         executeFromJob: function(dsl, obj, prop, data, callback, client, app, options) {
+
             try {
                 this.sandBox.run(new VMScript(dsl));
             } catch (e) {
