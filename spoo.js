@@ -4790,6 +4790,8 @@ var SPOO = {
 
                 data.inherits.forEach(function(template) {
 
+                    console.info(template)
+
                     if (data._id != template) {
 
                         SPOO.getTemplateFieldsForObject(data, template, function() {
