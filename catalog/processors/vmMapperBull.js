@@ -15,6 +15,10 @@ Mapper = function(SPOO) {
 
             this.jobQueue = new Queue('spoo jobs', redisCon);
 
+            this.sandBox.on('console.info', function(message){
+                console.warn('msg', message);
+            })
+
             this.jobQueue.process(function(job, done) {
                 console.warn('executing...')
                 new Mapper(SPOO).executeFromJob(job.data.dsl, JSON.parse(job.data.obj), JSON.parse(job.prop || {}), job.data.data, );
