@@ -11,6 +11,8 @@ Mapper = function(SPOO) {
 
         init: function(redisCon) {
 
+            var self = this;
+            
             console.warn('initializing');
 
             this.jobQueue = new Queue('spoo jobs', redisCon);
@@ -21,7 +23,7 @@ Mapper = function(SPOO) {
 
             this.jobQueue.process(function(job, done) {
                 console.warn('executing...')
-                this.executeFromJob(job.data.dsl, JSON.parse(job.data.obj), JSON.parse(job.prop || {}), job.data.data, );
+                self.executeFromJob(job.data.dsl, JSON.parse(job.data.obj), JSON.parse(job.prop || {}), job.data.data, );
             });
 
             this.jobQueue.on('completed', function(job, result) {
