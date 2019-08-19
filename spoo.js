@@ -3260,7 +3260,7 @@ var SPOO = {
                                         if (counter == d.inherits.length) allCounter++;
 
 
-                                        // console.info(d.inherits.length, counter, data.length, allCounter)
+                                         console.info(d.inherits.length, counter, data.length, allCounter)
 
                                         if (allCounter == data.length) {
                                             success(data);
@@ -3272,7 +3272,7 @@ var SPOO = {
 
                                         if (counter == d.inherits.length) allCounter++;
 
-                                        //console.info(d.inherits.length, counter, data.length, allCounter)
+                                        console.info(d.inherits.length, counter, data.length, allCounter)
 
                                         if (allCounter == data.length) {
                                             success(data);
