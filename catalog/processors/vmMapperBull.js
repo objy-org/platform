@@ -1,12 +1,12 @@
 var Global = require('./_template.js');
-const { VM, VMScript } = require('vm2');
+const { VM, VMScript, NodeVM } = require('vm2');
 var Queue = require('bull');
 
 
 Mapper = function(SPOO) {
     return Object.assign(new Global(SPOO), {
 
-        sandBox: new VM({  console: 'inherit', sandbox: { SPOO: this.SPOO, dsl: this, this: this } }),
+        sandBox: new NodeVM({  console: 'inherit', sandbox: { SPOO: this.SPOO, dsl: this, this: this } }),
         jobQueue: null,
 
         init: function(redisCon) {
