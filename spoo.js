@@ -718,10 +718,12 @@ var SPOO = {
         doTheProps(newObj);
 
         console.info('objdetlta2')
-        // Applications TODO
-        oldObj.applications = newObj.applications;
 
-        oldObj.inherits = newObj.inherits;
+        // Applications TODO
+        
+        //oldObj.applications = newObj.applications;
+
+        //oldObj.inherits = newObj.inherits;
 
         /*if(newObj.inherits)
         {
