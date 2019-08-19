@@ -819,8 +819,9 @@ var SPOO = {
                     }
 
 
+
                     if (!obj.properties[p]) {
-                        obj.properties[p] = template.properties[p];
+                        obj.properties[p] = template.properties[p]; 
                         obj.properties[p].template = templateId;
                         delete obj.properties[p].overwritten;
                     } else {
@@ -4771,7 +4772,7 @@ var SPOO = {
                 //success(SPOO[data.role](data));
                 //    return data;
 
-              
+
                 if (dontInherit) {
                     success(SPOO[data.role](data));
                     return data;
