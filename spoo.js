@@ -4790,7 +4790,7 @@ var SPOO = {
 
                 data.inherits.forEach(function(template) {
 
-                    console.info(template)
+                    console.warn(template)
 
                     if (data._id != template) {
 
@@ -4828,7 +4828,7 @@ var SPOO = {
             }
 
 
-            console.warn('cccache', thisRef._id, instance.caches[thisRef.role].data[thisRef._id])
+            //console.warn('cccache', thisRef._id, instance.caches[thisRef.role].data[thisRef._id])
             if (instance.caches[thisRef.role].data[thisRef._id]) {
                 //console.warn('________________id', thisRef._id)
                 prepareObj(instance.caches[thisRef.role].data[thisRef._id]);
