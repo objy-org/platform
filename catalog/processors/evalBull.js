@@ -23,7 +23,19 @@ Mapper = function(SPOO) {
 
             this.jobQueue.process(function(job, done) {
                 console.warn('executing...')
-                self.executeFromJob(job.data.dsl, JSON.parse(job.data.obj), JSON.parse(job.prop || {}), job.data.data, );
+
+                try {
+                    console.warn('pre eval')
+
+                    eval(job.data.dsl);
+                    console.warn('after eval')
+                } catch (e) {
+                    console.warn(e);
+                }
+                callback();
+
+
+
             });
 
             this.jobQueue.on('completed', function(job, result) {
@@ -63,15 +75,7 @@ Mapper = function(SPOO) {
 
         executeFromJob: function(dsl, obj, prop, data, callback, client, app, options) {
 
-            try {
-                console.info('pre eval')
 
-                eval(dsl);
-                console.info('after eval')
-            } catch (e) {
-                console.info(e);
-            }
-            callback();
 
         }
     })
