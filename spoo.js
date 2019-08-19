@@ -818,7 +818,6 @@ var SPOO = {
                         doTheProps(template.properties[p], obj.properties[p]);
                     }
 
-
                     if (!obj.properties[p]) {
                         obj.properties[p] = template.properties[p]; 
                         obj.properties[p].template = templateId;

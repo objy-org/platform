@@ -11,10 +11,12 @@ Mapper = function(SPOO) {
 
         init: function(redisCon) {
 
+            console.warn('initializing');
+            
             this.jobQueue = new Queue('spoo jobs', redisCon);
 
             this.jobQueue.process(function(job, done) {
-                console.info('executing...')
+                console.warn('executing...')
                 new Mapper(SPOO).executeFromJob(job.data.dsl, JSON.parse(job.data.obj), JSON.parse(job.prop || {}), job.data.data, );
             });
 
@@ -53,9 +55,12 @@ Mapper = function(SPOO) {
         },
 
 
-
         executeFromJob: function(dsl, obj, prop, data, callback, client, app, options) {
-            this.sandBox.run(new VMScript(dsl));
+            try {
+                this.sandBox.run(new VMScript(dsl));
+            } catch (e) {
+                console.warn('error', e)
+            }
         }
     })
 }
