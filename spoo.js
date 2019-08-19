@@ -809,7 +809,7 @@ var SPOO = {
                             obj.properties[p].template = templateId;
                         } else {
                             //if (!obj.properties[p].overwritten) {
-                                obj.properties[p] = template.properties[p];
+                            obj.properties[p] = template.properties[p];
                             //}
 
                             obj.properties[p].template = templateId;
@@ -3209,6 +3209,8 @@ var SPOO = {
 
                 var allCounter = 0;
 
+                console.info('GETGETGET')
+
                 SPOO.findObjects(objs, role, function(data) {
 
                     // success(data);
@@ -3260,7 +3262,7 @@ var SPOO = {
                                         if (counter == d.inherits.length) allCounter++;
 
 
-                                         console.info(d.inherits.length, counter, data.length, allCounter)
+                                        console.info(d.inherits.length, counter, data.length, allCounter)
 
                                         if (allCounter == data.length) {
                                             success(data);
