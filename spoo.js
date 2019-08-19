@@ -795,7 +795,7 @@ var SPOO = {
                     obj.properties = {};
                 }
 
-                //console.info('compare', template, 'obj:', obj)
+                console.info('compare', template, 'obj:', obj)
 
                 if (!template.properties) template.properties = {};
 
