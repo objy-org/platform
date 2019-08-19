@@ -6,7 +6,7 @@ var Queue = require('bull');
 Mapper = function(SPOO) {
     return Object.assign(new Global(SPOO), {
 
-        sandBox: new NodeVM({ console: 'inherit', sandbox: { SPOO: this.SPOO, dsl: this, this: this } }),
+        sandBox: new VM({ console: 'inherit', sandbox: { SPOO: this.SPOO, dsl: this, this: this } }),
         jobQueue: null,
 
         init: function(redisCon) {
@@ -24,7 +24,7 @@ Mapper = function(SPOO) {
             this.jobQueue.process(function(job, done) {
                 console.warn('executing...')
                 try {
-                    self.sandBox.run(job.data.dsl);
+                    self.sandBox.run(new VMScript(job.data.dsl));
                 } catch (e) {
                     console.warn('error', e)
                 }
