@@ -841,6 +841,10 @@ var SPOO = {
                             obj.properties[p].template = templateId;
                             if (obj.properties[p].value == null) obj.properties[p].value = template.properties[p].value;
                             //obj.properties[p].overwritten = true;
+                        } else if(!obj.properties[p].value)
+                        {
+                            obj.properties[p].template = templateId;
+                            if (obj.properties[p].value == null) obj.properties[p].value = template.properties[p].value;
                         }
 
 
