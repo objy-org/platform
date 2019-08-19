@@ -723,7 +723,7 @@ var SPOO = {
         
         //oldObj.applications = newObj.applications;
 
-        //oldObj.inherits = newObj.inherits;
+        oldObj.inherits = newObj.inherits;
 
         /*if(newObj.inherits)
         {
