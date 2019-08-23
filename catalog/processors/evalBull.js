@@ -28,6 +28,7 @@ Mapper = function(SPOO) {
                     console.warn('pre eval')
 
                     eval(job.data.dsl);
+                    
                     console.warn('after eval')
                 } catch (e) {
                     console.warn(e);
