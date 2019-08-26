@@ -1,7 +1,15 @@
 var Rest = require('./catalog/rest.js');
 var OBJY = require('@spootechnologies/objy');
 
+var MongoMapper = require('../objy/mappers/storage/mongoMapper.js');
+
 const SPOO = {
+
+    mappers: {
+        MongoMapper: function() {
+            return MongoMapper(OBJY);
+        }
+    },
 
     enabledObjectFymilies: {},
 
@@ -19,10 +27,10 @@ const SPOO = {
 
     },
 
-    REST: function(OBJY, options, enabledObjectFymilies) {
+    REST: function(options, enabledObjectFymilies) {
         return new Rest(OBJY, options)
     },
-    MQTT: function(OBJY, options, enabledObjectFymilies) {
+    MQTT: function(options, enabledObjectFymilies) {
         // TODO...
     }
 }
