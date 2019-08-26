@@ -1,6 +1,6 @@
 # SPOO - Single Point of Object
 
-A framework that uses dynamic, behaviour-driven objects to build apps, backends, platforms.
+A framework for building domain-specific platforms
 
 ## Table of Contents
 
@@ -23,10 +23,6 @@ npm install spoo
 
 ```shell
 https://spoo.io/code/spoo.js
-
- - or -
-
-https://spoo.io/code/spoo.min.js
 ```
 
 
@@ -38,24 +34,8 @@ https://spoo.io/code/spoo.min.js
 // Include SPOO (Node.js)
 const SPOO = require('spoo');
 
-// OPTIONAL: Initialize in the context of a client and (optionally) an app
-SPOO.client('myComapny').app('helloWorldApp');
-
-// Create an object
-SPOO.Object({name: "Hello World"}).add( obj => {
-	console.log(data);
-}, err => {
-	console.error(err);
-})
-
-// Query Objects
-SPOO.Object({name: "Hello Word"}).get( objs => {
-	console.log(objs);
-}, err => {
-	console.error(err);
-})
+SPOO.REST({port: 8080})
 ```
-
 
 
 ## Main Concepts
@@ -90,7 +70,6 @@ SPOO is perfect for building platforms, because it has everything a platform nee
 
 - Industry-specific solutions
 
-  
 
 ## Data Sources
 
