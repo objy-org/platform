@@ -12,10 +12,15 @@ var router = express.Router();
 var shortid = require('shortid');
 var defaultSecret = 'asdgnm0923t923';
 
-
 Platform = function(OBJY, options) {
 
-    var redis = new Redis("redis://localhost");
+    console.log(options)
+
+    var redis;
+
+    if (options.redisCon) {
+        redis = new Redis(options.redisCon);
+    } else redis = new Redis("redis://localhost");
 
     var objectFamilies = options.objectFamilies || [];
 
@@ -25,6 +30,9 @@ Platform = function(OBJY, options) {
     app.options('*', cors());
 
     OBJY.hello();
+
+    var metaMapper = options.metaMapper;
+    var messageMapper = options.messageMapper;
 
     var checkObjectFamily = function(req, res, next) {
         if (objectFamilies.indexOf(req.params.entity) == -1 && !objectFamilies.length == 0) {
@@ -37,7 +45,6 @@ Platform = function(OBJY, options) {
 
         var token;
 
-
         if (req.headers.authorization) {
             token = req.headers.authorization.slice(7, req.headers.authorization.length)
             console.log(token)
@@ -45,28 +52,286 @@ Platform = function(OBJY, options) {
             token = req.query.token
         }
 
-
         console.info(token)
 
-
         jwt.verify(token, options.jwtSecret || defaultSecret, function(err, decoded) {
-            if (err) return res.status(401).send({ auth: false, message: 'Failed to authenticate token.' });
+            if (err) return res.status(401).send({ auth: false, message: 'Failed to authenticate token' });
 
             redis.get(token, function(err, result) {
-                if (err || !result) return res.status(401).send({ auth: false, message: 'Failed to authenticate token.' });
+                if (err || !result) return res.status(401).send({ auth: false, message: 'Failed to authenticate token' });
                 next()
             });
         });
     }
 
 
-    // ADD: one or many, GET: one or many
+    // Welcome
     router.route(['/'])
 
-        .get(checkAuthentication, function(req, res) {
-            res.json({})
-            console.log("ff");
+        .get(function(req, res) {
+            res.json({ message: "Hi there" })
+            console.log("Hi there");
         })
+
+
+
+    // Request a client activation key
+    router.route(['/client/register'])
+
+        .post(function(req, res) {
+
+            var data = req.body;
+
+            if (!data.email) {
+                res.status(404);
+                res.json({ error: 'No email address provided' });
+                return;
+            }
+
+            metaMapper.createClientRegistration(function(data) {
+
+                messageMapper.send((options.clientRegistrationMessage || {}).from || 'SPOO', req.body.email, (options.clientRegistrationMessage || {}).subject || 'your workspace registration key', ((options.clientRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
+
+                res.json({ message: 'workspace registration key sent!' })
+
+            }, function(err) {
+                res.status(500)
+                res.json(err)
+            })
+
+        })
+
+
+    // Redeem a client activation key -> create a client
+    router.route(['/client'])
+
+        .post(function(req, res) {
+
+            var reqdata = req.body;
+
+            if (!req.body.registrationKey) {
+                res.status(404);
+                res.json({ error: 'No activation key found' });
+                return;
+            }
+
+            reqdata.clientname = reqdata.clientname.replace(/\s/g, '');
+            reqdata.clientname = reqdata.clientname.toLowerCase();
+
+            metaMapper.redeemClientRegistration(req.body.registrationKey, function(data) {
+
+                metaMapper.createClient(req.body.registrationKey, reqdata.clientname, function(data) {
+
+                    res.json(data)
+
+                }, function(err) {
+                    res.status(500);
+                    res.json(err)
+                })
+
+            }, function(err) {
+                res.status(500);
+                res.json(err)
+            })
+
+        })
+
+
+
+    router.route(['/client/:client/application'])
+
+        .post(checkAuthentication, function(req, res) {
+
+            console.log(req.user);
+
+            var client = req.params.client;
+
+            var appData = req.body;
+            var appKey = Object.keys(appData)[0];
+
+            metaMapper.addClientApplication(appData, function(data) {
+                res.json(data);
+            }, function(err) {
+                res.status(500);
+                res.json({ error: 'Some Error occured' });
+            }, client);
+
+        });
+
+    router.route(['/client/:client/applications'])
+
+        .get(checkAuthentication, function(req, res) {
+
+            console.log(req.user);
+
+            var client = req.params.client;
+
+            metaMapper.getClientApplications(function(data) {
+
+                res.json(data)
+
+            }, function(err) {
+                res.status(500);
+                res.json({ error: 'Some Error occured' });
+            }, client);
+
+        });
+
+
+    router.route('/client/:client/user/requestkey')
+
+        .post(function(req, res) {
+
+            var data = req.body;
+
+            if (!data.email) {
+                res.status(404);
+                res.json({ error: 'No email address provided' });
+                return;
+            } else if (/\S+@\S+/.test(data.email) == false) {
+                res.status(404);
+                res.json({ error: 'email not valid' });
+                return;
+            }
+
+            metaMapper.createUserRegistrationKey(data.email, req.params.client, function(data) {
+
+                messageMapper.send((options.userRegistrationMessage || {}).from || 'SPOO', req.body.email, (options.userRegistrationMessage || {}).subject || 'your registration key', ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
+
+                res.json({ message: 'registration key sent!' })
+            }, function(err) {
+                res.status(500);
+                res.json({ error: err });
+            })
+
+        });
+
+
+
+    router.route('/client/:client/user/requestpasswordreset')
+
+        .post(function(req, res) {
+
+            var data = req.body;
+
+            var client = req.params.client || client;
+
+            if (!data.email) {
+                res.status(404);
+                res.json({ error: 'Neither email nor username provided' });
+                return;
+            } else if (data.email && /\S+@\S+/.test(data.email) == false) {
+                res.status(404);
+                res.json({ error: 'email not valid' });
+                return;
+            }
+
+            var query = {};
+
+            if (data.username) query.username = data.username;
+            query.email = data.email;
+
+            OBJY.client(req.params.client);
+
+            OBJY['Users'](query).get(function(udata) {
+
+                    if (udata.length == 0) {
+                        res.status(404);
+                        res.json({ error: 'email not found' });
+                        return;
+                    } else if (udata.length > 1) {
+                        res.status(404);
+                        res.json({ error: 'use username and email' });
+                        return;
+                    }
+
+                    metaMapper.createPasswordResetKey(udata[0]._id, req.params.client, function(data) {
+
+                        messageMapper.send((options.userPasswordResetMessage || {}).from || 'SPOO', req.body.email, (options.userPasswordResetMessage || {}).subject || 'your password reset key', ((options.userPasswordResetMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
+
+                        res.json({ message: 'password reset key sent!' })
+                    }, function(err) {
+                        res.status(500);
+                        res.json({ error: err });
+                    })
+
+                },
+                function(err) {
+                    res.status(404);
+                    res.json({ error: err });
+                    return;
+                });
+
+        });
+
+
+    router.route('/client/:client/user/resetpassword')
+
+        .post(function(req, res) {
+
+            var userData = req.body;
+
+            var client = req.params.client || client;
+
+            if (!req.body.resetKey) {
+                res.status(404);
+                res.json({ error: 'No Reset Key found' });
+                return;
+            }
+
+            if (!req.body.password) {
+                res.status(404);
+                res.json({ error: 'Password not provided' });
+                return;
+            }
+
+            if (!req.body.password2) {
+                res.status(404);
+                res.json({ error: 'Password 2 not provided' });
+                return;
+            }
+
+            if (req.body.password != req.body.password2) {
+                res.status(500);
+                res.json({ error: 'Passwords do not match' });
+                return;
+            }
+
+            OBJY.client(req.params.client);
+
+            metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+
+                    OBJY['User'](_data.uId).get(function(data) {
+
+                            data.password = bcrypt.hashSync(req.body.password);
+
+                            data.update(function(spooElem) {
+                                    res.json({ message: "Password changed" });
+                                    return;
+                                },
+                                function(err) {
+                                    res.status(404);
+                                    res.json({ error: err });
+                                    return;
+                                }, {}, client);
+
+
+                        },
+                        function(err) {
+                            res.status(404);
+                            res.json({ error: err });
+                            return;
+                        });
+                },
+                function(err) {
+                    res.status(403);
+                    res.json({ error: err });
+                    return;
+                });
+
+
+        });
+
 
 
     // ADD: one or many, GET: one or many
@@ -114,7 +379,7 @@ Platform = function(OBJY, options) {
 
                 if (bcrypt.compareSync(req.body.password, user.password)) {
 
-                    var token = jwt.sign({ id: user._id, privileges: user.privileges }, options.jwtSecret || defaultSecret, {
+                    var token = jwt.sign({ id: user._id, privileges: user.privileges, client: req.params.client }, options.jwtSecret || defaultSecret, {
                         expiresIn: 20 * 60000
                     });
 
@@ -172,7 +437,7 @@ Platform = function(OBJY, options) {
 
         });
 
-    // REFRESH  A TOKEN
+    // REJECT A TOKEN
     router.route(['/client/:client/token/reject', '/client/:client/app/:app/token/reject'])
 
         .post(function(req, res) {
@@ -192,6 +457,15 @@ Platform = function(OBJY, options) {
 
         });
 
+
+
+    router.route(['/client/:client/applications'])
+
+        .get(checkAuthentication, function(req, res) {
+
+            res.json([])
+
+        })
 
 
     // ADD: one or many, GET: one or many
@@ -220,7 +494,6 @@ Platform = function(OBJY, options) {
         })
 
         .get(checkAuthentication, checkObjectFamily, function(req, res) {
-
 
             OBJY.client(req.params.client);
             if (req.params.app)
