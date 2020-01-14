@@ -1,6 +1,6 @@
-# SPOO - Single Point of Object
+# SPOO - Build a platform
 
-A framework for building domain-specific platforms
+A dynamic framework for building custom platforms
 
 ## Table of Contents
 
@@ -26,7 +26,6 @@ https://spoo.io/code/spoo.js
 ```
 
 
-
 ## Quick Example
 
 
@@ -40,7 +39,7 @@ SPOO.REST({port: 8080})
 
 ## Main Concepts
 
-### Objects
+### Object driven
 
 In real life, everything is an object. Every object is dynamic, has characteristics, behaviour and can execute actions. In SPOO, we are adopting the way objects work in real life by offering a way to model objects, that can have the same features like in real life. This makes it super easy to turn real use cases into its digital representation
 
@@ -86,36 +85,6 @@ SPOO.define({
 	persistence: new InMemoryMapper(),
 	observer: new RealTimeObserver(),
 	processor: new RealTimeProcessor()
-})
-```
-
-### Example 2: Use inline mappers
-```javascript
-SPOO.define({
-	name : "Item",
-	pluralName: "Items",
-	persistence: {
-		add: function() {
-
-		},
-		get: function() {
-
-		},
-		...
-	},
-	observer: {
-		initialize: function() {
-
-		},
-		run: function(){
-
-		}
-	},
-	processor: {
-		execute: function() {
-
-		}
-	}
 })
 ```
 

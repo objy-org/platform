@@ -59,6 +59,9 @@ Platform = function(OBJY, options) {
 
             redis.get(token, function(err, result) {
                 if (err || !result) return res.status(401).send({ auth: false, message: 'Failed to authenticate token' });
+
+                req.user = decoded
+
                 next()
             });
         });
@@ -233,7 +236,7 @@ Platform = function(OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            OBJY['Users'](query).get(function(udata) {
+            OBJY['users'](query).get(function(udata) {
 
                     if (udata.length == 0) {
                         res.status(404);
@@ -266,6 +269,7 @@ Platform = function(OBJY, options) {
 
 
     router.route('/client/:client/user/resetpassword')
+
 
         .post(function(req, res) {
 
@@ -301,6 +305,8 @@ Platform = function(OBJY, options) {
 
             metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
 
+                    OBJY.client(req.params.client);
+
                     OBJY['User'](_data.uId).get(function(data) {
 
                             data.password = bcrypt.hashSync(req.body.password);
@@ -313,8 +319,7 @@ Platform = function(OBJY, options) {
                                     res.status(404);
                                     res.json({ error: err });
                                     return;
-                                }, {}, client);
-
+                                });
 
                         },
                         function(err) {
@@ -335,7 +340,7 @@ Platform = function(OBJY, options) {
 
 
     // ADD: one or many, GET: one or many
-    router.route(['/client/:client/register/User', '/client/:client/aapp/:app/register/User'])
+    router.route(['/client/:client/register/user', '/client/:client/aapp/:app/register/user'])
 
         .post(function(req, res) {
 
@@ -343,7 +348,7 @@ Platform = function(OBJY, options) {
             if (req.params.app)
                 OBJY.app(req.params.app);
 
-            if (!OBJY['User'])
+            if (!OBJY['user'])
                 res.json({ message: "object family doe not exist" })
 
             var user = req.body;
@@ -356,7 +361,7 @@ Platform = function(OBJY, options) {
 
             if (req.body) {
 
-                OBJY['User'](req.body).add(function(data) {
+                OBJY['user'](req.body).add(function(data) {
                     res.json(data)
                 }, function(err) {
                     res.json(data)
@@ -373,13 +378,13 @@ Platform = function(OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            OBJY.Users().auth({ username: req.body.username }, function(user) {
+            OBJY.users().auth({ username: req.body.username }, function(user) {
 
                 console.info('authenticating user:', user)
 
                 if (bcrypt.compareSync(req.body.password, user.password)) {
 
-                    var token = jwt.sign({ id: user._id, privileges: user.privileges, client: req.params.client }, options.jwtSecret || defaultSecret, {
+                    var token = jwt.sign({ id: user._id, privileges: user.privileges }, options.jwtSecret || defaultSecret, {
                         expiresIn: 20 * 60000
                     });
 
@@ -476,6 +481,7 @@ Platform = function(OBJY, options) {
             OBJY.client(req.params.client);
             if (req.params.app)
                 OBJY.app(req.params.app);
+            else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
                 res.json({ message: "object family doe not exist" })
@@ -498,7 +504,7 @@ Platform = function(OBJY, options) {
             OBJY.client(req.params.client);
             if (req.params.app)
                 OBJY.app(req.params.app);
-
+            else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
                 res.json({ message: "object family doe not exist" })
@@ -506,6 +512,10 @@ Platform = function(OBJY, options) {
 
             var search = req.query;
 
+            for (var k in search) {
+                if (search[k] == 'true') search[k] = true;
+                if (search[k] == 'false') search[k] = false;
+            }
 
             Object.keys(search).forEach(function(k) {
                 if (k == "$query") search[k] = JSON.parse(search[k])
@@ -535,11 +545,17 @@ Platform = function(OBJY, options) {
             OBJY.client(req.params.client);
             if (req.params.app)
                 OBJY.app(req.params.app);
+            else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
                 res.json({ message: "object family doe not exist" })
 
             var search = req.query;
+
+            for (var k in search) {
+                if (search[k] == 'true') search[k] = true;
+                if (search[k] == 'false') search[k] = false;
+            }
 
             Object.keys(search).forEach(function(k) {
                 if (k == "$query") search[k] = JSON.parse(search[k])
@@ -556,6 +572,70 @@ Platform = function(OBJY, options) {
         });
 
 
+    // GET: one, UPDATE: one, DELETE: one
+    router.route(['/client/:client/:entity/:id/password', '/client/:client/app/:app/:entity/:id/password'])
+
+        .patch(checkAuthentication, checkObjectFamily, function(req, res) {
+
+            OBJY.client(req.params.client);
+
+            var usrData = req.body;
+            var passwordKey = Object.keys(usrData)[0];
+
+            var oldPassword = usrData['old'];
+            var newPassword = usrData['new'];
+
+            console.log(req.user)
+
+            if (req.user.id != req.params.id) {
+                res.status(403);
+                res.json({ error: 'This operation can only be performed by the user' });
+                return;
+            }
+
+            if (newPassword.length < 3) {
+                res.status(500);
+                res.json({ error: 'Password too short. Use 3 characters or more' });
+                return;
+            }
+
+
+            if (req.params.app)
+                OBJY.app(req.params.app);
+            else OBJY.app(undefined);
+
+            if (!OBJY[req.params.entity])
+                res.json({ message: "object family does not exist" })
+
+            OBJY[req.params.entity](req.params.id).get(function(data) {
+
+                if (!bcrypt.compareSync(oldPassword, data.password)) {
+                    res.status(500);
+                    res.json({ error: 'Old password not correct' });
+                    return;
+                }
+
+                try {
+                    data.setPassword(bcrypt.hashSync(newPassword));
+                } catch (err) {
+                    res.status(500);
+                    res.json({ error: err });
+                    return;
+                }
+
+                data.update(function(_data) {
+                    res.json(_data)
+                }, function(err) {
+
+                })
+
+            }, function(err) {
+                res.json({ msg: err })
+            })
+
+        })
+
+
 
 
     // GET: one, UPDATE: one, DELETE: one
@@ -566,6 +646,7 @@ Platform = function(OBJY, options) {
             OBJY.client(req.params.client);
             if (req.params.app)
                 OBJY.app(req.params.app);
+            else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
                 res.json({ message: "object family does not exist" })
@@ -599,8 +680,12 @@ Platform = function(OBJY, options) {
         .patch(checkAuthentication, checkObjectFamily, function(req, res) {
 
             OBJY.client(req.params.client);
+
+            console.info('..app..', req.params.app);
+
             if (req.params.app)
                 OBJY.app(req.params.app);
+            else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
                 res.json({ message: "object family does not exist" })
@@ -619,8 +704,10 @@ Platform = function(OBJY, options) {
                     commands.forEach(function(c) {
                         var k = Object.keys(c)[0];
 
-                        console.info(k, c[k]);
-                        data[k](...c[k]);
+
+                        if (Array.isArray(c[k])) data[k](...c[k]);
+                        else data[k](c[k]);
+
                         console.info(...c[k])
 
                     })
@@ -635,7 +722,7 @@ Platform = function(OBJY, options) {
                 })
 
             }, function(err) {
-                res.json({ msg: "not found" })
+                res.json({ msg: err })
             })
 
         })
@@ -647,6 +734,7 @@ Platform = function(OBJY, options) {
 
             if (req.params.app)
                 OBJY.app(req.params.app);
+            else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
                 res.json({ message: "object family does not exist" })
@@ -682,6 +770,7 @@ Platform = function(OBJY, options) {
             OBJY.client(req.params.client);
             if (req.params.app)
                 OBJY.app(req.params.app);
+            else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
                 res.json({ message: "object family does not exist" })
