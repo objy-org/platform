@@ -32,6 +32,7 @@
   },
   "bundleDependencies": false,
   "dependencies": {
+    "@spootechnologies/objy": "0.0.7",
     "bcrypt": "^3.0.6",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
@@ -69,5 +70,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.1.8"
+  "version": "0.2.2"
 }

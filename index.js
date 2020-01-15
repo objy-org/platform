@@ -1,20 +1,19 @@
 var Rest = require('./catalog/rest.js');
 var OBJY = require('@spootechnologies/objy');
 
-var MetaMongoMapper = require('./mappers/MetaMapper.js');
-var MessageSendgridMapper = require('./mappers/MessageMapper.js');
-
 const SPOO = {
 
     metaMappers: {
-        mongoMapper: MetaMongoMapper
+        mongoMapper: require('./mappers/MetaMapper.js')
     },
 
     messageMappers: {
-        sendgridMapper: MessageSendgridMapper
+        sendgridMapper: require('./mappers/MessageMapper.js')
     },
 
     MetaMapper: {},
+
+    OBJY: OBJY,
 
     //enabledObjectFymilies: {},
 
@@ -32,14 +31,13 @@ const SPOO = {
 
     },
 
-
     REST: function(options, enabledObjectFymilies) {
         return new Rest(OBJY, options)
     },
 
-    MQTT: function(options, enabledObjectFymilies) {
+    /*MQTT: function(options, enabledObjectFymilies) {
         // TODO...
-    }
+    }*/
 }
 
 module.exports = SPOO;

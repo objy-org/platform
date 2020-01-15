@@ -36,8 +36,39 @@ const SPOO = require('spoo');
 SPOO.REST({port: 8080})
 ```
 
+## Using the platform via REST
 
-## Main Concepts
+Once your platform is up and running, you can access it via thee REST API. A full documentation can be found here...
+
+To setup a tenant, perform the following steps:
+
+
+```shell
+POST http://IP/api/client/register
+- d {
+	email : "email to recieve registration key"
+}
+```
+
+```shell
+POST http://IP/api/client
+- d {
+	registrationKey : "the key recieved via email...",
+	clientname: "your TenantID (pick one)"
+}
+```
+
+```shell
+POST http://IP/api/client/<TenantID>/register/user
+- d {
+	username : "your username",
+	email: "...@...",
+	password: "***"
+}
+```
+
+
+## Main Concept
 
 ### Object driven
 
