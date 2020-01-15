@@ -7,7 +7,7 @@ A JavaScript Framework for building custom platforms on Node.
 A (digital) platform is a system that brings together data, processes and users in order to archieve a common goal. Think eBay, Facebook, Slack, etc.
 Platforms, from a technical perspective must be able to run on any modern infrastructure, must be taylored for the use case (we call it the platform goal) and must offer all the standard features, users expect (access control, forgot password, etc.)
 
-SPOO ist not a platform! SPOO is a Framework for building platforms! Dynamic, taylored and scalable.
+*SPOO ist not a platform!* SPOO is a Framework for building platforms, taylored for your domain.
 
 
 ## Table of Contents
