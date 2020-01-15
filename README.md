@@ -1,12 +1,19 @@
-# SPOO - Build a platform
+# SPOO - Build a Platform
 
-A dynamic framework for building custom platforms
+A JavaScript Framework for building custom platforms on Node.
+
+## What's a platform?
+
+A (digital) platform is a system that brings together data, processes and users in order to archieve a common goal. Think eBay, Facebook, Slack, etc.
+Platforms, from a technical perspective must be able to run on any modern infrastructure, must be taylored for the use case (we call it the platform goal) and must offer all the standard features, users expect (access control, forgot password, etc.)
+
+SPOO ist not a platform! SPOO is a Framework for building platforms! Dynamic, taylored and scalable.
+
 
 ## Table of Contents
 
 - [Main Concepts](#Getting Started)
 - [Installing](dgs)
-
 
 
 ## Installing
@@ -17,15 +24,6 @@ A dynamic framework for building custom platforms
 npm install spoo
 ```
 
-
-### CDN
-
-
-```shell
-https://spoo.io/code/spoo.js
-```
-
-
 ## Quick Example
 
 
@@ -33,7 +31,22 @@ https://spoo.io/code/spoo.js
 // Include SPOO (Node.js)
 const SPOO = require('spoo');
 
-SPOO.REST({port: 8080})
+// define one or more OBJY object types
+SPOO.define({
+    authable: true,
+    name: "user",
+    pluralName: "users",
+    storage: new Mongo(SPOO.OBJY).connect('mongodb://localhost', function(data) { }, function(data) { })
+})
+
+// Initialize REST Interface
+SPOO.REST({
+    port: 80,
+    redisCon: {
+        port: 6379,
+        host: "localhost"
+    }
+});
 ```
 
 ## Using the platform via REST
@@ -66,6 +79,18 @@ POST http://IP/api/client/<TenantID>/register/user
 	password: "***"
 }
 ```
+
+Once a tenant and account is created, you can login
+
+```shell
+POST http://IP/api/client/<TenantID>/auth
+- d {
+	username : "your username",
+	password: "***"
+}
+```
+
+Your signed in!
 
 
 ## Main Concept
