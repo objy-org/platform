@@ -12,7 +12,7 @@ var router = express.Router();
 var shortid = require('shortid');
 var defaultSecret = 'asdgnm0923t923';
 
-Platform = function(OBJY, options) {
+Platform = function(SPOO, OBJY, options) {
 
     console.log(options)
 
@@ -62,6 +62,8 @@ Platform = function(OBJY, options) {
 
                 req.user = decoded
 
+                if ((decoded.clients || []).indexOf(req.params.client) == -1) return res.status(401).send({ auth: false, message: 'Failed to authenticate token' });
+
                 next()
             });
         });
@@ -75,8 +77,6 @@ Platform = function(OBJY, options) {
             res.json({ message: "Hi there" })
             console.log("Hi there");
         })
-
-
 
     // Request a client activation key
     router.route(['/client/register'])
@@ -171,7 +171,19 @@ Platform = function(OBJY, options) {
 
             metaMapper.getClientApplications(function(data) {
 
-                res.json(data)
+                var _data = [];
+
+                if (req.query.name) {
+                    data.forEach(function(d) {
+                        if (d.displayName.toLowerCase().indexOf(req.query.name.toLowerCase()) != -1) _data.push(d)
+                    })
+                } else _data = data;
+
+                _data.forEach(function(d, i) {
+                    if (!req.user.privileges[d.name]) _data.splice(i, 1);
+                })
+
+                res.json(_data)
 
             }, function(err) {
                 res.status(500);
@@ -179,7 +191,6 @@ Platform = function(OBJY, options) {
             }, client);
 
         });
-
 
     router.route('/client/:client/user/requestkey')
 
@@ -333,11 +344,7 @@ Platform = function(OBJY, options) {
                     res.json({ error: err });
                     return;
                 });
-
-
         });
-
-
 
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/register/user', '/client/:client/aapp/:app/register/user'])
@@ -353,6 +360,8 @@ Platform = function(OBJY, options) {
 
             var user = req.body;
 
+            user = SPOO.serialize(req.body);
+
             if (!user.username) user.username = shortid.generate();
             if (!user.password) user.password = shortid.generate();
             if (!user.email) user.email = shortid.generate() + "@" + shortid.generate() + ".com";
@@ -362,7 +371,7 @@ Platform = function(OBJY, options) {
             if (req.body) {
 
                 OBJY['user'](req.body).add(function(data) {
-                    res.json(data)
+                    res.json(SPOO.deserialize(data))
                 }, function(err) {
                     res.json(data)
                 })
@@ -384,7 +393,12 @@ Platform = function(OBJY, options) {
 
                 if (bcrypt.compareSync(req.body.password, user.password)) {
 
-                    var token = jwt.sign({ id: user._id, privileges: user.privileges }, options.jwtSecret || defaultSecret, {
+                    var clients = user._clients || [];
+                    if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
+
+                    console.info('clients', clients)
+
+                    var token = jwt.sign({ id: user._id, username: user.username, privileges: user.privileges, clients: clients }, options.jwtSecret || defaultSecret, {
                         expiresIn: 20 * 60000
                     });
 
@@ -393,8 +407,9 @@ Platform = function(OBJY, options) {
                     redis.set(token, 'true', "EX", 1200)
                     redis.set(refreshToken, JSON.stringify(user), "EX", 2592000)
 
+                    console.info('asdsagsdgsdg', SPOO.deserialize(user));
 
-                    res.json({ message: "authenticated", user: user, token: { accessToken: token, refreshToken: refreshToken } })
+                    res.json({ message: "authenticated", user: SPOO.deserialize(user), token: { accessToken: token, refreshToken: refreshToken } })
 
                 } else {
                     res.status(401)
@@ -463,16 +478,6 @@ Platform = function(OBJY, options) {
         });
 
 
-
-    router.route(['/client/:client/applications'])
-
-        .get(checkAuthentication, function(req, res) {
-
-            res.json([])
-
-        })
-
-
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/:entity', '/client/:client/app/:app/:entity'])
 
@@ -490,8 +495,10 @@ Platform = function(OBJY, options) {
 
             if (req.body) {
 
+                req.body = SPOO.serialize(req.body);
+
                 OBJY[req.params.entity](req.body).add(function(data) {
-                    res.json(data)
+                    res.json(SPOO.deserialize(data))
                 }, function(err) {
                     res.json(err)
                 })
@@ -510,7 +517,7 @@ Platform = function(OBJY, options) {
                 res.json({ message: "object family doe not exist" })
 
 
-            var search = req.query;
+            var search = SPOO.serializeQuery(req.query);
 
             for (var k in search) {
                 if (search[k] == 'true') search[k] = true;
@@ -526,7 +533,14 @@ Platform = function(OBJY, options) {
             console.info('getting...', req.params.entity, search)
 
             OBJY[req.params.entity](search).get(function(data) {
-                res.json(data)
+
+
+                var _data = [];
+                data.forEach(function(d) {
+                    _data.push(SPOO.deserialize(d))
+                })
+                res.json(_data);
+
 
             }, function(err) {
                 res.json(err)
@@ -624,7 +638,7 @@ Platform = function(OBJY, options) {
                 }
 
                 data.update(function(_data) {
-                    res.json(_data)
+                    res.json(SPOO.deserialize(_data))
                 }, function(err) {
 
                 })
@@ -652,13 +666,11 @@ Platform = function(OBJY, options) {
                 res.json({ message: "object family does not exist" })
 
             OBJY[req.params.entity](req.params.id).get(function(data) {
-                res.json(data)
+                res.json(SPOO.deserialize(data))
             }, function(err) {
                 res.json(err)
             })
-
         })
-
 
         .delete(checkAuthentication, checkObjectFamily, function(req, res) {
 
@@ -670,7 +682,7 @@ Platform = function(OBJY, options) {
                 res.json({ message: "object family does not exist" })
 
             OBJY[req.params.entity](req.params.id).remove(function(data) {
-                res.json(data)
+                res.json(SPOO.deserialize(data))
             }, function(err) {
                 res.json(err)
             })
@@ -708,15 +720,13 @@ Platform = function(OBJY, options) {
                         if (Array.isArray(c[k])) data[k](...c[k]);
                         else data[k](c[k]);
 
-                        console.info(...c[k])
-
                     })
                 }
 
                 console.info('u')
 
                 data.update(function(_data) {
-                    res.json(_data)
+                    res.json(SPOO.deserialize(_data))
                 }, function(err) {
 
                 })
@@ -747,10 +757,10 @@ Platform = function(OBJY, options) {
 
                 console.info(data)
 
-                data.replace(req.body);
+                data.replace(SPOO.serialize(req.body));
 
                 data.update(function(_data) {
-                    res.json(_data)
+                    res.json(SPOO.deserialize(_data))
                 }, function(err) {
 
                 })
