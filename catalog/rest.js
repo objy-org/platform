@@ -16,6 +16,8 @@ Platform = function(SPOO, OBJY, options) {
 
     console.log(options)
 
+    this.router = router;
+
     var redis;
 
     if (options.redisCon) {
@@ -716,7 +718,6 @@ Platform = function(SPOO, OBJY, options) {
                     commands.forEach(function(c) {
                         var k = Object.keys(c)[0];
 
-
                         if (Array.isArray(c[k])) data[k](...c[k]);
                         else data[k](c[k]);
 
@@ -809,9 +810,10 @@ Platform = function(SPOO, OBJY, options) {
             return;
         });
 
-
-    app.listen(options.port || '8888');
-    app.use('/api', router);
+    this.run = function() {
+        app.listen(options.port || '8888');
+        app.use('/api', router);
+    }
 
 }
 
