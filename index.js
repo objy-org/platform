@@ -21,8 +21,9 @@ const SPOO = {
         };
 
         for (var prop in obj) {
-            if (self.metaProperties.indexOf(prop.substr(1)) == -1 || self.staticProperties.indexOf(prop.substr) == -1) {
-                nObj.properties[prop] = obj[prop];
+            if (self.metaProperties.indexOf(prop.substr(1)) == -1) {
+                if (self.staticProperties.indexOf(prop) != -1) nObj[prop] = obj[prop];
+                else nObj.properties[prop] = obj[prop];
             } else nObj[prop.substr(1)] = obj[prop];
         }
         return nObj;
@@ -41,10 +42,26 @@ const SPOO = {
         };
 
         for (var prop in obj) {
+            try {
+                obj[prop] = JSON.parse(obj[prop]);
+            } catch (e) {
+
+            }
+        }
+
+        for (var prop in obj) {
             if (self.metaProperties.indexOf(prop.substr(1)) == -1) {
                 if (self.staticProperties.indexOf(prop) != -1) nObj[prop] = obj[prop];
-                else nObj['properties.' + prop] = obj[prop];
-            } else nObj[prop.substr(1)] = obj[prop];
+                else {
+                    if (prop.charAt(0) != '$') nObj['properties.' + prop] = obj[prop];
+                    else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) == -1) nObj[prop] = "properties." + obj[prop];
+                    else nObj[prop] = obj[prop];
+                }
+            } else {
+                if (self.staticProperties.indexOf(prop) != -1) nObj[prop.substr(1)] = obj[prop];
+                else nObj[prop.substr(1)] = "properties." + obj[prop];
+            }
+
         }
 
         delete nObj.properties;
@@ -52,8 +69,6 @@ const SPOO = {
     },
 
     deserialize: function(obj) {
-
-        console.info('SPOO', this.metaPropPrefix)
 
         if (this.metaPropPrefix == '') return obj;
 
@@ -64,7 +79,7 @@ const SPOO = {
         for (var prop in JSON.parse(JSON.stringify(obj))) {
 
             if (self.metaProperties.indexOf(prop) != -1) {
-                console.info(self.metaProperties.indexOf(prop), prop)
+
                 nObj[self.metaPropPrefix + prop] = obj[prop];
             } else if (prop != 'properties') nObj[prop] = obj[prop];
         }

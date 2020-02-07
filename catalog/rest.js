@@ -14,7 +14,7 @@ var defaultSecret = 'asdgnm0923t923';
 
 Platform = function(SPOO, OBJY, options) {
 
-    console.log(options)
+    OBJY.Logger.log("Platform options: " + options);
 
     this.router = router;
 
@@ -26,8 +26,12 @@ Platform = function(SPOO, OBJY, options) {
 
     var objectFamilies = options.objectFamilies || [];
 
-    app.use(bodyParser.urlencoded({ extended: true }));
-    app.use(bodyParser.json({ limit: '300mb' }));
+    app.use(bodyParser.urlencoded({
+        extended: true
+    }));
+    app.use(bodyParser.json({
+        limit: '300mb'
+    }));
     app.use(cors());
     app.options('*', cors());
 
@@ -38,7 +42,9 @@ Platform = function(SPOO, OBJY, options) {
 
     var checkObjectFamily = function(req, res, next) {
         if (objectFamilies.indexOf(req.params.entity) == -1 && !objectFamilies.length == 0) {
-            res.status(500).json({ message: 'Object Family not available for this interface' })
+            res.status(500).json({
+                message: 'Object Family not available for this interface'
+            })
         }
         next();
     }
@@ -49,35 +55,45 @@ Platform = function(SPOO, OBJY, options) {
 
         if (req.headers.authorization) {
             token = req.headers.authorization.slice(7, req.headers.authorization.length)
-            console.log(token)
+
         } else if (req.query.token) {
             token = req.query.token
         }
 
-        console.info(token)
-
         jwt.verify(token, options.jwtSecret || defaultSecret, function(err, decoded) {
-            if (err) return res.status(401).send({ auth: false, message: 'Failed to authenticate token' });
+            if (err) return res.status(401).send({
+                auth: false,
+                message: 'Failed to authenticate token'
+            });
 
             redis.get(token, function(err, result) {
-                if (err || !result) return res.status(401).send({ auth: false, message: 'Failed to authenticate token' });
+
+                OBJY.Logger.log("Got token from redis " + result);
+
+                if (err || !result) return res.status(401).send({
+                    auth: false,
+                    message: 'Failed to authenticate token'
+                });
 
                 req.user = decoded
 
-                if ((decoded.clients || []).indexOf(req.params.client) == -1) return res.status(401).send({ auth: false, message: 'Failed to authenticate token' });
+                if ((decoded.clients || []).indexOf(req.params.client) == -1) return res.status(401).send({
+                    auth: false,
+                    message: 'Failed to authenticate token'
+                });
 
                 next()
             });
         });
     }
 
-
     // Welcome
     router.route(['/'])
 
         .get(function(req, res) {
-            res.json({ message: "Hi there" })
-            console.log("Hi there");
+            res.json({
+                message: "Hi there"
+            })
         })
 
     // Request a client activation key
@@ -89,7 +105,9 @@ Platform = function(SPOO, OBJY, options) {
 
             if (!data.email) {
                 res.status(404);
-                res.json({ error: 'No email address provided' });
+                res.json({
+                    error: 'No email address provided'
+                });
                 return;
             }
 
@@ -97,7 +115,9 @@ Platform = function(SPOO, OBJY, options) {
 
                 messageMapper.send((options.clientRegistrationMessage || {}).from || 'SPOO', req.body.email, (options.clientRegistrationMessage || {}).subject || 'your workspace registration key', ((options.clientRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
 
-                res.json({ message: 'workspace registration key sent!' })
+                res.json({
+                    message: 'workspace registration key sent!'
+                })
 
             }, function(err) {
                 res.status(500)
@@ -116,7 +136,9 @@ Platform = function(SPOO, OBJY, options) {
 
             if (!req.body.registrationKey) {
                 res.status(404);
-                res.json({ error: 'No activation key found' });
+                res.json({
+                    error: 'No activation key found'
+                });
                 return;
             }
 
@@ -147,8 +169,6 @@ Platform = function(SPOO, OBJY, options) {
 
         .post(checkAuthentication, function(req, res) {
 
-            console.log(req.user);
-
             var client = req.params.client;
 
             var appData = req.body;
@@ -158,7 +178,9 @@ Platform = function(SPOO, OBJY, options) {
                 res.json(data);
             }, function(err) {
                 res.status(500);
-                res.json({ error: 'Some Error occured' });
+                res.json({
+                    error: 'Some Error occured'
+                });
             }, client);
 
         });
@@ -167,7 +189,6 @@ Platform = function(SPOO, OBJY, options) {
 
         .get(checkAuthentication, function(req, res) {
 
-            console.log(req.user);
 
             var client = req.params.client;
 
@@ -189,7 +210,9 @@ Platform = function(SPOO, OBJY, options) {
 
             }, function(err) {
                 res.status(500);
-                res.json({ error: 'Some Error occured' });
+                res.json({
+                    error: 'Some Error occured'
+                });
             }, client);
 
         });
@@ -202,11 +225,15 @@ Platform = function(SPOO, OBJY, options) {
 
             if (!data.email) {
                 res.status(404);
-                res.json({ error: 'No email address provided' });
+                res.json({
+                    error: 'No email address provided'
+                });
                 return;
             } else if (/\S+@\S+/.test(data.email) == false) {
                 res.status(404);
-                res.json({ error: 'email not valid' });
+                res.json({
+                    error: 'email not valid'
+                });
                 return;
             }
 
@@ -214,10 +241,14 @@ Platform = function(SPOO, OBJY, options) {
 
                 messageMapper.send((options.userRegistrationMessage || {}).from || 'SPOO', req.body.email, (options.userRegistrationMessage || {}).subject || 'your registration key', ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
 
-                res.json({ message: 'registration key sent!' })
+                res.json({
+                    message: 'registration key sent!'
+                })
             }, function(err) {
                 res.status(500);
-                res.json({ error: err });
+                res.json({
+                    error: err
+                });
             })
 
         });
@@ -234,11 +265,15 @@ Platform = function(SPOO, OBJY, options) {
 
             if (!data.email) {
                 res.status(404);
-                res.json({ error: 'Neither email nor username provided' });
+                res.json({
+                    error: 'Neither email nor username provided'
+                });
                 return;
             } else if (data.email && /\S+@\S+/.test(data.email) == false) {
                 res.status(404);
-                res.json({ error: 'email not valid' });
+                res.json({
+                    error: 'email not valid'
+                });
                 return;
             }
 
@@ -253,11 +288,15 @@ Platform = function(SPOO, OBJY, options) {
 
                     if (udata.length == 0) {
                         res.status(404);
-                        res.json({ error: 'email not found' });
+                        res.json({
+                            error: 'email not found'
+                        });
                         return;
                     } else if (udata.length > 1) {
                         res.status(404);
-                        res.json({ error: 'use username and email' });
+                        res.json({
+                            error: 'use username and email'
+                        });
                         return;
                     }
 
@@ -265,16 +304,22 @@ Platform = function(SPOO, OBJY, options) {
 
                         messageMapper.send((options.userPasswordResetMessage || {}).from || 'SPOO', req.body.email, (options.userPasswordResetMessage || {}).subject || 'your password reset key', ((options.userPasswordResetMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
 
-                        res.json({ message: 'password reset key sent!' })
+                        res.json({
+                            message: 'password reset key sent!'
+                        })
                     }, function(err) {
                         res.status(500);
-                        res.json({ error: err });
+                        res.json({
+                            error: err
+                        });
                     })
 
                 },
                 function(err) {
                     res.status(404);
-                    res.json({ error: err });
+                    res.json({
+                        error: err
+                    });
                     return;
                 });
 
@@ -292,25 +337,33 @@ Platform = function(SPOO, OBJY, options) {
 
             if (!req.body.resetKey) {
                 res.status(404);
-                res.json({ error: 'No Reset Key found' });
+                res.json({
+                    error: 'No Reset Key found'
+                });
                 return;
             }
 
             if (!req.body.password) {
                 res.status(404);
-                res.json({ error: 'Password not provided' });
+                res.json({
+                    error: 'Password not provided'
+                });
                 return;
             }
 
             if (!req.body.password2) {
                 res.status(404);
-                res.json({ error: 'Password 2 not provided' });
+                res.json({
+                    error: 'Password 2 not provided'
+                });
                 return;
             }
 
             if (req.body.password != req.body.password2) {
                 res.status(500);
-                res.json({ error: 'Passwords do not match' });
+                res.json({
+                    error: 'Passwords do not match'
+                });
                 return;
             }
 
@@ -325,25 +378,33 @@ Platform = function(SPOO, OBJY, options) {
                             data.password = bcrypt.hashSync(req.body.password);
 
                             data.update(function(spooElem) {
-                                    res.json({ message: "Password changed" });
+                                    res.json({
+                                        message: "Password changed"
+                                    });
                                     return;
                                 },
                                 function(err) {
                                     res.status(404);
-                                    res.json({ error: err });
+                                    res.json({
+                                        error: err
+                                    });
                                     return;
                                 });
 
                         },
                         function(err) {
                             res.status(404);
-                            res.json({ error: err });
+                            res.json({
+                                error: err
+                            });
                             return;
                         });
                 },
                 function(err) {
                     res.status(403);
-                    res.json({ error: err });
+                    res.json({
+                        error: err
+                    });
                     return;
                 });
         });
@@ -358,7 +419,9 @@ Platform = function(SPOO, OBJY, options) {
                 OBJY.app(req.params.app);
 
             if (!OBJY['user'])
-                res.json({ message: "object family doe not exist" })
+                res.json({
+                    message: "object family does not exist"
+                })
 
             var user = req.body;
 
@@ -389,18 +452,22 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            OBJY.users().auth({ username: req.body.username }, function(user) {
+            OBJY.users().auth({
+                username: req.body.username
+            }, function(user) {
 
-                console.info('authenticating user:', user)
 
                 if (bcrypt.compareSync(req.body.password, user.password)) {
 
                     var clients = user._clients || [];
                     if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
 
-                    console.info('clients', clients)
-
-                    var token = jwt.sign({ id: user._id, username: user.username, privileges: user.privileges, clients: clients }, options.jwtSecret || defaultSecret, {
+                    var token = jwt.sign({
+                        id: user._id,
+                        username: user.username,
+                        privileges: user.privileges,
+                        clients: clients
+                    }, options.jwtSecret || defaultSecret, {
                         expiresIn: 20 * 60000
                     });
 
@@ -409,17 +476,26 @@ Platform = function(SPOO, OBJY, options) {
                     redis.set(token, 'true', "EX", 1200)
                     redis.set(refreshToken, JSON.stringify(user), "EX", 2592000)
 
-                    console.info('asdsagsdgsdg', SPOO.deserialize(user));
-
-                    res.json({ message: "authenticated", user: SPOO.deserialize(user), token: { accessToken: token, refreshToken: refreshToken } })
+                    res.json({
+                        message: "authenticated",
+                        user: SPOO.deserialize(user),
+                        token: {
+                            accessToken: token,
+                            refreshToken: refreshToken
+                        }
+                    })
 
                 } else {
                     res.status(401)
-                    res.json({ message: "not authenticated" })
+                    res.json({
+                        message: "not authenticated"
+                    })
                 }
             }, function(err) {
                 res.status(401)
-                res.json({ message: "not authenticated" })
+                res.json({
+                    message: "not authenticated"
+                })
             })
 
         });
@@ -433,13 +509,12 @@ Platform = function(SPOO, OBJY, options) {
             OBJY.client(req.params.client);
 
             redis.get(req.body.refreshToken, function(err, result) {
-                if (err || !result) return res.status(401).send({ auth: false, message: 'Failed to verify refresh token.' });
-
-
-                console.info(result)
+                if (err || !result) return res.status(401).send({
+                    auth: false,
+                    message: 'Failed to verify refresh token.'
+                });
 
                 result = JSON.parse(result);
-
 
                 var token = jwt.sign(result, options.jwtSecret || defaultSecret, {
                     expiresIn: 20 * 60000
@@ -449,11 +524,17 @@ Platform = function(SPOO, OBJY, options) {
 
                 var refreshToken = shortid.generate() + shortid.generate() + shortid.generate();
 
-
                 redis.set(token, 'true', "EX", 1200)
                 redis.set(refreshToken, JSON.stringify(result), "EX", 2592000)
 
-                res.json({ message: "authenticated", user: result, token: { accessToken: token, refreshToken: refreshToken } })
+                res.json({
+                    message: "authenticated",
+                    user: result,
+                    token: {
+                        accessToken: token,
+                        refreshToken: refreshToken
+                    }
+                })
             });
 
 
@@ -467,13 +548,16 @@ Platform = function(SPOO, OBJY, options) {
             OBJY.client(req.params.client);
 
             redis.get(req.body.accessToken, function(err, result) {
-                if (err || !result) return res.status(404).send({ auth: false, message: 'Token not found' });
-
-                console.info(result)
+                if (err || !result) return res.status(404).send({
+                    auth: false,
+                    message: 'Token not found'
+                });
 
                 redis.del(req.body.accessToken);
 
-                res.json({ message: "token rejected" })
+                res.json({
+                    message: "token rejected"
+                })
             });
 
 
@@ -491,7 +575,9 @@ Platform = function(SPOO, OBJY, options) {
             else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
-                res.json({ message: "object family doe not exist" })
+                res.json({
+                    message: "object family doe not exist"
+                })
 
             // add content
 
@@ -516,7 +602,9 @@ Platform = function(SPOO, OBJY, options) {
             else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
-                res.json({ message: "object family doe not exist" })
+                res.json({
+                    message: "object family doe not exist"
+                })
 
 
             var search = SPOO.serializeQuery(req.query);
@@ -531,8 +619,6 @@ Platform = function(SPOO, OBJY, options) {
             })
 
             delete search.token;
-
-            console.info('getting...', req.params.entity, search)
 
             OBJY[req.params.entity](search).get(function(data) {
 
@@ -557,14 +643,15 @@ Platform = function(SPOO, OBJY, options) {
         .get(checkAuthentication, checkObjectFamily, function(req, res) {
 
 
-
             OBJY.client(req.params.client);
             if (req.params.app)
                 OBJY.app(req.params.app);
             else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
-                res.json({ message: "object family doe not exist" })
+                res.json({
+                    message: "object family doe not exist"
+                })
 
             var search = req.query;
 
@@ -601,17 +688,19 @@ Platform = function(SPOO, OBJY, options) {
             var oldPassword = usrData['old'];
             var newPassword = usrData['new'];
 
-            console.log(req.user)
-
             if (req.user.id != req.params.id) {
                 res.status(403);
-                res.json({ error: 'This operation can only be performed by the user' });
+                res.json({
+                    error: 'This operation can only be performed by the user'
+                });
                 return;
             }
 
             if (newPassword.length < 3) {
                 res.status(500);
-                res.json({ error: 'Password too short. Use 3 characters or more' });
+                res.json({
+                    error: 'Password too short. Use 3 characters or more'
+                });
                 return;
             }
 
@@ -621,13 +710,17 @@ Platform = function(SPOO, OBJY, options) {
             else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
-                res.json({ message: "object family does not exist" })
+                res.json({
+                    message: "object family does not exist"
+                })
 
             OBJY[req.params.entity](req.params.id).get(function(data) {
 
                 if (!bcrypt.compareSync(oldPassword, data.password)) {
                     res.status(500);
-                    res.json({ error: 'Old password not correct' });
+                    res.json({
+                        error: 'Old password not correct'
+                    });
                     return;
                 }
 
@@ -635,7 +728,9 @@ Platform = function(SPOO, OBJY, options) {
                     data.setPassword(bcrypt.hashSync(newPassword));
                 } catch (err) {
                     res.status(500);
-                    res.json({ error: err });
+                    res.json({
+                        error: err
+                    });
                     return;
                 }
 
@@ -646,11 +741,12 @@ Platform = function(SPOO, OBJY, options) {
                 })
 
             }, function(err) {
-                res.json({ msg: err })
+                res.json({
+                    msg: err
+                })
             })
 
         })
-
 
 
 
@@ -665,7 +761,9 @@ Platform = function(SPOO, OBJY, options) {
             else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
-                res.json({ message: "object family does not exist" })
+                res.json({
+                    message: "object family does not exist"
+                })
 
             OBJY[req.params.entity](req.params.id).get(function(data) {
                 res.json(SPOO.deserialize(data))
@@ -681,7 +779,9 @@ Platform = function(SPOO, OBJY, options) {
                 OBJY.app(req.params.app);
 
             if (!OBJY[req.params.entity])
-                res.json({ message: "object family does not exist" })
+                res.json({
+                    message: "object family does not exist"
+                })
 
             OBJY[req.params.entity](req.params.id).remove(function(data) {
                 res.json(SPOO.deserialize(data))
@@ -695,26 +795,25 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            console.info('..app..', req.params.app);
 
             if (req.params.app)
                 OBJY.app(req.params.app);
             else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
-                res.json({ message: "object family does not exist" })
+                res.json({
+                    message: "object family does not exist"
+                })
 
             OBJY[req.params.entity](req.params.id).get(function(data) {
 
                 var commands = req.body;
 
-                console.info(commands);
-
                 if (!Array.isArray(commands)) {
                     var k = Object.keys(commands)[0];
                     data[k](...commands[k]);
                 } else {
-                    console.info('arr')
+
                     commands.forEach(function(c) {
                         var k = Object.keys(c)[0];
 
@@ -724,7 +823,6 @@ Platform = function(SPOO, OBJY, options) {
                     })
                 }
 
-                console.info('u')
 
                 data.update(function(_data) {
                     res.json(SPOO.deserialize(_data))
@@ -733,7 +831,9 @@ Platform = function(SPOO, OBJY, options) {
                 })
 
             }, function(err) {
-                res.json({ msg: err })
+                res.json({
+                    msg: err
+                })
             })
 
         })
@@ -748,15 +848,12 @@ Platform = function(SPOO, OBJY, options) {
             else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
-                res.json({ message: "object family does not exist" })
+                res.json({
+                    message: "object family does not exist"
+                })
 
             OBJY[req.params.entity](req.params.id).get(function(data) {
 
-                console.info('commands');
-
-                //data = OBJY[req.params.entity](req.body);
-
-                console.info(data)
 
                 data.replace(SPOO.serialize(req.body));
 
@@ -767,7 +864,9 @@ Platform = function(SPOO, OBJY, options) {
                 })
 
             }, function(err) {
-                res.json({ msg: "not found" })
+                res.json({
+                    msg: "not found"
+                })
             })
 
         });
@@ -784,14 +883,18 @@ Platform = function(SPOO, OBJY, options) {
             else OBJY.app(undefined);
 
             if (!OBJY[req.params.entity])
-                res.json({ message: "object family does not exist" })
+                res.json({
+                    message: "object family does not exist"
+                })
 
             OBJY[req.params.entity](req.params.id).get(function(data) {
 
                 if (data.getProperty(req.params.propName)) {
                     data.getProperty(req.params.propName).call(function(data) {
-                        console.log("called");
-                        res.json({ message: "called" })
+
+                        res.json({
+                            message: "called"
+                        })
                     }, req.params.client)
                 }
 
@@ -804,9 +907,11 @@ Platform = function(SPOO, OBJY, options) {
     router.route(['/client/:client/authenticated', '/client/:client/app/:app/authenticated'])
 
         .get(checkAuthentication, function(req, res) {
-            console.info('ad')
+
             res.status(200);
-            res.json({ authenticated: true });
+            res.json({
+                authenticated: true
+            });
             return;
         });
 
@@ -818,7 +923,7 @@ Platform = function(SPOO, OBJY, options) {
 }
 
 process.on('uncaughtException', function(err) {
-    console.error(err)
+    console.error(err);
 })
 
 module.exports = Platform;

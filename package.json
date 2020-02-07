@@ -33,7 +33,7 @@
   "bundleDependencies": false,
   "dependencies": {
     "@sendgrid/mail": "^6.5.0",
-    "@spootechnologies/objy": "0.1.6",
+    "@spootechnologies/objy": "0.1.9",
     "bcrypt": "^3.0.6",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
@@ -48,7 +48,6 @@
     "moment": "^2.24.0",
     "mongoose": "^5.6.4",
     "nedb": "^1.8.0",
-    "query": "github:protobi/query",
     "shortid": "^2.2.14",
     "vm2": "^3.8.1"
   },
@@ -71,5 +70,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.4.3"
+  "version": "0.5.2"
 }
