@@ -527,9 +527,15 @@ Platform = function(SPOO, OBJY, options) {
 
                 result = JSON.parse(result);
 
-                var token = jwt.sign(result, options.jwtSecret || defaultSecret, {
+                var token = jwt.sign({
+                    id: result._id,
+                    username: result.username,
+                    privileges: result.privileges,
+                    clients: result.clients
+                }, options.jwtSecret || defaultSecret, {
                     expiresIn: 20 * 60000
                 });
+
 
                 redis.del(req.body.refreshToken);
 
@@ -547,7 +553,6 @@ Platform = function(SPOO, OBJY, options) {
                     }
                 })
             });
-
 
         });
 
@@ -797,7 +802,9 @@ Platform = function(SPOO, OBJY, options) {
             OBJY[req.params.entity](req.params.id).remove(function(data) {
                 res.json(SPOO.deserialize(data))
             }, function(err) {
-                res.json(err)
+                res.json({
+                    msg: err
+                })
             })
 
         })

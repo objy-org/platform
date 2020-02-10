@@ -33,7 +33,7 @@
   "bundleDependencies": false,
   "dependencies": {
     "@sendgrid/mail": "^6.5.0",
-    "@spootechnologies/objy": "0.1.9",
+    "@spootechnologies/objy": "0.2.0",
     "bcrypt": "^3.0.6",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
