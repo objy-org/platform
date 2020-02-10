@@ -77,7 +77,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 req.user = decoded
 
-                if ((decoded.clients || []).indexOf(req.params.client) == -1) return res.status(401).send({
+                if ((decoded.clients || []).indexOf(req.params.client) == -1 && (decoded.clients || []).length > 0) return res.status(401).send({
                     auth: false,
                     message: 'Failed to authenticate token'
                 });
@@ -535,7 +535,6 @@ Platform = function(SPOO, OBJY, options) {
                 }, options.jwtSecret || defaultSecret, {
                     expiresIn: 20 * 60000
                 });
-
 
                 redis.del(req.body.refreshToken);
 
