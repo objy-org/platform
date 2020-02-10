@@ -386,7 +386,7 @@ Platform = function(SPOO, OBJY, options) {
 
                     OBJY.client(req.params.client);
 
-                    OBJY['User'](_data.uId).get(function(data) {
+                    OBJY['user'](_data.uId).get(function(data) {
 
                             data.password = bcrypt.hashSync(req.body.password);
 
