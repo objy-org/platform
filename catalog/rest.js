@@ -641,13 +641,11 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY[req.params.entity](search).get(function(data) {
 
-
                 var _data = [];
                 data.forEach(function(d) {
                     _data.push(SPOO.deserialize(d))
                 })
                 res.json(_data);
-
 
             }, function(err) {
                 res.json({
@@ -791,7 +789,7 @@ Platform = function(SPOO, OBJY, options) {
             OBJY[req.params.entity](req.params.id).get(function(data) {
                 res.json(SPOO.deserialize(data))
             }, function(err) {
-                res.json(err)
+                res.json({ error: err })
             })
         })
 
