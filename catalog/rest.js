@@ -77,7 +77,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 req.user = decoded
 
-                if ((decoded.clients || []).indexOf(req.params.client) == -1) return res.status(401).send({
+                if ((decoded.clients || []).indexOf(req.params.client) == -1 && (decoded.clients || []).length > 0) return res.status(401).send({
                     auth: false,
                     message: 'Failed to authenticate token'
                 });
@@ -527,10 +527,15 @@ Platform = function(SPOO, OBJY, options) {
 
                 result = JSON.parse(result);
 
-                var token = jwt.sign(result, options.jwtSecret || defaultSecret, {
+                var token = jwt.sign({
+                    id: result._id,
+                    username: result.username,
+                    privileges: result.privileges,
+                    clients: result.clients
+                }, options.jwtSecret || defaultSecret, {
                     expiresIn: 20 * 60000
                 });
-
+                
                 redis.del(req.body.refreshToken);
 
                 var refreshToken = shortid.generate() + shortid.generate() + shortid.generate();
