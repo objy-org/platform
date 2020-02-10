@@ -164,6 +164,17 @@ Platform = function(SPOO, OBJY, options) {
         })
 
 
+    router.route(['/client/:client/authenticated', '/client/:client/app/:app/authenticated'])
+
+        .get(checkAuthentication, function(req, res) {
+
+            res.status(200);
+            res.json({
+                authenticated: true
+            });
+            return;
+        });
+
 
     router.route(['/client/:client/application'])
 
@@ -901,18 +912,6 @@ Platform = function(SPOO, OBJY, options) {
             }, function(err) {
                 res.json(err)
             })
-        });
-
-
-    router.route(['/client/:client/authenticated', '/client/:client/app/:app/authenticated'])
-
-        .get(checkAuthentication, function(req, res) {
-
-            res.status(200);
-            res.json({
-                authenticated: true
-            });
-            return;
         });
 
     this.run = function() {
