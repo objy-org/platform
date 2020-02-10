@@ -121,7 +121,9 @@ Platform = function(SPOO, OBJY, options) {
 
             }, function(err) {
                 res.status(500)
-                res.json(err)
+                res.json({
+                    error: err
+                })
             })
 
         })
@@ -603,7 +605,9 @@ Platform = function(SPOO, OBJY, options) {
                 OBJY[req.params.entity](req.body).add(function(data) {
                     res.json(SPOO.deserialize(data))
                 }, function(err) {
-                    res.json(err)
+                    res.json({
+                        error: err
+                    })
                 })
             }
 
@@ -646,7 +650,9 @@ Platform = function(SPOO, OBJY, options) {
 
 
             }, function(err) {
-                res.json(err)
+                res.json({
+                    error: err
+                })
             })
         });
 
@@ -685,7 +691,9 @@ Platform = function(SPOO, OBJY, options) {
                 res.json(data)
 
             }, function(err) {
-                res.json(err)
+                res.json({
+                    error: err
+                })
             })
         });
 
@@ -757,7 +765,7 @@ Platform = function(SPOO, OBJY, options) {
 
             }, function(err) {
                 res.json({
-                    msg: err
+                    error: err
                 })
             })
 
@@ -802,7 +810,7 @@ Platform = function(SPOO, OBJY, options) {
                 res.json(SPOO.deserialize(data))
             }, function(err) {
                 res.json({
-                    msg: err
+                    error: err
                 })
             })
 
@@ -849,7 +857,7 @@ Platform = function(SPOO, OBJY, options) {
 
             }, function(err) {
                 res.json({
-                    msg: err
+                    error: err
                 })
             })
 
@@ -882,7 +890,7 @@ Platform = function(SPOO, OBJY, options) {
 
             }, function(err) {
                 res.json({
-                    msg: "not found"
+                    error: "not found"
                 })
             })
 
@@ -916,7 +924,9 @@ Platform = function(SPOO, OBJY, options) {
                 }
 
             }, function(err) {
-                res.json(err)
+                res.json({
+                    error: err
+                })
             })
         });
 
