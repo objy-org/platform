@@ -831,18 +831,24 @@ Platform = function(SPOO, OBJY, options) {
             OBJY[req.params.entity](req.params.id).get(function(data) {
 
                 var commands = req.body;
+                try {
 
-                if (!Array.isArray(commands)) {
-                    var k = Object.keys(commands)[0];
+                    if (!Array.isArray(commands)) {
+                        var k = Object.keys(commands)[0];
                     data[k](...commands[k]);
                 } else {
 
                     commands.forEach(function(c) {
                         var k = Object.keys(c)[0];
-
+                        
                         if (Array.isArray(c[k])) data[k](...c[k]);
                         else data[k](c[k]);
-
+                        
+                    })
+                }
+                } catch (e) {
+                    res.json({
+                        error: e
                     })
                 }
 
