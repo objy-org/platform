@@ -196,7 +196,7 @@ var MetaMapper = function() {
 
         PasswordReset = db.model('PasswordReset', PasswordResetSchema);
 
-        console.log(_key);
+        console.log("key", _key);
         PasswordReset.findOne({ key: _key }, function(err, data) {
 
             if (err) {

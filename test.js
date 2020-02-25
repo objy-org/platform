@@ -1,3 +1,4 @@
+
 var SPOO = require('./index.js');
 var Mongo = require('./node_modules/@spootechnologies/objy/mappers/storage/mongoMapper.js');
 
