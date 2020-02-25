@@ -577,7 +577,6 @@ Platform = function(SPOO, OBJY, options) {
                 })
             });
 
-
         });
 
 
@@ -593,7 +592,7 @@ Platform = function(SPOO, OBJY, options) {
 
             if (!OBJY[req.params.entity])
                 res.json({
-                    message: "object family doe not exist"
+                    message: "object family does not exist"
                 })
 
             // add content
@@ -622,9 +621,8 @@ Platform = function(SPOO, OBJY, options) {
 
             if (!OBJY[req.params.entity])
                 res.json({
-                    message: "object family doe not exist"
+                    message: "object family does not exist"
                 })
-
 
             var search = SPOO.serializeQuery(req.query);
 
@@ -633,8 +631,17 @@ Platform = function(SPOO, OBJY, options) {
                 if (search[k] == 'false') search[k] = false;
             }
 
+            console.warn('search', search)
+
             Object.keys(search).forEach(function(k) {
-                if (k == "$query") search[k] = JSON.parse(search[k])
+                if (k == "$query") {
+                    console.warn(k, search[k])
+                    try {
+                        search[k] = JSON.parse(search[k])
+                    } catch (e) {
+
+                    }
+                }
             })
 
             delete search.token;
@@ -672,7 +679,7 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family doe not exist"
                 })
 
-            var search = req.query;
+            var search = SPOO.serializeQuery(req.query);
 
             for (var k in search) {
                 if (search[k] == 'true') search[k] = true;
@@ -832,20 +839,27 @@ Platform = function(SPOO, OBJY, options) {
 
                 var commands = req.body;
 
-                if (!Array.isArray(commands)) {
-                    var k = Object.keys(commands)[0];
-                    data[k](...commands[k]);
-                } else {
+                try {
 
-                    commands.forEach(function(c) {
-                        var k = Object.keys(c)[0];
+                    if (!Array.isArray(commands)) {
+                        var k = Object.keys(commands)[0];
+                        data[k](...commands[k]);
+                    } else {
 
-                        if (Array.isArray(c[k])) data[k](...c[k]);
-                        else data[k](c[k]);
+                        commands.forEach(function(c) {
+                            var k = Object.keys(c)[0];
 
+                            if (Array.isArray(c[k])) data[k](...c[k]);
+                            else data[k](c[k]);
+
+                        })
+                    }
+
+                } catch (e) {
+                    res.json({
+                        error: e
                     })
                 }
-
 
                 data.update(function(_data) {
                     res.json(SPOO.deserialize(_data))

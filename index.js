@@ -1,12 +1,17 @@
 var Rest = require('./catalog/rest.js');
 var OBJY = require('@spootechnologies/objy');
 
+const LEGACY_BLACKLIST = ['$propsAsObj']
+
 const SPOO = {
+
+    legacy: false,
 
     metaPropPrefix: '',
 
-    metaProperties: ['id', 'role', 'applications', 'inherits', 'onCreate', 'onChange', 'onDelete', 'permissions', 'privileges', 'created', 'lastModified'],
-    staticProperties: ['name', 'type', 'username', 'password'],
+    metaProperties: ['role', 'applications', 'inherits', 'onCreate', 'onChange', 'onDelete', 'permissions', 'privileges', 'created', 'lastModified'],
+    staticProperties: ['name', '_id', 'type', 'username', 'password', '$in', '$and', '$or'],
+    flagProperties: ['$sort', '$page', '$query'],
 
     serialize: function(obj) {
 
@@ -30,6 +35,18 @@ const SPOO = {
     },
 
     serializeQuery: function(obj) {
+        var self = this;
+
+        Object.keys(obj).forEach(function(k) {
+            if (LEGACY_BLACKLIST.indexOf(k) != -1) delete obj[k];
+
+            if (self.legacy) {
+                if (k.indexOf('properties.') != -1 && k.indexOf('.value') == -1) {
+                    obj[k + '.value'] = obj[k];
+                    delete obj[k];
+                }
+            }
+        })
 
         if (this.metaPropPrefix == '') return obj;
 
@@ -55,6 +72,8 @@ const SPOO = {
                 else {
                     if (prop.charAt(0) != '$') nObj['properties.' + prop] = obj[prop];
                     else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) == -1) nObj[prop] = "properties." + obj[prop];
+                    else if (prop.charAt(0) == '$' && self.flagProperties.indexOf(prop) != -1) nObj[prop] = "properties." + obj[prop];
+                    else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) != -1) nObj[prop] = obj[prop];
                     else nObj[prop] = obj[prop];
                 }
             } else {
