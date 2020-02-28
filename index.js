@@ -7,6 +7,8 @@ const SPOO = {
 
     legacy: false,
 
+    authorisationsEnabled: false,
+
     metaPropPrefix: '',
 
     metaProperties: ['role', 'applications', 'inherits', 'onCreate', 'onChange', 'onDelete', 'permissions', 'privileges', 'created', 'lastModified'],

@@ -82,7 +82,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 req.user = decoded
 
-                if (req.user) OBJY.useUser(req.user);
+                if (req.user && SPOO.authorisationsEnabled) OBJY.useUser(req.user);
 
                 if ((decoded.clients || []).indexOf(req.params.client) == -1 && (decoded.clients || []).length > 0) return res.status(401).send({
                     auth: false,
