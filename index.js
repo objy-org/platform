@@ -71,8 +71,12 @@ const SPOO = {
                 if (self.staticProperties.indexOf(prop) != -1) nObj[prop] = obj[prop];
                 else {
                     if (prop.charAt(0) != '$') nObj['properties.' + prop] = obj[prop];
-                    else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) == -1) nObj[prop] = "properties." + obj[prop];
-                    else if (prop.charAt(0) == '$' && self.flagProperties.indexOf(prop) != -1) nObj[prop] = "properties." + obj[prop];
+                    else if (prop.charAt(0) == '$' && self.flagProperties.indexOf(prop) != -1) {
+                        if (typeof obj[prop] === 'string') {
+                            if (obj[prop].charAt(0) == '-') nObj[prop] = "-properties." + obj[prop].substr(1);
+                            else nObj[prop] = "properties." + obj[prop];
+                        }
+                    } else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) == -1) nObj[prop] = "properties." + obj[prop];
                     else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) != -1) nObj[prop] = obj[prop];
                     else nObj[prop] = obj[prop];
                 }

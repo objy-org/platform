@@ -26,6 +26,11 @@ Platform = function(SPOO, OBJY, options) {
 
     var objectFamilies = options.objectFamilies || [];
 
+    app.use(function(req, res, next) {
+        OBJY.app(undefined);
+        next();
+    })
+
     app.use(bodyParser.urlencoded({
         extended: true
     }));
@@ -76,6 +81,8 @@ Platform = function(SPOO, OBJY, options) {
                 });
 
                 req.user = decoded
+
+                if (req.user) OBJY.useUser(req.user);
 
                 if ((decoded.clients || []).indexOf(req.params.client) == -1 && (decoded.clients || []).length > 0) return res.status(401).send({
                     auth: false,
@@ -187,14 +194,20 @@ Platform = function(SPOO, OBJY, options) {
             var appData = req.body;
             var appKey = Object.keys(appData)[0];
 
-            metaMapper.addClientApplication(appData, function(data) {
-                res.json(data);
-            }, function(err) {
-                res.status(500);
-                res.json({
-                    error: 'Some Error occured'
-                });
-            }, client);
+            try {
+
+                metaMapper.addClientApplication(appData, function(data) {
+                    res.json(data);
+                }, function(err) {
+                    res.status(500);
+                    res.json({
+                        error: 'Some Error occured'
+                    });
+                }, client);
+            } catch (e) {
+                res.status(403);
+                res.json({ error: e });
+            }
 
         });
 
@@ -202,31 +215,36 @@ Platform = function(SPOO, OBJY, options) {
 
         .get(checkAuthentication, function(req, res) {
 
-
             var client = req.params.client;
 
-            metaMapper.getClientApplications(function(data) {
+            try {
+                metaMapper.getClientApplications(function(data) {
 
-                var _data = [];
+                    var _data = [];
 
-                if (req.query.name) {
-                    data.forEach(function(d) {
-                        if (d.displayName.toLowerCase().indexOf(req.query.name.toLowerCase()) != -1) _data.push(d)
+                    if (req.query.name) {
+                        data.forEach(function(d) {
+                            if (d.displayName.toLowerCase().indexOf(req.query.name.toLowerCase()) != -1) _data.push(d)
+                        })
+                    } else _data = data;
+
+                    _data.forEach(function(d, i) {
+                        if (!req.user.privileges[d.name]) _data.splice(i, 1);
                     })
-                } else _data = data;
 
-                _data.forEach(function(d, i) {
-                    if (!req.user.privileges[d.name]) _data.splice(i, 1);
-                })
+                    res.json(_data)
 
-                res.json(_data)
+                }, function(err) {
+                    res.status(500);
+                    res.json({
+                        error: 'Some Error occured'
+                    });
+                }, client);
 
-            }, function(err) {
-                res.status(500);
-                res.json({
-                    error: 'Some Error occured'
-                });
-            }, client);
+            } catch (e) {
+                res.status(403);
+                res.json({ error: e });
+            }
 
         });
 
@@ -465,21 +483,25 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
+            OBJY.useUser(null);
+
             OBJY.users().auth({
                 username: req.body.username
             }, function(user) {
-
 
                 if (bcrypt.compareSync(req.body.password, user.password)) {
 
                     var clients = user._clients || [];
                     if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
 
+                    var _user = JSON.parse(JSON.stringify(user));
+
                     var token = jwt.sign({
-                        id: user._id,
-                        username: user.username,
-                        privileges: user.privileges,
-                        clients: clients
+                        id: _user._id,
+                        username: _user.username,
+                        privileges: _user.privileges,
+                        clients: clients,
+                        authorisations: _user.authorisations
                     }, options.jwtSecret || defaultSecret, {
                         expiresIn: 20 * 60000
                     });
@@ -533,7 +555,8 @@ Platform = function(SPOO, OBJY, options) {
                     id: result._id,
                     username: result.username,
                     privileges: result.privileges,
-                    clients: result.clients
+                    clients: result.clients,
+                    authorisations: result.authorisations
                 }, options.jwtSecret || defaultSecret, {
                     expiresIn: 20 * 60000
                 });
@@ -601,13 +624,20 @@ Platform = function(SPOO, OBJY, options) {
 
                 req.body = SPOO.serialize(req.body);
 
-                OBJY[req.params.entity](req.body).add(function(data) {
-                    res.json(SPOO.deserialize(data))
-                }, function(err) {
-                    res.json({
-                        error: err
+                try {
+                    OBJY[req.params.entity](req.body).add(function(data) {
+                        res.json(SPOO.deserialize(data))
+                    }, function(err) {
+                        res.json({
+                            error: err
+                        })
                     })
-                })
+                } catch (e) {
+                    res.status(403);
+                    res.json({
+                        error: e
+                    })
+                }
             }
 
         })
@@ -646,19 +676,26 @@ Platform = function(SPOO, OBJY, options) {
 
             delete search.token;
 
-            OBJY[req.params.entity](search).get(function(data) {
+            try {
+                OBJY[req.params.entity](search).get(function(data) {
 
-                var _data = [];
-                data.forEach(function(d) {
-                    _data.push(SPOO.deserialize(d))
+                    var _data = [];
+                    data.forEach(function(d) {
+                        _data.push(SPOO.deserialize(d))
+                    })
+                    res.json(_data);
+
+                }, function(err) {
+                    res.json({
+                        error: err
+                    })
                 })
-                res.json(_data);
-
-            }, function(err) {
+            } catch (e) {
+                res.status(403);
                 res.json({
-                    error: err
+                    error: e
                 })
-            })
+            }
         });
 
 
@@ -692,14 +729,21 @@ Platform = function(SPOO, OBJY, options) {
 
             delete search.token;
 
-            OBJY[req.params.entity](search).count(function(data) {
-                res.json(data)
+            try {
 
-            }, function(err) {
-                res.json({
-                    error: err
+                OBJY[req.params.entity](search).count(function(data) {
+                    res.json(data)
+
+                }, function(err) {
+                    res.json({
+                        error: err
+                    })
                 })
-            })
+
+            } catch (e) {
+                res.status(403);
+                res.json({ error: e });
+            }
         });
 
 
@@ -742,37 +786,44 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            OBJY[req.params.entity](req.params.id).get(function(data) {
+            try {
 
-                if (!bcrypt.compareSync(oldPassword, data.password)) {
-                    res.status(500);
-                    res.json({
-                        error: 'Old password not correct'
-                    });
-                    return;
-                }
+                OBJY[req.params.entity](req.params.id).get(function(data) {
 
-                try {
-                    data.setPassword(bcrypt.hashSync(newPassword));
-                } catch (err) {
-                    res.status(500);
+                    if (!bcrypt.compareSync(oldPassword, data.password)) {
+                        res.status(500);
+                        res.json({
+                            error: 'Old password not correct'
+                        });
+                        return;
+                    }
+
+                    try {
+                        data.setPassword(bcrypt.hashSync(newPassword));
+                    } catch (err) {
+                        res.status(500);
+                        res.json({
+                            error: err
+                        });
+                        return;
+                    }
+
+                    data.update(function(_data) {
+                        res.json(SPOO.deserialize(_data))
+                    }, function(err) {
+
+                    })
+
+                }, function(err) {
                     res.json({
                         error: err
-                    });
-                    return;
-                }
-
-                data.update(function(_data) {
-                    res.json(SPOO.deserialize(_data))
-                }, function(err) {
-
+                    })
                 })
 
-            }, function(err) {
-                res.json({
-                    error: err
-                })
-            })
+            } catch (e) {
+                res.status(403);
+                res.json({ error: e });
+            }
 
         })
 
@@ -793,11 +844,16 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            OBJY[req.params.entity](req.params.id).get(function(data) {
-                res.json(SPOO.deserialize(data))
-            }, function(err) {
-                res.json({ error: err })
-            })
+            try {
+                OBJY[req.params.entity](req.params.id).get(function(data) {
+                    res.json(SPOO.deserialize(data))
+                }, function(err) {
+                    res.json({ error: err })
+                })
+            } catch (e) {
+                res.status(403);
+                res.json({ error: e });
+            }
         })
 
         .delete(checkAuthentication, checkObjectFamily, function(req, res) {
@@ -811,13 +867,20 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            OBJY[req.params.entity](req.params.id).remove(function(data) {
-                res.json(SPOO.deserialize(data))
-            }, function(err) {
-                res.json({
-                    error: err
+            try {
+
+                OBJY[req.params.entity](req.params.id).remove(function(data) {
+                    res.json(SPOO.deserialize(data))
+                }, function(err) {
+                    res.json({
+                        error: err
+                    })
                 })
-            })
+
+            } catch (e) {
+                res.status(403);
+                res.json({ error: e });
+            }
 
         })
 
@@ -835,11 +898,11 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            OBJY[req.params.entity](req.params.id).get(function(data) {
+            try {
+                OBJY[req.params.entity](req.params.id).get(function(data) {
 
-                var commands = req.body;
+                    var commands = req.body;
 
-                try {
 
                     if (!Array.isArray(commands)) {
                         var k = Object.keys(commands)[0];
@@ -855,24 +918,29 @@ Platform = function(SPOO, OBJY, options) {
                         })
                     }
 
+                    try {
 
-                } catch (e) {
-                    res.json({
-                        error: e
-                    })
-                }
+                        data.update(function(_data) {
+                            res.json(SPOO.deserialize(_data))
+                        }, function(err) {
 
-                data.update(function(_data) {
-                    res.json(SPOO.deserialize(_data))
+                        })
+
+                    } catch (e) {
+                        res.json({
+                            error: e
+                        })
+                    }
+
                 }, function(err) {
-
+                    res.json({
+                        error: err
+                    })
                 })
-
-            }, function(err) {
-                res.json({
-                    error: err
-                })
-            })
+            } catch (e) {
+                res.status(403);
+                res.json({ error: e });
+            }
 
         })
 
@@ -890,16 +958,23 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            OBJY[req.params.entity](req.params.id).get(function(data) {
 
+            OBJY[req.params.entity](req.params.id).get(function(data) {
 
                 data.replace(SPOO.serialize(req.body));
 
-                data.update(function(_data) {
-                    res.json(SPOO.deserialize(_data))
-                }, function(err) {
+                try {
 
-                })
+                    data.update(function(_data) {
+                        res.json(SPOO.deserialize(_data))
+                    }, function(err) {
+
+                    })
+
+                } catch (e) {
+                    res.status(403);
+                    res.json({ error: e });
+                }
 
             }, function(err) {
                 res.json({
@@ -925,22 +1000,27 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            OBJY[req.params.entity](req.params.id).get(function(data) {
+            try {
+                OBJY[req.params.entity](req.params.id).get(function(data) {
 
-                if (data.getProperty(req.params.propName)) {
-                    data.getProperty(req.params.propName).call(function(data) {
+                    if (data.getProperty(req.params.propName)) {
+                        data.getProperty(req.params.propName).call(function(data) {
 
-                        res.json({
-                            message: "called"
-                        })
-                    }, req.params.client)
-                }
+                            res.json({
+                                message: "called"
+                            })
+                        }, req.params.client)
+                    }
 
-            }, function(err) {
-                res.json({
-                    error: err
+                }, function(err) {
+                    res.json({
+                        error: err
+                    })
                 })
-            })
+            } catch (e) {
+                res.status(403);
+                res.json({ error: e });
+            }
         });
 
     this.run = function() {
