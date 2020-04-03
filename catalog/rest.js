@@ -27,7 +27,7 @@ Platform = function(SPOO, OBJY, options) {
     var objectFamilies = options.objectFamilies || [];
 
     app.use(function(req, res, next) {
-        OBJY.app(undefined);
+        OBJY.activeApp = undefined;
         next();
     })
 
@@ -447,7 +447,7 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
-                OBJY.app(req.params.app);
+                OBJY.activeApp = req.params.app;
 
             if (!OBJY['user'])
                 res.json({
@@ -610,8 +610,8 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
-                OBJY.app(req.params.app);
-            else OBJY.app(undefined);
+                OBJY.activeApp = req.params.app
+            else OBJY.activeApp = undefined;
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -646,8 +646,8 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
-                OBJY.app(req.params.app);
-            else OBJY.app(undefined);
+                OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -708,8 +708,8 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
-                OBJY.app(req.params.app);
-            else OBJY.app(undefined);
+                OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -778,8 +778,8 @@ Platform = function(SPOO, OBJY, options) {
 
 
             if (req.params.app)
-                OBJY.app(req.params.app);
-            else OBJY.app(undefined);
+                OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -836,8 +836,8 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
-                OBJY.app(req.params.app);
-            else OBJY.app(undefined);
+                OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -860,7 +860,7 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
-                OBJY.app(req.params.app);
+                OBJY.activeApp = req.params.app;
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -890,8 +890,8 @@ Platform = function(SPOO, OBJY, options) {
 
 
             if (req.params.app)
-                OBJY.app(req.params.app);
-            else OBJY.app(undefined);
+                OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -950,8 +950,8 @@ Platform = function(SPOO, OBJY, options) {
             OBJY.client(req.params.client);
 
             if (req.params.app)
-                OBJY.app(req.params.app);
-            else OBJY.app(undefined);
+                OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -992,8 +992,8 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
-                OBJY.app(req.params.app);
-            else OBJY.app(undefined);
+                OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
 
             if (!OBJY[req.params.entity])
                 res.json({

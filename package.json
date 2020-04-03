@@ -33,7 +33,6 @@
   "bundleDependencies": false,
   "dependencies": {
     "@sendgrid/mail": "^6.5.0",
-    "@spootechnologies/objy": "0.3.3",
     "bcrypt": "^3.0.6",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
@@ -70,5 +69,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.8.1"
+  "version": "0.9.2"
 }
