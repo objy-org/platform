@@ -1,5 +1,4 @@
 var Rest = require('./catalog/rest.js');
-var OBJY = require('@spootechnologies/objy');
 
 const LEGACY_BLACKLIST = ['$propsAsObj']
 
@@ -75,8 +74,19 @@ const SPOO = {
                     if (prop.charAt(0) != '$') nObj['properties.' + prop] = obj[prop];
                     else if (prop.charAt(0) == '$' && self.flagProperties.indexOf(prop) != -1) {
                         if (typeof obj[prop] === 'string') {
-                            if (obj[prop].charAt(0) == '-') nObj[prop] = "-properties." + obj[prop].substr(1);
-                            else nObj[prop] = "properties." + obj[prop];
+
+                            if (obj[prop].charAt(0) == '-') {
+                                if (self.staticProperties.indexOf(obj[prop].substr(1)) != -1) {
+                                    nObj[prop] = obj[prop];
+                                } else nObj[prop] = "-properties." + obj[prop].substr(1);
+                            } else {
+                                if (self.staticProperties.indexOf(obj[prop]) != -1) {
+                                    nObj[prop] = obj[prop];
+                                } else nObj[prop] = "properties." + obj[prop];
+                            }
+
+                        } else {
+                            nObj[prop] = obj[prop];
                         }
                     } else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) == -1) nObj[prop] = "properties." + obj[prop];
                     else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) != -1) nObj[prop] = obj[prop];
@@ -101,7 +111,15 @@ const SPOO = {
 
         var nObj = {};
 
-        for (var prop in JSON.parse(JSON.stringify(obj))) {
+        var deserialized;
+
+        try {
+            deserialized = JSON.parse(JSON.stringify(obj))
+        } catch (e) {
+            deserialized = obj
+        }
+
+        for (var prop in deserialized) {
 
             if (self.metaProperties.indexOf(prop) != -1) {
 
@@ -126,13 +144,13 @@ const SPOO = {
 
     MetaMapper: {},
 
-    OBJY: OBJY,
+    OBJY: null,
 
     //enabledObjectFymilies: {},
 
     define: function(options) {
 
-        OBJY.define(options);
+        this.OBJY.define(options);
 
         /*if (options.interfaces) {
             options.interfaces.forEach(function(i) {
@@ -145,7 +163,7 @@ const SPOO = {
     },
 
     REST: function(options, enabledObjectFymilies) {
-        return new Rest(this, OBJY, options)
+        return new Rest(this, this.OBJY, options)
     },
 
     /*MQTT: function(options, enabledObjectFymilies) {
