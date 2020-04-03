@@ -11,6 +11,8 @@ var app = express();
 var router = express.Router();
 var shortid = require('shortid');
 var defaultSecret = 'asdgnm0923t923';
+var fileUpload = require('express-fileupload');
+var Duplex = require("stream").Duplex;
 
 Platform = function(SPOO, OBJY, options) {
 
@@ -38,6 +40,7 @@ Platform = function(SPOO, OBJY, options) {
         limit: '300mb'
     }));
     app.use(cors());
+    app.use(fileUpload());
     app.options('*', cors());
 
     OBJY.hello();
@@ -466,7 +469,7 @@ Platform = function(SPOO, OBJY, options) {
 
             if (req.body) {
 
-                OBJY['user'](req.body).add(function(data) {
+                OBJY['user'](user).add(function(data) {
                     res.json(SPOO.deserialize(data))
                 }, function(err) {
                     res.json(data)
@@ -620,6 +623,35 @@ Platform = function(SPOO, OBJY, options) {
 
             // add content
 
+            if (req.files) {
+                var k = Object.keys(req.files)[0];
+                var file = req.files[k];
+
+                function bufferToStream(buffer) {
+                    var stream = new Duplex();
+                    stream.push(buffer);
+                    stream.push(null);
+                    return stream;
+                }
+
+                var inStream = bufferToStream(file.data);
+                inStream.pause();
+
+                if (SPOO.metaPropPrefix != '') {
+                    req.body = {
+                        data: inStream,
+                        mimetype: file.mimetype
+                    }
+                } else {
+                    req.body = {
+                        properties: {
+                            data: inStream,
+                            mimetype: file.mimetype
+                        }
+                    }
+                }
+            }
+
             if (req.body) {
 
                 req.body = SPOO.serialize(req.body);
@@ -697,6 +729,8 @@ Platform = function(SPOO, OBJY, options) {
                 })
             }
         });
+
+
 
 
     // ADD: one or many, GET: one or many
@@ -981,6 +1015,39 @@ Platform = function(SPOO, OBJY, options) {
                     error: "not found"
                 })
             })
+
+        });
+
+
+    router.route(['/client/:client/:entity/:id/stream', '/client/:client/app/:app/:entity/:id/stream'])
+
+        .get(checkAuthentication, checkObjectFamily, function(req, res) {
+
+            OBJY.client(req.params.client);
+            if (req.params.app)
+                OBJY.app(req.params.app);
+            else OBJY.app(undefined);
+
+            if (!OBJY[req.params.entity])
+                res.json({
+                    message: "object family does not exist"
+                })
+
+            try {
+                OBJY[req.params.entity](req.params.id).get(function(data) {
+
+                    //res.type(data.mimetype)
+
+                    data.properties.data.resume();
+                    data.properties.data.pipe(res);
+
+                }, function(err) {
+                    res.json({ error: err })
+                })
+            } catch (e) {
+                res.status(403);
+                res.json({ error: e });
+            }
 
         });
 
