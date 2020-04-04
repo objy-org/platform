@@ -708,6 +708,8 @@ Platform = function(SPOO, OBJY, options) {
 
             delete search.token;
 
+            console.warn('OBJY.activeApp', OBJY.activeApp, req.params.app)
+
             try {
                 OBJY[req.params.entity](search).get(function(data) {
 
