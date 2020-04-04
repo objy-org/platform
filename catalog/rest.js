@@ -686,18 +686,17 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            var legacy = false;
-            if(req.headers.spoolegacy) legacy = true;
-
-            Object.keys(req.query).forEach(function(k) {
-                if (legacy) {
+            if(req.headers.lazyquery)
+            {
+                Object.keys(req.query).forEach(function(k) {
                     if (k.indexOf('properties.') != -1 && k.indexOf('.value') == -1) {
                         req.query[k + '.value'] = req.query[k];
                         delete req.query[k];
                     }
-                }
-            })
+                })
+            }
 
+            
             var search = SPOO.serializeQuery(req.query);
 
             for (var k in search) {
