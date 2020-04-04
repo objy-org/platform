@@ -30,6 +30,8 @@ Platform = function(SPOO, OBJY, options) {
 
     app.use(function(req, res, next) {
         OBJY.activeApp = undefined;
+        if(req.headers.metaPropPrefix) SPOO.metaPropPrefix = req.headers.metaPropPrefix;
+        else SPOO.metaPropPrefix = '';
         next();
     })
 
