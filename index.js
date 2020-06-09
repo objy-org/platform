@@ -4,8 +4,6 @@ const LEGACY_BLACKLIST = ['$propsAsObj']
 
 const SPOO = {
 
-    legacy: false,
-
     authorisationsEnabled: false,
 
     metaPropPrefix: '',
@@ -40,13 +38,6 @@ const SPOO = {
 
         Object.keys(obj).forEach(function(k) {
             if (LEGACY_BLACKLIST.indexOf(k) != -1) delete obj[k];
-
-            if (self.legacy) {
-                if (k.indexOf('properties.') != -1 && k.indexOf('.value') == -1) {
-                    obj[k + '.value'] = obj[k];
-                    delete obj[k];
-                }
-            }
         })
 
         if (this.metaPropPrefix == '') return obj;

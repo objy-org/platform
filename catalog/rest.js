@@ -30,6 +30,8 @@ Platform = function(SPOO, OBJY, options) {
 
     app.use(function(req, res, next) {
         OBJY.activeApp = undefined;
+        if(req.headers.metaPropPrefix) SPOO.metaPropPrefix = req.headers.metaPropPrefix;
+        else SPOO.metaPropPrefix = '';
         next();
     })
 
@@ -723,6 +725,17 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
+            if(req.headers.lazyquery)
+            {
+                Object.keys(req.query).forEach(function(k) {
+                    if (k.indexOf('properties.') != -1 && k.indexOf('.value') == -1) {
+                        req.query[k + '.value'] = req.query[k];
+                        delete req.query[k];
+                    }
+                })
+            }
+
+            
             var search = SPOO.serializeQuery(req.query);
 
             for (var k in search) {
