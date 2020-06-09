@@ -10,8 +10,8 @@ const SPOO = {
 
     metaPropPrefix: '',
 
-    metaProperties: ['role', 'applications', 'inherits', 'onCreate', 'onChange', 'onDelete', 'permissions', 'privileges', 'created', 'lastModified'],
-    staticProperties: ['name', '_id', 'type', 'username', 'password', '$in', '$and', '$or'],
+    metaProperties: ['role', 'applications', 'inherits', 'onCreate', 'onChange', 'onDelete', 'permissions', 'privileges', 'created', 'lastModified', 'authorisations'],
+    staticProperties: ['name', '_id', 'type', 'username', 'email', 'password', '$in', '$and', '$or'],
     flagProperties: ['$sort', '$page', '$query'],
 
     serialize: function(obj) {

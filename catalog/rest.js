@@ -63,7 +63,6 @@ Platform = function(SPOO, OBJY, options) {
 
         if (req.headers.authorization) {
             token = req.headers.authorization.slice(7, req.headers.authorization.length)
-
         } else if (req.query.token) {
             token = req.query.token
         }
@@ -232,7 +231,10 @@ Platform = function(SPOO, OBJY, options) {
                     } else _data = data;
 
                     _data.forEach(function(d, i) {
-                        if (!req.user.privileges[d.name]) _data.splice(i, 1);
+
+                        if (req.user.applications.indexOf(d.name) == -1) _data.splice(i, 1);
+
+                        //if (!req.applications.privileges[d.name]) _data.splice(i, 1);
                     })
 
                     res.json(_data)
@@ -499,20 +501,28 @@ Platform = function(SPOO, OBJY, options) {
 
                     var _user = JSON.parse(JSON.stringify(user));
 
+                    var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
+
+                    var refreshToken;
+
+                    if (req.body.permanent) refreshToken = shortid.generate() + shortid.generate() + shortid.generate();
+
                     var token = jwt.sign({
                         id: _user._id,
                         username: _user.username,
                         privileges: _user.privileges,
+                        applications: _user.applications,
                         clients: clients,
-                        authorisations: _user.authorisations
+                        authorisations: _user.authorisations,
+                        tokenId: tokenId
                     }, options.jwtSecret || defaultSecret, {
                         expiresIn: 20 * 60000
                     });
 
-                    var refreshToken = shortid.generate() + shortid.generate() + shortid.generate();
+                    //redis.set(token, 'true', "EX", 1200)
+                    redis.set(tokenId, token, "EX", 1200)
 
-                    redis.set(token, 'true', "EX", 1200)
-                    redis.set(refreshToken, JSON.stringify(user), "EX", 2592000)
+                    if (req.body.permanent) redis.set(refreshToken, tokenId + "." + JSON.stringify(user), "EX", 2592000)
 
                     res.json({
                         message: "authenticated",
@@ -552,24 +562,30 @@ Platform = function(SPOO, OBJY, options) {
                     message: 'Failed to verify refresh token.'
                 });
 
-                result = JSON.parse(result);
+                result = JSON.parse(result.substring(result.indexOf('.')));
+
+                var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
+
+                var refreshToken = shortid.generate() + shortid.generate() + shortid.generate();
 
                 var token = jwt.sign({
                     id: result._id,
                     username: result.username,
                     privileges: result.privileges,
                     clients: result.clients,
-                    authorisations: result.authorisations
+                    applications: result.applications,
+                    authorisations: result.authorisations,
+                    tokenId: tokenId
                 }, options.jwtSecret || defaultSecret, {
                     expiresIn: 20 * 60000
                 });
 
-                redis.del(req.body.refreshToken);
+                setTimeout(function() { redis.del(req.body.refreshToken); }, 10000)
+                setTimeout(function() { redis.del(result.tokenId); }, 10000)
 
-                var refreshToken = shortid.generate() + shortid.generate() + shortid.generate();
-
-                redis.set(token, 'true', "EX", 1200)
-                redis.set(refreshToken, JSON.stringify(result), "EX", 2592000)
+                //redis.set(token, 'true', "EX", 1200)
+                redis.set(tokenId, token, "EX", 1200)
+                redis.set(refreshToken, tokenId, "EX", 2592000)
 
                 res.json({
                     message: "authenticated",
@@ -590,19 +606,26 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            redis.get(req.body.accessToken, function(err, result) {
-                if (err || !result) return res.status(404).send({
+            jwt.verify(token, options.jwtSecret || defaultSecret, function(err, decoded) {
+                if (err) return res.status(401).send({
                     auth: false,
-                    message: 'Token not found'
+                    message: 'token is already invalid'
                 });
 
-                redis.del(req.body.accessToken);
+                redis.get(decoded.tokenId, function(err, result) {
+                    if (err || !result) return res.status(404).send({
+                        auth: false,
+                        message: 'Token not found'
+                    });
 
-                res.json({
-                    message: "token rejected"
-                })
+                    redis.del(decoded.tokenId);
+                    redis.del(req.body.refreshToken);
+
+                    res.json({
+                        message: "token rejected"
+                    })
+                });
             });
-
         });
 
 
@@ -656,9 +679,23 @@ Platform = function(SPOO, OBJY, options) {
 
                 req.body = SPOO.serialize(req.body);
 
+                var pw = req.body.password || shortid.generate() + '.' + shortid.generate();
+
+                if (req.body.username) {
+                    req.body.password = bcrypt.hashSync(pw);
+                }
+
                 try {
                     OBJY[req.params.entity](req.body).add(function(data) {
+
                         res.json(SPOO.deserialize(data))
+
+                        if (req.body.username) {
+                            console.log('sending welcome email');
+                            messageMapper.send('SPOO', req.body.email, 'your password', pw)
+                        }
+
+
                     }, function(err) {
                         res.json({
                             error: err
@@ -733,8 +770,6 @@ Platform = function(SPOO, OBJY, options) {
         });
 
 
-
-
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/:entity/count', '/client/:client/app/:app/:entity/count'])
 
@@ -760,7 +795,14 @@ Platform = function(SPOO, OBJY, options) {
             }
 
             Object.keys(search).forEach(function(k) {
-                if (k == "$query") search[k] = JSON.parse(search[k])
+                if (k == "$query") {
+                    console.warn(k, search[k])
+                    try {
+                        search[k] = JSON.parse(search[k])
+                    } catch (e) {
+
+                    }
+                }
             })
 
             delete search.token;
@@ -939,6 +981,16 @@ Platform = function(SPOO, OBJY, options) {
 
                     var commands = req.body;
 
+                    /*if (Array.isArray(commands) && SPOO.legacy) {
+                        commands.forEach(function(c) {
+                            var keys = Object.keys(c);
+                            if (keys[0] == 'setPropertyValue' || keys[0] == 'addProperty' || keys[0] == 'removeProperty') {
+                                if (keys[1][0].indexOf('.') != -1) {
+
+                                }
+                            }
+                        })
+                    }*/
 
                     if (!Array.isArray(commands)) {
                         var k = Object.keys(commands)[0];
@@ -947,10 +999,8 @@ Platform = function(SPOO, OBJY, options) {
 
                         commands.forEach(function(c) {
                             var k = Object.keys(c)[0];
-
                             if (Array.isArray(c[k])) data[k](...c[k]);
                             else data[k](c[k]);
-
                         })
                     }
 
@@ -959,10 +1009,14 @@ Platform = function(SPOO, OBJY, options) {
                         data.update(function(_data) {
                             res.json(SPOO.deserialize(_data))
                         }, function(err) {
-
+                            console.log(err);
+                            res.json({
+                                error: err
+                            })
                         })
 
                     } catch (e) {
+                        console.log(e);
                         res.json({
                             error: e
                         })
