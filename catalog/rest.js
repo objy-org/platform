@@ -11,8 +11,28 @@ var app = express();
 var router = express.Router();
 var shortid = require('shortid');
 var defaultSecret = 'asdgnm0923t923';
+var defaultMaxUserSessions = 15;
 var fileUpload = require('express-fileupload');
 var Duplex = require("stream").Duplex;
+var isStream = require('is-stream');
+
+
+// Helper functions
+function propsSerialize(obj) {
+    if (obj.properties) {
+        var propsObj = {};
+        var i;
+        for (i = 0; i < obj.properties.length; i++) {
+            if (obj.properties[i].type == 'bag' || obj.properties[i].type == 'array')
+                propsSerialize(obj.properties[i]);
+            if (typeof obj.properties[i].name == 'undefined') obj.properties[i].name = SPOO.RANDOM();
+            propsObj[obj.properties[i].name] = obj.properties[i];
+            if (propsObj[obj.properties[i].permissions]) propsObj[obj.properties[i].permissions] = permSerialize(propsObj[obj.properties[i].permissions]);
+            delete obj.properties[i].name;
+        }
+        obj.properties = propsObj;
+    }
+}
 
 Platform = function(SPOO, OBJY, options) {
 
@@ -30,8 +50,7 @@ Platform = function(SPOO, OBJY, options) {
 
     app.use(function(req, res, next) {
         OBJY.activeApp = undefined;
-        if(req.headers.metaPropPrefix) SPOO.metaPropPrefix = req.headers.metaPropPrefix;
-        else SPOO.metaPropPrefix = '';
+        if (req.headers.metaPropPrefix) SPOO.metaPropPrefix = req.headers.metaPropPrefix;
         next();
     })
 
@@ -75,7 +94,7 @@ Platform = function(SPOO, OBJY, options) {
                 message: 'Failed to authenticate token'
             });
 
-            redis.get(token, function(err, result) {
+            redis.get('at_' + decoded.tokenId, function(err, result) {
 
                 OBJY.Logger.log("Got token from redis " + result);
 
@@ -115,7 +134,7 @@ Platform = function(SPOO, OBJY, options) {
             var data = req.body;
 
             if (!data.email) {
-                res.status(404);
+                res.status(400);
                 res.json({
                     error: 'No email address provided'
                 });
@@ -131,7 +150,7 @@ Platform = function(SPOO, OBJY, options) {
                 })
 
             }, function(err) {
-                res.status(500)
+                res.status(400)
                 res.json({
                     error: err
                 })
@@ -165,12 +184,12 @@ Platform = function(SPOO, OBJY, options) {
                     res.json(data)
 
                 }, function(err) {
-                    res.status(500);
+                    res.status(400);
                     res.json(err)
                 })
 
             }, function(err) {
-                res.status(500);
+                res.status(400);
                 res.json(err)
             })
 
@@ -203,13 +222,13 @@ Platform = function(SPOO, OBJY, options) {
                 metaMapper.addClientApplication(appData, function(data) {
                     res.json(data);
                 }, function(err) {
-                    res.status(500);
+                    res.status(400);
                     res.json({
                         error: 'Some Error occured'
                     });
                 }, client);
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({ error: e });
             }
 
@@ -220,9 +239,11 @@ Platform = function(SPOO, OBJY, options) {
         .get(checkAuthentication, function(req, res) {
 
             var client = req.params.client;
-
+            console.log('letsgo');
             try {
                 metaMapper.getClientApplications(function(data) {
+
+                    console.log('clientapps', data);
 
                     var _data = [];
 
@@ -232,24 +253,35 @@ Platform = function(SPOO, OBJY, options) {
                         })
                     } else _data = data;
 
-                    _data.forEach(function(d, i) {
+                    console.log('ru', req.user);
 
-                        if (req.user.applications.indexOf(d.name) == -1) _data.splice(i, 1);
+                    if (!req.user.spooAdmin) {
+                        var i;
+                        for (i = 0; i < _data.length; i++) {
+                            if (!req.user.privileges[data[i].name]) _data.splice(i, 1);
+                        }
+                    }
 
-                        //if (!req.applications.privileges[d.name]) _data.splice(i, 1);
-                    })
+                    console.log('clientapps after:', _data);
+                    /* _data.forEach(function(d, i) {
+
+                         //if (req.user.applications.indexOf(d.name) == -1) _data.splice(i, 1);
+                         //if (!req.applications.privileges[d.name]) _data.splice(i, 1);
+
+                         if(!req.user.spooAdmin && !req.user.privileges[d.name]) _data.splice(i, 1);
+                     })*/
 
                     res.json(_data)
 
                 }, function(err) {
-                    res.status(500);
+                    res.status(400);
                     res.json({
                         error: 'Some Error occured'
                     });
                 }, client);
 
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({ error: e });
             }
 
@@ -262,13 +294,13 @@ Platform = function(SPOO, OBJY, options) {
             var data = req.body;
 
             if (!data.email) {
-                res.status(404);
+                res.status(400);
                 res.json({
                     error: 'No email address provided'
                 });
                 return;
             } else if (/\S+@\S+/.test(data.email) == false) {
-                res.status(404);
+                res.status(400);
                 res.json({
                     error: 'email not valid'
                 });
@@ -283,7 +315,7 @@ Platform = function(SPOO, OBJY, options) {
                     message: 'registration key sent!'
                 })
             }, function(err) {
-                res.status(500);
+                res.status(400);
                 res.json({
                     error: err
                 });
@@ -302,13 +334,13 @@ Platform = function(SPOO, OBJY, options) {
             var client = req.params.client || client;
 
             if (!data.email) {
-                res.status(404);
+                res.status(400);
                 res.json({
                     error: 'Neither email nor username provided'
                 });
                 return;
             } else if (data.email && /\S+@\S+/.test(data.email) == false) {
-                res.status(404);
+                res.status(400);
                 res.json({
                     error: 'email not valid'
                 });
@@ -346,7 +378,7 @@ Platform = function(SPOO, OBJY, options) {
                             message: 'password reset key sent!'
                         })
                     }, function(err) {
-                        res.status(500);
+                        res.status(400);
                         res.json({
                             error: err
                         });
@@ -354,7 +386,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 },
                 function(err) {
-                    res.status(404);
+                    res.status(400);
                     res.json({
                         error: err
                     });
@@ -374,7 +406,7 @@ Platform = function(SPOO, OBJY, options) {
             var client = req.params.client || client;
 
             if (!req.body.resetKey) {
-                res.status(404);
+                res.status(400);
                 res.json({
                     error: 'No Reset Key found'
                 });
@@ -382,7 +414,7 @@ Platform = function(SPOO, OBJY, options) {
             }
 
             if (!req.body.password) {
-                res.status(404);
+                res.status(400);
                 res.json({
                     error: 'Password not provided'
                 });
@@ -390,7 +422,7 @@ Platform = function(SPOO, OBJY, options) {
             }
 
             if (!req.body.password2) {
-                res.status(404);
+                res.status(400);
                 res.json({
                     error: 'Password 2 not provided'
                 });
@@ -398,7 +430,7 @@ Platform = function(SPOO, OBJY, options) {
             }
 
             if (req.body.password != req.body.password2) {
-                res.status(500);
+                res.status(400);
                 res.json({
                     error: 'Passwords do not match'
                 });
@@ -422,7 +454,7 @@ Platform = function(SPOO, OBJY, options) {
                                     return;
                                 },
                                 function(err) {
-                                    res.status(404);
+                                    res.status(400);
                                     res.json({
                                         error: err
                                     });
@@ -431,7 +463,7 @@ Platform = function(SPOO, OBJY, options) {
 
                         },
                         function(err) {
-                            res.status(404);
+                            res.status(400);
                             res.json({
                                 error: err
                             });
@@ -439,7 +471,7 @@ Platform = function(SPOO, OBJY, options) {
                         });
                 },
                 function(err) {
-                    res.status(403);
+                    res.status(400);
                     res.json({
                         error: err
                     });
@@ -492,64 +524,87 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.useUser(null);
 
-            OBJY.users().auth({
-                username: req.body.username
-            }, function(user) {
+            redis.get('cnt_' + req.body.username, function(err, result) {
 
-                if (bcrypt.compareSync(req.body.password, user.password)) {
+                console.log('count result', result);
 
-                    var clients = user._clients || [];
-                    if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
+                if (result !== null) {
+                    console.log('r', result, options.maxUserSessions || defaultMaxUserSessions, );
+                    if (parseInt(result) >= (options.maxUserSessions || defaultMaxUserSessions)) {
+                        res.status(401)
+                        res.json({
+                            message: 'too many sessions'
+                        })
+                        return;
+                    }
+                }
 
-                    var _user = JSON.parse(JSON.stringify(user));
+                OBJY.users().auth({
+                    username: req.body.username
+                }, function(user) {
 
-                    var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
+                    if (bcrypt.compareSync(req.body.password, user.password)) {
 
-                    var refreshToken;
+                        var clients = user._clients || [];
+                        if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
 
-                    if (req.body.permanent) refreshToken = shortid.generate() + shortid.generate() + shortid.generate();
+                        var _user = JSON.parse(JSON.stringify(user));
 
-                    var token = jwt.sign({
-                        id: _user._id,
-                        username: _user.username,
-                        privileges: _user.privileges,
-                        applications: _user.applications,
-                        clients: clients,
-                        authorisations: _user.authorisations,
-                        tokenId: tokenId
-                    }, options.jwtSecret || defaultSecret, {
-                        expiresIn: 20 * 60000
-                    });
+                        var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
 
-                    //redis.set(token, 'true', "EX", 1200)
-                    redis.set(tokenId, token, "EX", 1200)
+                        var refreshToken;
 
-                    if (req.body.permanent) redis.set(refreshToken, tokenId + "." + JSON.stringify(user), "EX", 2592000)
+                        if (req.body.permanent) refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
 
-                    res.json({
-                        message: "authenticated",
-                        user: SPOO.deserialize(user),
-                        token: {
-                            accessToken: token,
-                            refreshToken: refreshToken
+                        var token = jwt.sign({
+                            id: _user._id,
+                            username: _user.username,
+                            privileges: _user.privileges,
+                            applications: _user.applications,
+                            spooAdmin: _user.spooAdmin,
+                            clients: clients,
+                            authorisations: _user.authorisations,
+                            tokenId: tokenId
+                        }, options.jwtSecret || defaultSecret, {
+                            expiresIn: 20 * 60000
+                        });
+
+                        //redis.set(token, 'true', "EX", 1200)
+                        redis.set('at_' + tokenId, token, "EX", 1200)
+
+                        redis.set('cnt_' + req.body.username, ++result, "EX", 1200)
+
+                        if (req.body.permanent) {
+                            redis.set('rt_' + tokenId, JSON.stringify(user), "EX", 2592000)
                         }
-                    })
 
-                } else {
+                        delete user.password;
+
+                        res.json({
+                            message: "authenticated",
+                            user: SPOO.deserialize(user),
+                            token: {
+                                accessToken: token,
+                                refreshToken: refreshToken
+                            }
+                        })
+
+                    } else {
+                        res.status(401)
+                        res.json({
+                            message: "not authenticated"
+                        })
+                    }
+                }, function(err) {
                     res.status(401)
                     res.json({
                         message: "not authenticated"
                     })
-                }
-            }, function(err) {
-                res.status(401)
-                res.json({
-                    message: "not authenticated"
                 })
-            })
+
+            });
 
         });
-
 
     // REFRESH  A TOKEN
     router.route(['/client/:client/token', '/client/:client/app/:app/token'])
@@ -558,17 +613,20 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            redis.get(req.body.refreshToken, function(err, result) {
+            var refreshToken = req.body.refreshToken;
+            var oldTokenId = refreshToken.split('rt_')[1];
+
+            redis.get('rt_' + oldTokenId, function(err, result) {
                 if (err || !result) return res.status(401).send({
                     auth: false,
                     message: 'Failed to verify refresh token.'
                 });
 
-                result = JSON.parse(result.substring(result.indexOf('.')));
+                result = JSON.parse(result);
 
                 var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
 
-                var refreshToken = shortid.generate() + shortid.generate() + shortid.generate();
+                var refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
 
                 var token = jwt.sign({
                     id: result._id,
@@ -576,18 +634,23 @@ Platform = function(SPOO, OBJY, options) {
                     privileges: result.privileges,
                     clients: result.clients,
                     applications: result.applications,
+                    spooAdmin: result.spooAdmin,
                     authorisations: result.authorisations,
                     tokenId: tokenId
                 }, options.jwtSecret || defaultSecret, {
                     expiresIn: 20 * 60000
                 });
 
-                setTimeout(function() { redis.del(req.body.refreshToken); }, 10000)
-                setTimeout(function() { redis.del(result.tokenId); }, 10000)
+                setTimeout(function() {
+                    redis.del('rt_' + oldTokenId);
+                    redis.del('at_' + oldTokenId);
+                }, 8000)
 
                 //redis.set(token, 'true', "EX", 1200)
-                redis.set(tokenId, token, "EX", 1200)
-                redis.set(refreshToken, tokenId, "EX", 2592000)
+                redis.set('at_' + tokenId, token, "EX", 1200)
+                redis.set('rt_' + tokenId, JSON.stringify(result), "EX", 2592000)
+
+                delete result.password;
 
                 res.json({
                     message: "authenticated",
@@ -604,24 +667,33 @@ Platform = function(SPOO, OBJY, options) {
     // REJECT A TOKEN
     router.route(['/client/:client/token/reject', '/client/:client/app/:app/token/reject'])
 
-        .post(function(req, res) {
+        .post(checkAuthentication, function(req, res) {
 
             OBJY.client(req.params.client);
 
-            jwt.verify(token, options.jwtSecret || defaultSecret, function(err, decoded) {
+            jwt.verify(req.body.accessToken, options.jwtSecret || defaultSecret, function(err, decoded) {
                 if (err) return res.status(401).send({
                     auth: false,
                     message: 'token is already invalid'
                 });
 
-                redis.get(decoded.tokenId, function(err, result) {
-                    if (err || !result) return res.status(404).send({
+                redis.get('rt_' + decoded.tokenId, function(err, result) {
+
+                    /*if (err || !result) return res.status(404).send({
                         auth: false,
                         message: 'Token not found'
-                    });
+                    });*/
 
-                    redis.del(decoded.tokenId);
-                    redis.del(req.body.refreshToken);
+                    redis.del('at_' + decoded.tokenId);
+                    redis.del('rt_' + decoded.tokenId);
+
+                    redis.get('cnt_' + decoded.username, function(err, result) {
+                        if (result !== null) {
+                            if (parseInt(result) > 1)
+                                redis.set('cnt_' + decoded.username, --result, "EX", 1200)
+                            else redis.del('cnt_' + decoded.username);
+                        }
+                    })
 
                     res.json({
                         message: "token rejected"
@@ -687,6 +759,8 @@ Platform = function(SPOO, OBJY, options) {
                     req.body.password = bcrypt.hashSync(pw);
                 }
 
+                if (Array.isArray(req.body.properties)) propsSerialize(req.body);
+
                 try {
                     OBJY[req.params.entity](req.body).add(function(data) {
 
@@ -697,14 +771,15 @@ Platform = function(SPOO, OBJY, options) {
                             messageMapper.send('SPOO', req.body.email, 'your password', pw)
                         }
 
-
                     }, function(err) {
+                        res.status(400);
                         res.json({
                             error: err
                         })
                     })
                 } catch (e) {
-                    res.status(403);
+                    console.log(e);
+                    res.status(400);
                     res.json({
                         error: e
                     })
@@ -714,6 +789,12 @@ Platform = function(SPOO, OBJY, options) {
         })
 
         .get(checkAuthentication, checkObjectFamily, function(req, res) {
+
+            var filterFieldsEnabled;
+
+            try {
+                if (req.query.$filterFieldsEnabled) filterFieldsEnabled = JSON.parse(req.query.$filterFieldsEnabled);
+            } catch (e) {}
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -725,8 +806,7 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            if(req.headers.lazyquery)
-            {
+            if (req.headers.lazyquery) {
                 Object.keys(req.query).forEach(function(k) {
                     if (k.indexOf('properties.') != -1 && k.indexOf('.value') == -1) {
                         req.query[k + '.value'] = req.query[k];
@@ -735,7 +815,8 @@ Platform = function(SPOO, OBJY, options) {
                 })
             }
 
-            
+            delete req.query.$filterFieldsEnabled;
+
             var search = SPOO.serializeQuery(req.query);
 
             for (var k in search) {
@@ -765,17 +846,30 @@ Platform = function(SPOO, OBJY, options) {
 
                     var _data = [];
                     data.forEach(function(d) {
-                        _data.push(SPOO.deserialize(d))
+
+                        if ((d.properties || {}).data) {
+                            if (isStream(d.properties.data)) {
+                                delete d.properties.data;
+                                d.properties.path = req.params.entity + '/' + req.params.id + '/stream'
+                            }
+                        }
+
+                        var d = SPOO.deserialize(d);
+                        if (filterFieldsEnabled) d = SPOO.filterFields(d, filterFieldsEnabled);
+
+                        if (req.query.$permsAsArr == 'true') propsSerialize
+                        _data.push(d)
                     })
                     res.json(_data);
 
                 }, function(err) {
+                    res.status(400);
                     res.json({
                         error: err
                     })
                 })
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({
                     error: e
                 })
@@ -832,7 +926,7 @@ Platform = function(SPOO, OBJY, options) {
                 })
 
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({ error: e });
             }
         });
@@ -852,7 +946,7 @@ Platform = function(SPOO, OBJY, options) {
             var newPassword = usrData['new'];
 
             if (req.user.id != req.params.id) {
-                res.status(403);
+                res.status(400);
                 res.json({
                     error: 'This operation can only be performed by the user'
                 });
@@ -860,7 +954,7 @@ Platform = function(SPOO, OBJY, options) {
             }
 
             if (newPassword.length < 3) {
-                res.status(500);
+                res.status(400);
                 res.json({
                     error: 'Password too short. Use 3 characters or more'
                 });
@@ -882,7 +976,7 @@ Platform = function(SPOO, OBJY, options) {
                 OBJY[req.params.entity](req.params.id).get(function(data) {
 
                     if (!bcrypt.compareSync(oldPassword, data.password)) {
-                        res.status(500);
+                        res.status(400);
                         res.json({
                             error: 'Old password not correct'
                         });
@@ -892,7 +986,7 @@ Platform = function(SPOO, OBJY, options) {
                     try {
                         data.setPassword(bcrypt.hashSync(newPassword));
                     } catch (err) {
-                        res.status(500);
+                        res.status(400);
                         res.json({
                             error: err
                         });
@@ -906,13 +1000,14 @@ Platform = function(SPOO, OBJY, options) {
                     })
 
                 }, function(err) {
+                    res.status(400);
                     res.json({
                         error: err
                     })
                 })
 
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({ error: e });
             }
 
@@ -925,24 +1020,46 @@ Platform = function(SPOO, OBJY, options) {
 
         .get(checkAuthentication, checkObjectFamily, function(req, res) {
 
+            var filterFieldsEnabled;
+
+            try {
+                if (req.query.$filterFieldsEnabled) filterFieldsEnabled = JSON.parse(req.query.$filterFieldsEnabled);
+            } catch (e) {}
+
             OBJY.client(req.params.client);
             if (req.params.app)
                 OBJY.activeApp = req.params.app;
             else OBJY.activeApp = undefined;
 
-            if (!OBJY[req.params.entity])
+            if (!OBJY[req.params.entity]) {
+                res.status(400);
                 res.json({
                     message: "object family does not exist"
                 })
+            }
+
 
             try {
                 OBJY[req.params.entity](req.params.id).get(function(data) {
-                    res.json(SPOO.deserialize(data))
+
+                    if (data.properties.data) {
+                        if (isStream(data.properties.data)) {
+                            delete data.properties.data;
+                            data.properties.path = req.params.entity + '/' + req.params.id + '/stream'
+                        }
+                    }
+
+                    data = SPOO.deserialize(data);
+                    if (filterFieldsEnabled) data = SPOO.filterFields(data, filterFieldsEnabled);
+
+
+
+                    res.json(data)
                 }, function(err) {
                     res.json({ error: err })
                 })
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({ error: e });
             }
         })
@@ -963,13 +1080,14 @@ Platform = function(SPOO, OBJY, options) {
                 OBJY[req.params.entity](req.params.id).remove(function(data) {
                     res.json(SPOO.deserialize(data))
                 }, function(err) {
+                    res.status(400);
                     res.json({
                         error: err
                     })
                 })
 
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({ error: e });
             }
 
@@ -994,6 +1112,8 @@ Platform = function(SPOO, OBJY, options) {
 
                     var commands = req.body;
 
+                    data = OBJY[data.role](data);
+
                     /*if (Array.isArray(commands) && SPOO.legacy) {
                         commands.forEach(function(c) {
                             var keys = Object.keys(c);
@@ -1005,24 +1125,29 @@ Platform = function(SPOO, OBJY, options) {
                         })
                     }*/
 
-                    if (!Array.isArray(commands)) {
-                        var k = Object.keys(commands)[0];
-                        data[k](...commands[k]);
-                    } else {
-
-                        commands.forEach(function(c) {
-                            var k = Object.keys(c)[0];
-                            if (Array.isArray(c[k])) data[k](...c[k]);
-                            else data[k](c[k]);
-                        })
-                    }
-
                     try {
+
+
+                        if (!Array.isArray(commands)) {
+                            var k = Object.keys(commands)[0];
+                            console.log('1', k, data[k]);
+                            data[k](...commands[k]);
+                        } else {
+
+                            commands.forEach(function(c) {
+                                var k = Object.keys(c)[0];
+                                //console.log(data);
+                                console.log('2', k, data[k], Array.isArray(c[k]), c[k]);
+                                if (Array.isArray(c[k])) data[k](...c[k]);
+                                else data[k](c[k]);
+                            })
+                        }
 
                         data.update(function(_data) {
                             res.json(SPOO.deserialize(_data))
                         }, function(err) {
                             console.log(err);
+                            res.status(400);
                             res.json({
                                 error: err
                             })
@@ -1041,7 +1166,7 @@ Platform = function(SPOO, OBJY, options) {
                     })
                 })
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({ error: e });
             }
 
@@ -1075,11 +1200,12 @@ Platform = function(SPOO, OBJY, options) {
                     })
 
                 } catch (e) {
-                    res.status(403);
+                    res.status(400);
                     res.json({ error: e });
                 }
 
             }, function(err) {
+                res.status(400);
                 res.json({
                     error: "not found"
                 })
@@ -1114,7 +1240,7 @@ Platform = function(SPOO, OBJY, options) {
                     res.json({ error: err })
                 })
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({ error: e });
             }
 
@@ -1149,12 +1275,13 @@ Platform = function(SPOO, OBJY, options) {
                     }
 
                 }, function(err) {
+                    res.status(400);
                     res.json({
                         error: err
                     })
                 })
             } catch (e) {
-                res.status(403);
+                res.status(400);
                 res.json({ error: e });
             }
         });

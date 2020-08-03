@@ -42,8 +42,8 @@ var MetaMapper = function() {
 
     this.database = {};
 
-    this.connect = function(connectionString, success, error) {
-        this.database = mongoose.createConnection(connectionString);
+    this.connect = function(connectionString, success, error, options) {
+        this.database = mongoose.createConnection(connectionString, options);
 
         this.database.on('error', function(err) {
             error(err)

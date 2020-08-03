@@ -12,6 +12,40 @@ const SPOO = {
     staticProperties: ['name', '_id', 'type', 'username', 'email', 'password', '$in', '$and', '$or'],
     flagProperties: ['$sort', '$page', '$query'],
 
+    filterFields: function(obj, filterObj) {
+
+        obj = JSON.parse(JSON.stringify(obj))
+
+        function filter(filterObj, realObj, ignore) {
+
+            Object.keys(realObj || {}).forEach(function(f) {
+
+                if (typeof realObj[f] === 'object') {
+
+                    if (!filterObj) return;
+
+                    var ignore = false;
+
+                    if (filterObj[f]) ignore = true;
+
+                    filter(filterObj[f], realObj[f], ignore);
+
+                }
+
+                if (!filterObj[f] && !ignore && realObj[f]) delete realObj[f]
+
+            });
+
+        }
+
+        filter(filterObj, obj)
+
+        obj._filtered = true;
+
+        return obj;
+
+    },
+
     serialize: function(obj) {
 
         if (this.metaPropPrefix == '') return obj;
