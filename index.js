@@ -1,4 +1,6 @@
 var Rest = require('./catalog/rest.js');
+var OBJY = require('@spootechnologies/objy');
+var OBJY_CATALOG = require('@spootechnologies/objy-catalog');
 
 const LEGACY_BLACKLIST = ['$propsAsObj']
 
@@ -169,7 +171,9 @@ const SPOO = {
 
     MetaMapper: {},
 
-    OBJY: null,
+    OBJY: OBJY,
+
+    CATALOG: OBJY_CATALOG,
 
     //enabledObjectFymilies: {},
 

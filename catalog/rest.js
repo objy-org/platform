@@ -11,7 +11,7 @@ var app = express();
 var router = express.Router();
 var shortid = require('shortid');
 var defaultSecret = 'asdgnm0923t923';
-var defaultMaxUserSessions = 15;
+var defaultMaxUserSessions = 20;
 var fileUpload = require('express-fileupload');
 var Duplex = require("stream").Duplex;
 var isStream = require('is-stream');
@@ -105,7 +105,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 req.user = decoded
 
-                if (req.user && SPOO.authorisationsEnabled) OBJY.useUser(req.user);
+                if (req.user) OBJY.useUser(req.user);
 
                 if ((decoded.clients || []).indexOf(req.params.client) == -1 && (decoded.clients || []).length > 0) return res.status(401).send({
                     auth: false,
@@ -747,6 +747,8 @@ Platform = function(SPOO, OBJY, options) {
                         }
                     }
                 }
+
+                req.body.name = file.name;
             }
 
             if (req.body) {
@@ -1155,12 +1157,14 @@ Platform = function(SPOO, OBJY, options) {
 
                     } catch (e) {
                         console.log(e);
+                        res.status(400);
                         res.json({
                             error: e
                         })
                     }
 
                 }, function(err) {
+                    res.status(400);
                     res.json({
                         error: err
                     })
@@ -1229,6 +1233,7 @@ Platform = function(SPOO, OBJY, options) {
                 })
 
             try {
+
                 OBJY[req.params.entity](req.params.id).get(function(data) {
 
                     //res.type(data.mimetype)
