@@ -1116,17 +1116,6 @@ Platform = function(SPOO, OBJY, options) {
 
                     data = OBJY[data.role](data);
 
-                    /*if (Array.isArray(commands) && SPOO.legacy) {
-                        commands.forEach(function(c) {
-                            var keys = Object.keys(c);
-                            if (keys[0] == 'setPropertyValue' || keys[0] == 'addProperty' || keys[0] == 'removeProperty') {
-                                if (keys[1][0].indexOf('.') != -1) {
-
-                                }
-                            }
-                        })
-                    }*/
-
                     try {
 
 

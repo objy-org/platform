@@ -175,19 +175,10 @@ const SPOO = {
 
     CATALOG: OBJY_CATALOG,
 
-    //enabledObjectFymilies: {},
-
+   
     define: function(options) {
 
         this.OBJY.define(options);
-
-        /*if (options.interfaces) {
-            options.interfaces.forEach(function(i) {
-                if (!enabledObjectFymilies[i]) enabledObjectFymilies[i] = [];
-                enabledObjectFymilies[i].push(options.name);
-                enabledObjectFymilies[i].push(options.pluralName);
-            })
-        }*/
 
     },
 
