@@ -1,5 +1,5 @@
 var Rest = require('./catalog/rest.js');
-var OBJY = require('@spootechnologies/objy');
+var OBJY = require('objy');
 var OBJY_CATALOG = require('@spootechnologies/objy-catalog');
 
 const LEGACY_BLACKLIST = ['$propsAsObj']
@@ -7,6 +7,8 @@ const LEGACY_BLACKLIST = ['$propsAsObj']
 const SPOO = {
 
     authorisationsEnabled: false,
+    allowClientRegistrations: true,
+    allowUserRegistrations: true,
 
     metaPropPrefix: '',
 
@@ -175,7 +177,7 @@ const SPOO = {
 
     CATALOG: OBJY_CATALOG,
 
-   
+
     define: function(options) {
 
         this.OBJY.define(options);

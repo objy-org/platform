@@ -131,6 +131,13 @@ Platform = function(SPOO, OBJY, options) {
 
         .post(function(req, res) {
 
+            if (!SPOO.allowClientRegistrations) {
+                res.json({
+                    message: "feature disabled"
+                })
+                return;
+            }
+
             var data = req.body;
 
             if (!data.email) {
@@ -164,6 +171,13 @@ Platform = function(SPOO, OBJY, options) {
 
         .post(function(req, res) {
 
+            if (!SPOO.allowClientRegistrations) {
+                res.json({
+                    message: "feature disabled"
+                })
+                return;
+            }
+
             var reqdata = req.body;
 
             if (!req.body.registrationKey) {
@@ -174,6 +188,7 @@ Platform = function(SPOO, OBJY, options) {
                 return;
             }
 
+
             reqdata.clientname = reqdata.clientname.replace(/\s/g, '');
             reqdata.clientname = reqdata.clientname.toLowerCase();
 
@@ -181,7 +196,36 @@ Platform = function(SPOO, OBJY, options) {
 
                 metaMapper.createClient(req.body.registrationKey, reqdata.clientname, function(data) {
 
-                    res.json(data)
+                    //res.json(data)
+
+                    OBJY.client(reqdata.clientname);
+
+                    if (!OBJY['user']) {
+                        res.json({
+                            message: "object family does not exist"
+                        })
+                        return;
+                    }
+
+                    var user = req.body;
+
+                    if (!user.username) user.username = shortid.generate();
+                    if (!user.password) user.password = shortid.generate();
+                    if (!user.email) user.email = shortid.generate() + "@" + shortid.generate() + ".com";
+
+                    user.password = bcrypt.hashSync(user.password);
+
+                    if (user.username) {
+
+                        console.log('adding', { username: user.username, email: user.email, password: user.password, spooAdmin: true });
+
+                        OBJY['user']({ username: user.username, email: user.email, password: user.password, spooAdmin: true }).add(function(udata) {
+                            delete udata.password;
+                            res.json({ client: data, user: SPOO.deserialize(udata) })
+                        }, function(err) {
+                            res.json(data)
+                        })
+                    }
 
                 }, function(err) {
                     res.status(400);
@@ -216,6 +260,13 @@ Platform = function(SPOO, OBJY, options) {
 
             var appData = req.body;
             var appKey = Object.keys(appData)[0];
+
+            // TODO: add spooAdmin check!
+
+            if (!req.user.spooAdmin) {
+                res.json({ error: 'Not authorized' });
+                return;
+            }
 
             try {
 
@@ -484,6 +535,13 @@ Platform = function(SPOO, OBJY, options) {
 
         .post(function(req, res) {
 
+            if (!SPOO.allowUserRegistrations) {
+                res.json({
+                    message: "feature disabled"
+                })
+                return;
+            }
+
             OBJY.client(req.params.client);
             if (req.params.app)
                 OBJY.activeApp = req.params.app;
@@ -542,6 +600,18 @@ Platform = function(SPOO, OBJY, options) {
                 OBJY.users().auth({
                     username: req.body.username
                 }, function(user) {
+
+                    if (!user.spooAdmin) {
+                        if (req.params.app) {
+                            if (!(user.applications || []).includes(req.params.app)) {
+                                res.status(401)
+                                res.json({
+                                    message: "not authenticated"
+                                })
+                                return;
+                            }
+                        }
+                    }
 
                     if (bcrypt.compareSync(req.body.password, user.password)) {
 
@@ -905,7 +975,6 @@ Platform = function(SPOO, OBJY, options) {
 
             Object.keys(search).forEach(function(k) {
                 if (k == "$query") {
-                    console.warn(k, search[k])
                     try {
                         search[k] = JSON.parse(search[k])
                     } catch (e) {
@@ -1121,14 +1190,11 @@ Platform = function(SPOO, OBJY, options) {
 
                         if (!Array.isArray(commands)) {
                             var k = Object.keys(commands)[0];
-                            console.log('1', k, data[k]);
                             data[k](...commands[k]);
                         } else {
 
                             commands.forEach(function(c) {
                                 var k = Object.keys(c)[0];
-                                //console.log(data);
-                                console.log('2', k, data[k], Array.isArray(c[k]), c[k]);
                                 if (Array.isArray(c[k])) data[k](...c[k]);
                                 else data[k](c[k]);
                             })

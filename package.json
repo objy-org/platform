@@ -1,28 +1,4 @@
 {
-  "_from": "spoo",
-  "_id": "spoo@0.0.7",
-  "_inBundle": false,
-  "_integrity": "sha512-XmiIWWLbJNj3CbM4X3qxy+tyLNhckkZ+rKzWlQwokI1uTU5hk1CCz6KT5+rC5h84i02MhyiCqRgw8gfYz7sclQ==",
-  "_location": "spoo",
-  "_phantomChildren": {},
-  "_requested": {
-    "type": "tag",
-    "registry": true,
-    "raw": "spoo",
-    "name": "spoo",
-    "escapedName": "spoo",
-    "rawSpec": "",
-    "saveSpec": null,
-    "fetchSpec": "latest"
-  },
-  "_requiredBy": [
-    "#USER",
-    "/"
-  ],
-  "_resolved": "https://registry.npmjs.org/@spootechnologies/spoo/-/spoo-0.0.6.tgz",
-  "_shasum": "60e6ac8dec3f0d7a267994e4fa6882982e09b9d7",
-  "_spec": "@spootechnologies/spoo",
-  "_where": "/Users/marco/Documents/GitHub/spoo-platform",
   "author": {
     "name": "Marco Boelling"
   },
@@ -62,9 +38,9 @@
     "javascript",
     "objects"
   ],
-  "license": "MIT",
-  "main": "spoo.js",
-  "name": "spoo",
+  "license": "AGPL",
+  "main": "index.js",
+  "name": "spoojs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/spoo-technologies/spoo.git"
@@ -72,5 +48,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.9.45"
+  "version": "0.9.54"
 }

@@ -13,7 +13,6 @@ var clientSchema = {
 var ClientSchema = new Schema(clientSchema);
 
 var clientActivationSchema = {
-    _id: Schema.Types.ObjectId,
     key: String
 };
 var ClientActivationSchema = new Schema(clientActivationSchema);
@@ -64,11 +63,11 @@ var MetaMapper = function() {
 
         var db = this.database.useDb('spoo__meta');
 
-        ClientActivationSchema = db.model('ClientActivation', ClientActivationSchema);
+        ClientActivation = db.model('ClientActivation', ClientActivationSchema);
 
         console.log(_key);
 
-        ClientActivationSchema.findOne({ key: _key }, function(err, data) {
+        ClientActivation.findOne({ key: _key }, function(err, data) {
 
             if (err) {
                 error(err);
@@ -79,7 +78,7 @@ var MetaMapper = function() {
                 return;
             }
 
-            ClientActivationSchema.remove({ key: _key }, function(err, data) {
+            ClientActivation.remove({ key: _key }, function(err, data) {
                 if (err) {
                     error(err);
                     return;
