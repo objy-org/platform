@@ -185,6 +185,8 @@ const SPOO = {
     },
 
     REST: function(options, enabledObjectFymilies) {
+        if(!options.OBJY) throw new Error("OBJY must be included");
+        this.OBJY = options.OBJY;
         return new Rest(this, this.OBJY, options)
     },
 

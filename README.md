@@ -13,11 +13,12 @@ npm i spoojs
 ```
 
 ```javascript
-// import spoo
+// import objy and spoo
+const OBJY = require('objy');
 const SPOO = require('spoojs');
 
 // define an "object family"
-SPOO.define({
+OBJY.define({
   name: "user",
   pluralName: "users",
   authable: true
@@ -26,6 +27,7 @@ SPOO.define({
 // run the platform via REST
 SPOO.REST({
   port:80,
+  OBJY: OBJY,
   metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost")
 }).run()
 ```
@@ -37,7 +39,7 @@ Object Wrappers are used to define object pools and introduce the necessary wrap
 
 
 ```javascript
-SPOO.define({
+OBJY.define({
   name: "template", // the singular name for single object access
   pluralName: "templates", // the plural name for access to multiple objects
 
@@ -55,7 +57,7 @@ Every Object Wrapper can have custom plugged-in technologies for `persistence`, 
 
 
 ```javascript
-SPOO.define({
+OBJY.define({
   ...
   storage: new mongo("..."),
   processor: new vm(""),
@@ -72,6 +74,7 @@ The REST Interface is the default interface in SPOO. It spins up an express serv
 ```javascript
 SPOO.REST({
   port: 80, // The port to run on
+  OBJY: OBJY, // Pass the OBJY instance
   redisCon: "localhost", // The redis connection (for session storage)
   metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost") // The meta mapper is required for general config
 })
