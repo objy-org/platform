@@ -11,7 +11,7 @@ This quick example shows you how to spin up a platform with just a few lines of 
 > Install via npm:
 
 ```shell
-npm i @spootechnologies/spoo
+npm i spoojs
 ```
 
 > Set up a platform:
@@ -43,16 +43,10 @@ Object Wrappers are used to define object pools and introduce the necessary wrap
 
 ```javascript
 SPOO.define({
-
-  // needed params:
   name: "template", // the singular name for single object access
   pluralName: "templates", // the plural name for access to multiple objects
 
-  // optional params:
-  authable: false, // Sets wether objects of an object family can authenticate (login) against the platform
-  templateFamily: "templates", // Defines, where inherited objects are retrieved from. Defaults to object family itself.
-
-  // overwrite mappers (default mappers are all in memory):
+  // mappers (default mappers are all in memory):
   storage: new mongo("..."),
   processor: new vm(""),
   observer: new interval() 
@@ -67,6 +61,7 @@ Every Object Wrapper can have custom plugged-in technologies for `persistence`, 
 
 ```javascript
 SPOO.define({
+  ...
   storage: new mongo("..."),
   processor: new vm(""),
   observer: new interval() 
@@ -74,7 +69,7 @@ SPOO.define({
 ````
 
 
-## REST Interface
+## Start the REST Interface
 
 The REST Interface is the default interface in SPOO. It spins up an express server, that has all the required SPOO routes ready.
 
@@ -83,23 +78,8 @@ The REST Interface is the default interface in SPOO. It spins up an express serv
 SPOO.REST({
   port: 80, // The port to run on
   redisCon: "localhost", // The redis connection (for session storage)
+  metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost") // The meta mapper is required for general config
 })
-````
-
-
-## Meta Mapper
-
-> this is a must have!
-
-The Meta Mapper is a mapper to a MongoDB instance, that holds some basic information for the platform itself.
-
-
-```javascript
-SPOO.REST({
-  ...
-  metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost"),
-  ...
-}).run()
 ````
 
 
