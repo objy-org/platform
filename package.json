@@ -3,7 +3,7 @@
     "name": "Marco Boelling"
   },
   "bugs": {
-    "url": "https://github.com/spoo-technologies/spoo/issues"
+    "url": "https://github.com/spootechnologies/spoo/issues"
   },
   "bundleDependencies": false,
   "dependencies": {
@@ -29,7 +29,7 @@
   "deprecated": false,
   "description": "A JavaScript framework to build multi purpose platforms",
   "devDependencies": {},
-  "homepage": "https://github.com/spoo-technologies/spoo#readme",
+  "homepage": "https://github.com/spootechnologies/spoo#readme",
   "keywords": [
     "platform",
     "javascript",
@@ -38,9 +38,8 @@
   "license": "AGPL",
   "main": "index.js",
   "name": "spoojs",
-  "repository": {
     "type": "git",
-    "url": "git+https://github.com/spoo-technologies/spoo.git"
+    "url": "git+https://github.com/spootechnologies/spoo.git"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

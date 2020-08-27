@@ -1,6 +1,6 @@
 # SPOO 
 
-SPOO (Single Point of Object) is a JavaScript framework that lets you define custom platforms.
+SPOO (Single Point of Object) is a JavaScript framework that lets you define custom platforms. SPOO is built upon [OBJY](https://objy.io).
 
 
 # Quick Example
