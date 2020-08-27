@@ -31,7 +31,6 @@ SPOO.define({
 SPOO.REST({
   port:80,
   metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost")
-  ...
 }).run()
 ```
 

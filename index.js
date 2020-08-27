@@ -1,6 +1,6 @@
 var Rest = require('./catalog/rest.js');
 var OBJY = require('objy');
-var OBJY_CATALOG = require('@spootechnologies/objy-catalog');
+var OBJY_CATALOG = require('objy-catalog');
 
 const LEGACY_BLACKLIST = ['$propsAsObj']
 
