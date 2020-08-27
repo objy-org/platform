@@ -8,13 +8,9 @@ SPOO (Single Point of Object) is a JavaScript framework that lets you define cus
 This quick example shows you how to spin up a platform with just a few lines of code.
 
 
-> Install via npm:
-
 ```shell
 npm i spoojs
 ```
-
-> Set up a platform:
 
 ```javascript
 // import spoo
