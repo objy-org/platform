@@ -4,6 +4,10 @@ SPOO (Single Point of Object) is a JavaScript framework for creating custom plat
 
 For the official Documentation, visit [spoo.io/docs](https://spoo.io/docs)
 
+SPOO is built on [OBJY](https://objy-org.github.io).
+
+[![OBJY](https://raw.githubusercontent.com/objy-org/objy-org.github.io/master/assets/img/badge-sm.png "SPOO runs on OBJY")](https://objy.io)
+
 > For running a basic platform you will need ***Node.js***, ***Redis*** and ***MongoDB***
 
 # Spin up a Platform
