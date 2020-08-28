@@ -4,7 +4,7 @@ SPOO (Single Point of Object) is a JavaScript framework that lets you define cus
 
 SPOO is built on [OBJY](https://objy-org.github.io).
 
-![OBJY](https://raw.githubusercontent.com/objy-org/objy-org.github.io/master/assets/img/badge-sm.png "SPOO runs on OBJY")
+[![OBJY](https://raw.githubusercontent.com/objy-org/objy-org.github.io/master/assets/img/badge-sm.png "SPOO runs on OBJY")](https://objy.io)
 
 
 # Quick Example
