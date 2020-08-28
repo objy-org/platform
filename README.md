@@ -1,101 +1,101 @@
 # SPOO 
 
-SPOO (Single Point of Object) is a JavaScript framework that lets you define custom platforms. 
+SPOO (Single Point of Object) is a JavaScript framework for creating custom platforms.
 
-SPOO is built on [OBJY](https://objy-org.github.io).
-
-[![OBJY](https://raw.githubusercontent.com/objy-org/objy-org.github.io/master/assets/img/badge-sm.png "SPOO runs on OBJY")](https://objy.io)
-
-
-# Quick Example
+For the official Documentation, visit [spoo.io/docs](https://spoo.io/docs)
 
 > For running a basic platform you will need ***Node.js***, ***Redis*** and ***MongoDB***
 
-
-
-This quick example shows you how to spin up a platform with just a few lines of code.
-
+# Spin up a Platform
 
 ```shell
 npm i spoojs
 ```
 
 ```javascript
-// import spoo
+// 1. import spoo
 const SPOO = require('spoojs');
 
-// define an "object family" with the built-in OBJY instance
+// 2. define some "object wrappers"
 SPOO.OBJY.define({
   name: "user",
   pluralName: "users",
   authable: true
 })
 
-// run the platform via REST
+SPOO.OBJY.define({
+  name: "object",
+  pluralName: "objects"
+})
+
+// 3. run the platform via REST
 SPOO.REST({
   port:80,
-  metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost")
+  metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost") // The matamapper is for basic config
 }).run()
 ```
 
+# Set up a Client (SDK)
 
-# Object Wrappers
+> Install via npm or script tag:
 
-Object Wrappers are used to define object pools and introduce the necessary wrappers to the system.
-
-
-```javascript
-OBJY.define({
-  name: "template", // the singular name for single object access
-  pluralName: "templates", // the plural name for access to multiple objects
-
-  // mappers (default mappers are all in memory):
-  storage: new mongo("..."),
-  processor: new vm(""),
-  observer: new interval() 
-})
-````
-
-
-## Custom Mappers
-
-Every Object Wrapper can have custom plugged-in technologies for `persistence`, `processing` and `observing`
-
+```html
+<script src="spoo.js">
+```
+or
+```shell
+npm i spoo-client
+```
 
 ```javascript
-OBJY.define({
-  ...
-  storage: new mongo("..."),
-  processor: new vm(""),
-  observer: new interval() 
+// 1. Initialize the client
+const spoo = new SPOO_Client('mytenant');
+
+// 2. Authenticate a user
+spoo.io().auth("user", "pass", function(data, err){
+  if(!err) console.log('you are in!');
 })
-````
 
-
-## Start the REST Interface
-
-The REST Interface is the default interface in SPOO. It spins up an express server, that has all the required SPOO routes ready.
-
-
-```javascript
-SPOO.REST({
-  port: 80, // The port to run on
-  redisCon: "localhost", // The redis connection (for session storage)
-  metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost") // The meta mapper is required for general config
+// Add an object
+spoo.io().object({
+  name: "Mercedes",
+  type: "car",
+  properties: {
+    owner : {
+      type: "shortText",
+      value: "Peter Griffin"
+    }
+  }
+}).add(function(data, err)
+{
+  if(err) return console.error(err);
+  console.log(data); // {...object...}
 })
-````
+
+// Modify an object
+spoo.io().object("objectid...").addProperty({
+  color: {
+    type: "shortText",
+    value: "red"
+  }
+}).save(function(data, err)
+{
+  if(err) return console.error(err);
+  console.log(data); // {...updated object...}
+})
+```
 
 
-# Authors
+## Authors
 
 * **Marco Boelling** - *Initial work* - [Twitter](https://twitter.com/marcoboelling)
 
 
-# License
+## License
 
-SPOO is open source and licensed under the AGPL license. See the [LICENSE](LICENSE) for details.
+SPOO is open source and licensed under the AGPL license.
 
-# Further reading
+## Further reading
 
 * For more information on SPOO, go to [spoo.io](https://spoo.io)
 
