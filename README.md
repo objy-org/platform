@@ -2,12 +2,16 @@
 
 SPOO (Single Point of Object) is a JavaScript framework that lets you define custom platforms. 
 
-SPOO is built upon [OBJY](https://objy-org.github.io).
+SPOO is built on [OBJY](https://objy-org.github.io).
 
 ![OBJY](https://raw.githubusercontent.com/objy-org/objy-org.github.io/master/assets/img/badge-sm.png "SPOO runs on OBJY")
 
 
 # Quick Example
+
+> For running a basic platform you will need ***Node.js***, ***Redis*** and ***MongoDB***
+
+
 
 This quick example shows you how to spin up a platform with just a few lines of code.
 
@@ -17,12 +21,11 @@ npm i spoojs
 ```
 
 ```javascript
-// import objy and spoo
-const OBJY = require('objy');
+// import spoo
 const SPOO = require('spoojs');
 
-// define an "object family"
-OBJY.define({
+// define an "object family" with the built-in OBJY instance
+SPOO.OBJY.define({
   name: "user",
   pluralName: "users",
   authable: true
@@ -31,7 +34,6 @@ OBJY.define({
 // run the platform via REST
 SPOO.REST({
   port:80,
-  OBJY: OBJY,
   metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost")
 }).run()
 ```
@@ -78,7 +80,6 @@ The REST Interface is the default interface in SPOO. It spins up an express serv
 ```javascript
 SPOO.REST({
   port: 80, // The port to run on
-  OBJY: OBJY, // Pass the OBJY instance
   redisCon: "localhost", // The redis connection (for session storage)
   metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost") // The meta mapper is required for general config
 })
@@ -92,7 +93,7 @@ SPOO.REST({
 
 # License
 
-SPOO is open source and licensed under the AGPL license.
+SPOO is open source and licensed under the AGPL license. See the [LICENSE](LICENSE) for details.
 
 # Further reading
 
