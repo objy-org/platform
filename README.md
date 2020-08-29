@@ -2,6 +2,8 @@
 
 SPOO (Single Point of Object) is a JavaScript framework for creating custom platforms.
 
+[!Platform](https://spoo.io/assets/img/platform.png)
+
 For the official Documentation, visit [spoo.io/docs](https://spoo.io/docs)
 
 SPOO is built on [OBJY](https://objy-org.github.io).
