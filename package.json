@@ -37,7 +37,7 @@
       "javascript",
       "objects"
     ],
-    "license": "AGPL",
+    "license": "MIT",
     "main": "index.js",
     "name": "spoojs",
     "type": "git",
