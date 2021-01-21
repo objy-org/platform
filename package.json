@@ -1,5 +1,16 @@
 {
   "name": "spoojs",
+  "description": "A JavaScript framework to build multi purpose platforms",
+  "homepage": "https://spoo.io",
+  "keywords": [
+    "platform",
+    "javascript",
+    "objects"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "type": "git",
+  "url": "git+https://github.com/spootechnologies/spoo.git",
   "author": {
     "name": "Marco Boelling"
   },
@@ -26,22 +37,6 @@
     "mongoose": "^5.6.4",
     "shortid": "^2.2.14",
     "vm2": "^3.8.1"
-  },
-  "repository": {
-    "deprecated": false,
-    "description": "A JavaScript framework to build multi purpose platforms",
-    "devDependencies": {},
-    "homepage": "https://github.com/spootechnologies/spoo#readme",
-    "keywords": [
-      "platform",
-      "javascript",
-      "objects"
-    ],
-    "license": "MIT",
-    "main": "index.js",
-    "name": "spoojs",
-    "type": "git",
-    "url": "git+https://github.com/spootechnologies/spoo.git"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
