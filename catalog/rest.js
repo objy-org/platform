@@ -15,8 +15,6 @@ var defaultMaxUserSessions = 20;
 var fileUpload = require('express-fileupload');
 var Duplex = require("stream").Duplex;
 var isStream = require('is-stream');
-const { options } = require('../../metriox-platform-2/src/lib/logger');
-
 
 // Helper functions
 function propsSerialize(obj) {
