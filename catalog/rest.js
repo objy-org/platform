@@ -45,7 +45,7 @@ function propsSerialize(obj) {
  * @param {object} options.cors.origin - The origin of the request.
  * @param {object} options.cors.optionsSuccessStatus - The origin of the request.
  */
-const Platform = function(SPOO, OBJY, options) {
+const Platform = function(SPOO, OBJY, options = {}) {
     const {cors: corsOptions} = options;
     OBJY.Logger.log("Platform options: " + options);
 
@@ -1137,8 +1137,6 @@ const Platform = function(SPOO, OBJY, options) {
 
                     data = SPOO.deserialize(data);
                     if (filterFieldsEnabled) data = SPOO.filterFields(data, filterFieldsEnabled);
-
-
 
                     res.json(data)
                 }, function(err) {
