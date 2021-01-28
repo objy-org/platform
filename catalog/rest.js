@@ -16,7 +16,6 @@ var fileUpload = require('express-fileupload');
 var Duplex = require("stream").Duplex;
 var isStream = require('is-stream');
 
-
 // Helper functions
 function propsSerialize(obj) {
     if (obj.properties) {
@@ -34,8 +33,18 @@ function propsSerialize(obj) {
     }
 }
 
-Platform = function(SPOO, OBJY, options) {
-
+/**
+ * Spoo Platform 
+ * @param {*} SPOO - A Spoo instance.
+ * @param {*} OBJY - An OBJY instance.
+ * @param {object} options - Platform options.
+ * @param {string} options.port - The port Spoo is listening on.
+ * @param {object} options.cors - Cors options.
+ * @param {object} options.cors.origin - The origin of the request.
+ * @param {object} options.cors.optionsSuccessStatus - The origin of the request.
+ */
+const Platform = function(SPOO, OBJY, options = {}) {
+    const {cors: corsOptions} = options;
     OBJY.Logger.log("Platform options: " + options);
 
     this.router = router;
@@ -60,7 +69,11 @@ Platform = function(SPOO, OBJY, options) {
     app.use(bodyParser.json({
         limit: '300mb'
     }));
-    app.use(cors());
+    app.use(cors({
+        optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+        ...corsOptions
+    }));
+
     app.use(fileUpload());
     app.options('*', cors());
 
@@ -1123,8 +1136,6 @@ Platform = function(SPOO, OBJY, options) {
                     data = SPOO.deserialize(data);
                     if (filterFieldsEnabled) data = SPOO.filterFields(data, filterFieldsEnabled);
 
-
-
                     res.json(data)
                 }, function(err) {
                     res.json({ error: err })
@@ -1350,7 +1361,6 @@ Platform = function(SPOO, OBJY, options) {
         app.listen(options.port || '8888');
         app.use('/api', router);
     }
-
 }
 
 process.on('uncaughtException', function(err) {
