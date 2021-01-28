@@ -35,7 +35,7 @@ function propsSerialize(obj) {
 
 /**
  * Spoo Platform 
- * @param {*} Spoo - A Spoo instance.
+ * @param {*} SPOO - A Spoo instance.
  * @param {*} OBJY - An OBJY instance.
  * @param {object} options - Platform options.
  * @param {string} options.port - The port Spoo is listening on.
