@@ -306,6 +306,36 @@ const Platform = function (SPOO, OBJY, options = {}) {
 
         });
 
+    router.route(['/client/:client/application/:appId'])
+
+        .delete(checkAuthentication, function (req, res) {
+
+            var client = req.params.client;
+
+            var appKey = req.params.appId;
+
+            if (!req.user.spooAdmin) {
+                res.json({ error: 'Not authorized' });
+                return;
+            }
+
+            try {
+
+                metaMapper.removeClientApplication(appKey, function (data) {
+                    res.json(data);
+                }, function (err) {
+                    res.status(400);
+                    res.json({
+                        error: 'Some Error occured'
+                    });
+                }, client);
+            } catch (e) {
+                res.status(400);
+                res.json({ error: e });
+            }
+
+        });
+
     router.route(['/client/:client/applications'])
 
         .get(checkAuthentication, function (req, res) {
