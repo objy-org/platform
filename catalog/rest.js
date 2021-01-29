@@ -325,9 +325,7 @@ const Platform = function (SPOO, OBJY, options = {}) {
                     res.json(data);
                 }, function (err) {
                     res.status(400);
-                    res.json({
-                        error: 'Some Error occured'
-                    });
+                    res.json(err);
                 }, client);
             } catch (e) {
                 res.status(400);
