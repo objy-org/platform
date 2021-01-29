@@ -235,7 +235,7 @@ var MetaMapper = function() {
                 return;
             }
 
-            exists = data.find(app => app.name == app.name);
+            exists = data.applications.find(app => app.name == app.name);
 
             if (exists) {
                 error({ message: "applications already exists" });
@@ -274,7 +274,7 @@ var MetaMapper = function() {
                 return;
             }
 
-            exists = data.find(app => app.name == appId);
+            exists = data.applications.find(app => app.name == appId);
 
             if (!exists) {
                 error({ message: "applications doesn't exist" });
