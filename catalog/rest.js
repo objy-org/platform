@@ -33,18 +33,22 @@ function propsSerialize(obj) {
     }
 }
 
+
 /**
+ * @typedef {Object} SpooPlatformOptions  - Platform options.
+ * @property {string} port - The port Spoo is listening on.
+ * @property {object} cors - Cors 
+ * @property {object} cors.origin - The origin of the request.
+ * @property {object} cors.optionsSuccessStatus - The origin of the request.
+ 
+ /**
  * Spoo Platform 
- * @param {*} Spoo - A Spoo instance.
+ * @param {*} SPOO - A Spoo instance.
  * @param {*} OBJY - An OBJY instance.
- * @param {object} options - Platform options.
- * @param {string} options.port - The port Spoo is listening on.
- * @param {object} options.cors - Cors options.
- * @param {object} options.cors.origin - The origin of the request.
- * @param {object} options.cors.optionsSuccessStatus - The origin of the request.
+ * @param {SpooPlatformOptions} options - Platform options.
  */
-const Platform = function(SPOO, OBJY, options = {}) {
-    const {cors: corsOptions} = options;
+const Platform = function (SPOO, OBJY, options = {}) {
+    const { cors: corsOptions } = options;
     OBJY.Logger.log("Platform options: " + options);
 
     this.router = router;
@@ -57,7 +61,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
     var objectFamilies = options.objectFamilies || [];
 
-    app.use(function(req, res, next) {
+    app.use(function (req, res, next) {
         OBJY.activeApp = undefined;
         if (req.headers.metaPropPrefix) SPOO.metaPropPrefix = req.headers.metaPropPrefix;
         next();
@@ -69,20 +73,24 @@ const Platform = function(SPOO, OBJY, options = {}) {
     app.use(bodyParser.json({
         limit: '300mb'
     }));
+
     app.use(cors({
         optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
         ...corsOptions
     }));
 
     app.use(fileUpload());
-    app.options('*', cors());
+    app.options('*', cors({
+        optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+        ...corsOptions
+    }));
 
     OBJY.hello();
 
     var metaMapper = options.metaMapper;
     var messageMapper = options.messageMapper;
 
-    var checkObjectFamily = function(req, res, next) {
+    var checkObjectFamily = function (req, res, next) {
         if (objectFamilies.indexOf(req.params.entity) == -1 && !objectFamilies.length == 0) {
             res.status(500).json({
                 message: 'Object Family not available for this interface'
@@ -91,7 +99,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
         next();
     }
 
-    var checkAuthentication = function(req, res, next) {
+    var checkAuthentication = function (req, res, next) {
 
         var token;
 
@@ -101,13 +109,13 @@ const Platform = function(SPOO, OBJY, options = {}) {
             token = req.query.token
         }
 
-        jwt.verify(token, options.jwtSecret || defaultSecret, function(err, decoded) {
+        jwt.verify(token, options.jwtSecret || defaultSecret, function (err, decoded) {
             if (err) return res.status(401).send({
                 auth: false,
                 message: 'Failed to authenticate token'
             });
 
-            redis.get('at_' + decoded.tokenId, function(err, result) {
+            redis.get('at_' + decoded.tokenId, function (err, result) {
 
                 OBJY.Logger.log("Got token from redis " + result);
 
@@ -133,7 +141,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // Welcome
     router.route(['/'])
 
-        .get(function(req, res) {
+        .get(function (req, res) {
             res.json({
                 message: "Hi there"
             })
@@ -142,7 +150,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // Request a client activation key
     router.route(['/client/register'])
 
-        .post(function(req, res) {
+        .post(function (req, res) {
 
             if (!SPOO.allowClientRegistrations) {
                 res.json({
@@ -161,7 +169,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                 return;
             }
 
-            metaMapper.createClientRegistration(function(data) {
+            metaMapper.createClientRegistration(function (data) {
 
                 messageMapper.send((options.clientRegistrationMessage || {}).from || 'SPOO', req.body.email, (options.clientRegistrationMessage || {}).subject || 'your workspace registration key', ((options.clientRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
 
@@ -169,7 +177,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                     message: 'workspace registration key sent!'
                 })
 
-            }, function(err) {
+            }, function (err) {
                 res.status(400)
                 res.json({
                     error: err
@@ -182,7 +190,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // Redeem a client activation key -> create a client
     router.route(['/client'])
 
-        .post(function(req, res) {
+        .post(function (req, res) {
 
             if (!SPOO.allowClientRegistrations) {
                 res.json({
@@ -205,9 +213,9 @@ const Platform = function(SPOO, OBJY, options = {}) {
             reqdata.clientname = reqdata.clientname.replace(/\s/g, '');
             reqdata.clientname = reqdata.clientname.toLowerCase();
 
-            metaMapper.redeemClientRegistration(req.body.registrationKey, function(data) {
+            metaMapper.redeemClientRegistration(req.body.registrationKey, function (data) {
 
-                metaMapper.createClient(req.body.registrationKey, reqdata.clientname, function(data) {
+                metaMapper.createClient(req.body.registrationKey, reqdata.clientname, function (data) {
 
                     //res.json(data)
 
@@ -232,20 +240,20 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
                         console.log('adding', { username: user.username, email: user.email, password: user.password, spooAdmin: true });
 
-                        OBJY['user']({ username: user.username, email: user.email, password: user.password, spooAdmin: true }).add(function(udata) {
+                        OBJY['user']({ username: user.username, email: user.email, password: user.password, spooAdmin: true }).add(function (udata) {
                             delete udata.password;
                             res.json({ client: data, user: SPOO.deserialize(udata) })
-                        }, function(err) {
+                        }, function (err) {
                             res.json(data)
                         })
                     }
 
-                }, function(err) {
+                }, function (err) {
                     res.status(400);
                     res.json(err)
                 })
 
-            }, function(err) {
+            }, function (err) {
                 res.status(400);
                 res.json(err)
             })
@@ -255,7 +263,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
     router.route(['/client/:client/authenticated', '/client/:client/app/:app/authenticated'])
 
-        .get(checkAuthentication, function(req, res) {
+        .get(checkAuthentication, function (req, res) {
 
             res.status(200);
             res.json({
@@ -267,7 +275,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
     router.route(['/client/:client/application'])
 
-        .post(checkAuthentication, function(req, res) {
+        .post(checkAuthentication, function (req, res) {
 
             var client = req.params.client;
 
@@ -283,9 +291,9 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
             try {
 
-                metaMapper.addClientApplication(appData, function(data) {
+                metaMapper.addClientApplication(appData, function (data) {
                     res.json(data);
-                }, function(err) {
+                }, function (err) {
                     res.status(400);
                     res.json({
                         error: 'Some Error occured'
@@ -300,19 +308,19 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
     router.route(['/client/:client/applications'])
 
-        .get(checkAuthentication, function(req, res) {
+        .get(checkAuthentication, function (req, res) {
 
             var client = req.params.client;
             console.log('letsgo');
             try {
-                metaMapper.getClientApplications(function(data) {
+                metaMapper.getClientApplications(function (data) {
 
                     console.log('clientapps', data);
 
                     var _data = [];
 
                     if (req.query.name) {
-                        data.forEach(function(d) {
+                        data.forEach(function (d) {
                             if (d.displayName.toLowerCase().indexOf(req.query.name.toLowerCase()) != -1) _data.push(d)
                         })
                     } else _data = data;
@@ -337,7 +345,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
                     res.json(_data)
 
-                }, function(err) {
+                }, function (err) {
                     res.status(400);
                     res.json({
                         error: 'Some Error occured'
@@ -353,7 +361,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
     router.route('/client/:client/user/requestkey')
 
-        .post(function(req, res) {
+        .post(function (req, res) {
 
             var data = req.body;
 
@@ -371,14 +379,14 @@ const Platform = function(SPOO, OBJY, options = {}) {
                 return;
             }
 
-            metaMapper.createUserRegistrationKey(data.email, req.params.client, function(data) {
+            metaMapper.createUserRegistrationKey(data.email, req.params.client, function (data) {
 
                 messageMapper.send((options.userRegistrationMessage || {}).from || 'SPOO', req.body.email, (options.userRegistrationMessage || {}).subject || 'your registration key', ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
 
                 res.json({
                     message: 'registration key sent!'
                 })
-            }, function(err) {
+            }, function (err) {
                 res.status(400);
                 res.json({
                     error: err
@@ -391,7 +399,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
     router.route('/client/:client/user/requestpasswordreset')
 
-        .post(function(req, res) {
+        .post(function (req, res) {
 
             var data = req.body;
 
@@ -418,38 +426,38 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
             OBJY.client(req.params.client);
 
-            OBJY['users'](query).get(function(udata) {
+            OBJY['users'](query).get(function (udata) {
 
-                    if (udata.length == 0) {
-                        res.status(404);
-                        res.json({
-                            error: 'email not found'
-                        });
-                        return;
-                    } else if (udata.length > 1) {
-                        res.status(404);
-                        res.json({
-                            error: 'use username and email'
-                        });
-                        return;
-                    }
+                if (udata.length == 0) {
+                    res.status(404);
+                    res.json({
+                        error: 'email not found'
+                    });
+                    return;
+                } else if (udata.length > 1) {
+                    res.status(404);
+                    res.json({
+                        error: 'use username and email'
+                    });
+                    return;
+                }
 
-                    metaMapper.createPasswordResetKey(udata[0]._id, req.params.client, function(data) {
+                metaMapper.createPasswordResetKey(udata[0]._id, req.params.client, function (data) {
 
-                        messageMapper.send((options.userPasswordResetMessage || {}).from || 'SPOO', req.body.email, (options.userPasswordResetMessage || {}).subject || 'your password reset key', ((options.userPasswordResetMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
+                    messageMapper.send((options.userPasswordResetMessage || {}).from || 'SPOO', req.body.email, (options.userPasswordResetMessage || {}).subject || 'your password reset key', ((options.userPasswordResetMessage || {}).body || '').replace('__KEY__', data.key) || data.key)
 
-                        res.json({
-                            message: 'password reset key sent!'
-                        })
-                    }, function(err) {
-                        res.status(400);
-                        res.json({
-                            error: err
-                        });
+                    res.json({
+                        message: 'password reset key sent!'
                     })
+                }, function (err) {
+                    res.status(400);
+                    res.json({
+                        error: err
+                    });
+                })
 
-                },
-                function(err) {
+            },
+                function (err) {
                     res.status(400);
                     res.json({
                         error: err
@@ -463,7 +471,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
     router.route('/client/:client/user/resetpassword')
 
 
-        .post(function(req, res) {
+        .post(function (req, res) {
 
             var userData = req.body;
 
@@ -503,38 +511,38 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
             OBJY.client(req.params.client);
 
-            metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+            metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function (_data) {
 
-                    OBJY.client(req.params.client);
+                OBJY.client(req.params.client);
 
-                    OBJY['user'](_data.uId).get(function(data) {
+                OBJY['user'](_data.uId).get(function (data) {
 
-                            data.password = bcrypt.hashSync(req.body.password);
+                    data.password = bcrypt.hashSync(req.body.password);
 
-                            data.update(function(spooElem) {
-                                    res.json({
-                                        message: "Password changed"
-                                    });
-                                    return;
-                                },
-                                function(err) {
-                                    res.status(400);
-                                    res.json({
-                                        error: err
-                                    });
-                                    return;
-                                });
-
-                        },
-                        function(err) {
+                    data.update(function (spooElem) {
+                        res.json({
+                            message: "Password changed"
+                        });
+                        return;
+                    },
+                        function (err) {
                             res.status(400);
                             res.json({
                                 error: err
                             });
                             return;
                         });
+
                 },
-                function(err) {
+                    function (err) {
+                        res.status(400);
+                        res.json({
+                            error: err
+                        });
+                        return;
+                    });
+            },
+                function (err) {
                     res.status(400);
                     res.json({
                         error: err
@@ -546,7 +554,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/register/user', '/client/:client/aapp/:app/register/user'])
 
-        .post(function(req, res) {
+        .post(function (req, res) {
 
             if (!SPOO.allowUserRegistrations) {
                 res.json({
@@ -576,9 +584,9 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
             if (req.body) {
 
-                OBJY['user'](user).add(function(data) {
+                OBJY['user'](user).add(function (data) {
                     res.json(SPOO.deserialize(data))
-                }, function(err) {
+                }, function (err) {
                     res.json(data)
                 })
             }
@@ -589,18 +597,18 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // LOGIN
     router.route(['/client/:client/auth', '/client/:client/app/:app/auth'])
 
-        .post(function(req, res) {
+        .post(function (req, res) {
 
             OBJY.client(req.params.client);
 
             OBJY.useUser(null);
 
-            redis.get('cnt_' + req.body.username, function(err, result) {
+            redis.get('cnt_' + req.body.username, function (err, result) {
 
                 console.log('count result', result);
 
                 if (result !== null) {
-                    console.log('r', result, options.maxUserSessions || defaultMaxUserSessions, );
+                    console.log('r', result, options.maxUserSessions || defaultMaxUserSessions,);
                     if (parseInt(result) >= (options.maxUserSessions || defaultMaxUserSessions)) {
                         res.status(401)
                         res.json({
@@ -612,7 +620,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
                 OBJY.users().auth({
                     username: req.body.username
-                }, function(user) {
+                }, function (user) {
 
                     if (!user.spooAdmin) {
                         if (req.params.app) {
@@ -678,7 +686,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                             message: "not authenticated"
                         })
                     }
-                }, function(err) {
+                }, function (err) {
                     res.status(401)
                     res.json({
                         message: "not authenticated"
@@ -692,14 +700,14 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // REFRESH  A TOKEN
     router.route(['/client/:client/token', '/client/:client/app/:app/token'])
 
-        .post(function(req, res) {
+        .post(function (req, res) {
 
             OBJY.client(req.params.client);
 
             var refreshToken = req.body.refreshToken;
             var oldTokenId = refreshToken.split('rt_')[1];
 
-            redis.get('rt_' + oldTokenId, function(err, result) {
+            redis.get('rt_' + oldTokenId, function (err, result) {
                 if (err || !result) return res.status(401).send({
                     auth: false,
                     message: 'Failed to verify refresh token.'
@@ -724,7 +732,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                     expiresIn: 20 * 60000
                 });
 
-                setTimeout(function() {
+                setTimeout(function () {
                     redis.del('rt_' + oldTokenId);
                     redis.del('at_' + oldTokenId);
                 }, 8000)
@@ -750,17 +758,17 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // REJECT A TOKEN
     router.route(['/client/:client/token/reject', '/client/:client/app/:app/token/reject'])
 
-        .post(checkAuthentication, function(req, res) {
+        .post(checkAuthentication, function (req, res) {
 
             OBJY.client(req.params.client);
 
-            jwt.verify(req.body.accessToken, options.jwtSecret || defaultSecret, function(err, decoded) {
+            jwt.verify(req.body.accessToken, options.jwtSecret || defaultSecret, function (err, decoded) {
                 if (err) return res.status(401).send({
                     auth: false,
                     message: 'token is already invalid'
                 });
 
-                redis.get('rt_' + decoded.tokenId, function(err, result) {
+                redis.get('rt_' + decoded.tokenId, function (err, result) {
 
                     /*if (err || !result) return res.status(404).send({
                         auth: false,
@@ -770,7 +778,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                     redis.del('at_' + decoded.tokenId);
                     redis.del('rt_' + decoded.tokenId);
 
-                    redis.get('cnt_' + decoded.username, function(err, result) {
+                    redis.get('cnt_' + decoded.username, function (err, result) {
                         if (result !== null) {
                             if (parseInt(result) > 1)
                                 redis.set('cnt_' + decoded.username, --result, "EX", 1200)
@@ -789,7 +797,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/:entity', '/client/:client/app/:app/:entity'])
 
-        .post(checkAuthentication, checkObjectFamily, function(req, res) {
+        .post(checkAuthentication, checkObjectFamily, function (req, res) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -847,7 +855,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                 if (Array.isArray(req.body.properties)) propsSerialize(req.body);
 
                 try {
-                    OBJY[req.params.entity](req.body).add(function(data) {
+                    OBJY[req.params.entity](req.body).add(function (data) {
 
                         res.json(SPOO.deserialize(data))
 
@@ -856,7 +864,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                             messageMapper.send('SPOO', req.body.email, 'your password', pw)
                         }
 
-                    }, function(err) {
+                    }, function (err) {
                         res.status(400);
                         res.json({
                             error: err
@@ -873,13 +881,13 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
         })
 
-        .get(checkAuthentication, checkObjectFamily, function(req, res) {
+        .get(checkAuthentication, checkObjectFamily, function (req, res) {
 
             var filterFieldsEnabled;
 
             try {
                 if (req.query.$filterFieldsEnabled) filterFieldsEnabled = JSON.parse(req.query.$filterFieldsEnabled);
-            } catch (e) {}
+            } catch (e) { }
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -892,7 +900,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                 })
 
             if (req.headers.lazyquery) {
-                Object.keys(req.query).forEach(function(k) {
+                Object.keys(req.query).forEach(function (k) {
                     if (k.indexOf('properties.') != -1 && k.indexOf('.value') == -1) {
                         req.query[k + '.value'] = req.query[k];
                         delete req.query[k];
@@ -911,7 +919,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
             console.warn('search', search)
 
-            Object.keys(search).forEach(function(k) {
+            Object.keys(search).forEach(function (k) {
                 if (k == "$query") {
                     console.warn(k, search[k])
                     try {
@@ -927,10 +935,10 @@ const Platform = function(SPOO, OBJY, options = {}) {
             console.warn('OBJY.activeApp', OBJY.activeApp, req.params.app)
 
             try {
-                OBJY[req.params.entity](search).get(function(data) {
+                OBJY[req.params.entity](search).get(function (data) {
 
                     var _data = [];
-                    data.forEach(function(d) {
+                    data.forEach(function (d) {
 
                         if ((d.properties || {}).data) {
                             if (isStream(d.properties.data)) {
@@ -947,7 +955,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                     })
                     res.json(_data);
 
-                }, function(err) {
+                }, function (err) {
                     res.status(400);
                     res.json({
                         error: err
@@ -966,7 +974,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
     router.route(['/client/:client/:entity/count', '/client/:client/app/:app/:entity/count'])
 
 
-        .get(checkAuthentication, checkObjectFamily, function(req, res) {
+        .get(checkAuthentication, checkObjectFamily, function (req, res) {
 
 
             OBJY.client(req.params.client);
@@ -986,7 +994,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                 if (search[k] == 'false') search[k] = false;
             }
 
-            Object.keys(search).forEach(function(k) {
+            Object.keys(search).forEach(function (k) {
                 if (k == "$query") {
                     try {
                         search[k] = JSON.parse(search[k])
@@ -1000,10 +1008,10 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
             try {
 
-                OBJY[req.params.entity](search).count(function(data) {
+                OBJY[req.params.entity](search).count(function (data) {
                     res.json(data)
 
-                }, function(err) {
+                }, function (err) {
                     res.json({
                         error: err
                     })
@@ -1019,7 +1027,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // GET: one, UPDATE: one, DELETE: one
     router.route(['/client/:client/:entity/:id/password', '/client/:client/app/:app/:entity/:id/password'])
 
-        .patch(checkAuthentication, checkObjectFamily, function(req, res) {
+        .patch(checkAuthentication, checkObjectFamily, function (req, res) {
 
             OBJY.client(req.params.client);
 
@@ -1057,7 +1065,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
             try {
 
-                OBJY[req.params.entity](req.params.id).get(function(data) {
+                OBJY[req.params.entity](req.params.id).get(function (data) {
 
                     if (!bcrypt.compareSync(oldPassword, data.password)) {
                         res.status(400);
@@ -1077,13 +1085,13 @@ const Platform = function(SPOO, OBJY, options = {}) {
                         return;
                     }
 
-                    data.update(function(_data) {
+                    data.update(function (_data) {
                         res.json(SPOO.deserialize(_data))
-                    }, function(err) {
+                    }, function (err) {
 
                     })
 
-                }, function(err) {
+                }, function (err) {
                     res.status(400);
                     res.json({
                         error: err
@@ -1102,13 +1110,13 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // GET: one, UPDATE: one, DELETE: one
     router.route(['/client/:client/:entity/:id', '/client/:client/app/:app/:entity/:id'])
 
-        .get(checkAuthentication, checkObjectFamily, function(req, res) {
+        .get(checkAuthentication, checkObjectFamily, function (req, res) {
 
             var filterFieldsEnabled;
 
             try {
                 if (req.query.$filterFieldsEnabled) filterFieldsEnabled = JSON.parse(req.query.$filterFieldsEnabled);
-            } catch (e) {}
+            } catch (e) { }
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -1124,7 +1132,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
 
             try {
-                OBJY[req.params.entity](req.params.id).get(function(data) {
+                OBJY[req.params.entity](req.params.id).get(function (data) {
 
                     if (data.properties.data) {
                         if (isStream(data.properties.data)) {
@@ -1137,7 +1145,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                     if (filterFieldsEnabled) data = SPOO.filterFields(data, filterFieldsEnabled);
 
                     res.json(data)
-                }, function(err) {
+                }, function (err) {
                     res.json({ error: err })
                 })
             } catch (e) {
@@ -1146,7 +1154,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
             }
         })
 
-        .delete(checkAuthentication, checkObjectFamily, function(req, res) {
+        .delete(checkAuthentication, checkObjectFamily, function (req, res) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -1159,9 +1167,9 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
             try {
 
-                OBJY[req.params.entity](req.params.id).remove(function(data) {
+                OBJY[req.params.entity](req.params.id).remove(function (data) {
                     res.json(SPOO.deserialize(data))
-                }, function(err) {
+                }, function (err) {
                     res.status(400);
                     res.json({
                         error: err
@@ -1175,7 +1183,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
         })
 
-        .patch(checkAuthentication, checkObjectFamily, function(req, res) {
+        .patch(checkAuthentication, checkObjectFamily, function (req, res) {
 
             OBJY.client(req.params.client);
 
@@ -1190,7 +1198,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                 })
 
             try {
-                OBJY[req.params.entity](req.params.id).get(function(data) {
+                OBJY[req.params.entity](req.params.id).get(function (data) {
 
                     var commands = req.body;
 
@@ -1204,16 +1212,16 @@ const Platform = function(SPOO, OBJY, options = {}) {
                             data[k](...commands[k]);
                         } else {
 
-                            commands.forEach(function(c) {
+                            commands.forEach(function (c) {
                                 var k = Object.keys(c)[0];
                                 if (Array.isArray(c[k])) data[k](...c[k]);
                                 else data[k](c[k]);
                             })
                         }
 
-                        data.update(function(_data) {
+                        data.update(function (_data) {
                             res.json(SPOO.deserialize(_data))
-                        }, function(err) {
+                        }, function (err) {
                             console.log(err);
                             res.status(400);
                             res.json({
@@ -1229,7 +1237,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                         })
                     }
 
-                }, function(err) {
+                }, function (err) {
                     res.status(400);
                     res.json({
                         error: err
@@ -1243,7 +1251,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
         })
 
 
-        .put(checkAuthentication, checkObjectFamily, function(req, res) {
+        .put(checkAuthentication, checkObjectFamily, function (req, res) {
 
             OBJY.client(req.params.client);
 
@@ -1257,15 +1265,15 @@ const Platform = function(SPOO, OBJY, options = {}) {
                 })
 
 
-            OBJY[req.params.entity](req.params.id).get(function(data) {
+            OBJY[req.params.entity](req.params.id).get(function (data) {
 
                 data.replace(SPOO.serialize(req.body));
 
                 try {
 
-                    data.update(function(_data) {
+                    data.update(function (_data) {
                         res.json(SPOO.deserialize(_data))
-                    }, function(err) {
+                    }, function (err) {
 
                     })
 
@@ -1274,7 +1282,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                     res.json({ error: e });
                 }
 
-            }, function(err) {
+            }, function (err) {
                 res.status(400);
                 res.json({
                     error: "not found"
@@ -1286,7 +1294,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
     router.route(['/client/:client/:entity/:id/stream', '/client/:client/app/:app/:entity/:id/stream'])
 
-        .get(checkAuthentication, checkObjectFamily, function(req, res) {
+        .get(checkAuthentication, checkObjectFamily, function (req, res) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -1300,14 +1308,14 @@ const Platform = function(SPOO, OBJY, options = {}) {
 
             try {
 
-                OBJY[req.params.entity](req.params.id).get(function(data) {
+                OBJY[req.params.entity](req.params.id).get(function (data) {
 
                     //res.type(data.mimetype)
 
                     data.properties.data.resume();
                     data.properties.data.pipe(res);
 
-                }, function(err) {
+                }, function (err) {
                     res.json({ error: err })
                 })
             } catch (e) {
@@ -1321,7 +1329,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/:entity/:id/property/:propName/call', '/client/:client/app/:app/:entity/:id/property/:propName/call'])
 
-        .post(checkAuthentication, checkObjectFamily, function(req, res) {
+        .post(checkAuthentication, checkObjectFamily, function (req, res) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -1334,10 +1342,10 @@ const Platform = function(SPOO, OBJY, options = {}) {
                 })
 
             try {
-                OBJY[req.params.entity](req.params.id).get(function(data) {
+                OBJY[req.params.entity](req.params.id).get(function (data) {
 
                     if (data.getProperty(req.params.propName)) {
-                        data.getProperty(req.params.propName).call(function(data) {
+                        data.getProperty(req.params.propName).call(function (data) {
 
                             res.json({
                                 message: "called"
@@ -1345,7 +1353,7 @@ const Platform = function(SPOO, OBJY, options = {}) {
                         }, req.params.client)
                     }
 
-                }, function(err) {
+                }, function (err) {
                     res.status(400);
                     res.json({
                         error: err
@@ -1357,13 +1365,13 @@ const Platform = function(SPOO, OBJY, options = {}) {
             }
         });
 
-    this.run = function() {
+    this.run = function () {
         app.listen(options.port || '8888');
         app.use('/api', router);
     }
 }
 
-process.on('uncaughtException', function(err) {
+process.on('uncaughtException', function (err) {
     console.error(err);
 })
 
