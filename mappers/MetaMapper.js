@@ -236,7 +236,7 @@ var MetaMapper = function() {
             }
             if (!data.length) return error({ message: 'client not found' })
 
-            exists = data[0].applications.find(app => app.name == app.name);
+            exists = data[0].applications.find(app_ => app_.name == app.name);
 
             if (exists) {
                 error({ message: "applications already exists" });
