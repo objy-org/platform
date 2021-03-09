@@ -285,6 +285,8 @@ var MetaMapper = function() {
         });
     }
 
+    return this;
+
 }
 
 module.exports = MetaMapper;

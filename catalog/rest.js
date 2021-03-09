@@ -15,6 +15,7 @@ var defaultMaxUserSessions = 20;
 var fileUpload = require('express-fileupload');
 var Duplex = require("stream").Duplex;
 var isStream = require('is-stream');
+var timeout = require('connect-timeout');
 
 
 // Helper functions
@@ -166,6 +167,7 @@ Platform = function(SPOO, OBJY, options) {
         })
 
 
+
     // Redeem a client activation key -> create a client
     router.route(['/client'])
 
@@ -297,6 +299,7 @@ Platform = function(SPOO, OBJY, options) {
                     console.log('clientapps', data);
 
                     var _data = [];
+                    var clientApps = [];
 
                     if (req.query.name) {
                         data.forEach(function(d) {
@@ -306,14 +309,34 @@ Platform = function(SPOO, OBJY, options) {
 
                     console.log('ru', req.user);
 
-                    if (!req.user.spooAdmin) {
-                        var i;
-                        for (i = 0; i < _data.length; i++) {
-                            if (!req.user.privileges[data[i].name]) _data.splice(i, 1);
-                        }
+                    function getFullAppDetails(name) {
+                        var details;
+                        _data.forEach(a => {
+                            if (a.name == name) details = a;
+                        })
+                        return details;
                     }
 
-                    console.log('clientapps after:', _data);
+                    if (!req.user.spooAdmin) {
+
+                        req.user.applications.forEach(a => {
+                            clientApps.push(getFullAppDetails(a))
+                        })
+
+                        /*var j;
+                        for (j = 0; j < _data.length; j++) {
+                            console.log('io', data[j].name, req.user.applications.indexOf(data[j].name));
+                            if (req.user.applications.indexOf(data[j].name) == -1) _data.splice(j, 1);
+                        }
+                        console.log('after apps', _data);
+                        var i;
+                        for (i = 0; i < _data.length; i++) {
+                            console.log('io2', req.user.privileges[data[i].name]);
+                            if (!req.user.privileges[data[i].name]) _data.splice(i, 1);
+                        }*/
+                    } else clientApps = _data;
+
+                    console.log('clientapps after:', clientApps);
                     /* _data.forEach(function(d, i) {
 
                          //if (req.user.applications.indexOf(d.name) == -1) _data.splice(i, 1);
@@ -322,7 +345,7 @@ Platform = function(SPOO, OBJY, options) {
                          if(!req.user.spooAdmin && !req.user.privileges[d.name]) _data.splice(i, 1);
                      })*/
 
-                    res.json(_data)
+                    res.json(clientApps)
 
                 }, function(err) {
                     res.status(400);
@@ -400,8 +423,8 @@ Platform = function(SPOO, OBJY, options) {
 
             var query = {};
 
-            if (data.username) query.username = data.username;
-            query.email = data.email;
+            if (data.username) query.username = { $regex: '^' + data.username + '$', $options: "i" };
+            query.email = { $regex: '^' + data.email + '$', $options: "i" };
 
             OBJY.client(req.params.client);
 
@@ -448,7 +471,6 @@ Platform = function(SPOO, OBJY, options) {
 
 
     router.route('/client/:client/user/resetpassword')
-
 
         .post(function(req, res) {
 
@@ -587,7 +609,6 @@ Platform = function(SPOO, OBJY, options) {
                 console.log('count result', result);
 
                 if (result !== null) {
-                    console.log('r', result, options.maxUserSessions || defaultMaxUserSessions, );
                     if (parseInt(result) >= (options.maxUserSessions || defaultMaxUserSessions)) {
                         res.status(401)
                         res.json({
@@ -597,9 +618,18 @@ Platform = function(SPOO, OBJY, options) {
                     }
                 }
 
-                OBJY.users().auth({
-                    username: req.body.username
-                }, function(user) {
+                var authQuery = {
+                    username: { $regex: '^' + req.body.username + '$', $options: 'i' }
+                };
+
+                if (OBJY.authableFields) {
+                    authQuery = {}
+                    OBJY.authableFields.forEach(f => {
+                        authQuery[f] = { $regex: '^' + (req.body[f] || req.body.username) + '$', $options: 'i' }
+                    })
+                }
+
+                OBJY.users().auth(authQuery, function(user) {
 
                     if (!user.spooAdmin) {
                         if (req.params.app) {
@@ -1010,6 +1040,16 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
+            var token = null;
+            if (req.headers.authorization) {
+                token = req.headers.authorization.slice(7, req.headers.authorization.length)
+            } else if (req.query.token) {
+                token = req.query.token
+            }
+
+            var decodedToken = jwt.verify(token, options.jwtSecret || defaultSecret);
+            var tokenId = decodedToken.tokenId;
+
             var usrData = req.body;
             var passwordKey = Object.keys(usrData)[0];
 
@@ -1065,6 +1105,10 @@ Platform = function(SPOO, OBJY, options) {
                     }
 
                     data.update(function(_data) {
+
+                        redis.del('rt_' + tokenId);
+                        redis.del('at_' + tokenId);
+
                         res.json(SPOO.deserialize(_data))
                     }, function(err) {
 
@@ -1186,7 +1230,6 @@ Platform = function(SPOO, OBJY, options) {
                     data = OBJY[data.role](data);
 
                     try {
-
 
                         if (!Array.isArray(commands)) {
                             var k = Object.keys(commands)[0];
@@ -1347,8 +1390,12 @@ Platform = function(SPOO, OBJY, options) {
         });
 
     this.run = function() {
-        app.listen(options.port || '8888');
         app.use('/api', router);
+        app.use(timeout(options.timeout || '30s'));
+        app.use(function(req, res, next) {
+            if (!req.timedout) next();
+        });
+        app.listen(options.port || '8888');
     }
 
 }
