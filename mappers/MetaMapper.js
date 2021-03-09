@@ -234,16 +234,11 @@ var MetaMapper = function() {
                 error(err);
                 return;
             }
+            if (!data.length) return error({ message: 'client not found' })
 
+            exists = data[0].applications.find(app_ => app_.name == app.name);
 
-            data.forEach(function(d) {
-                d.applications.forEach(function(a) {
-                    if (a.name == app.name) exists = true;
-                })
-            })
-
-
-            if (exists == true) {
+            if (exists) {
                 error({ message: "applications already exists" });
                 return;
             }
@@ -251,6 +246,49 @@ var MetaMapper = function() {
             getable.update({
                 "$addToSet": {
                     "applications": app
+                }
+            }, function(err, data) {
+                if (err) {
+                    error(err);
+                    return;
+                }
+                console.log(data);
+                success({ "message": "ok" });
+                return;
+            });
+        });
+
+    }
+
+    this.removeClientApplication = function(appId, success, error, client) {
+
+        var db = this.database.useDb(client);
+
+        ClientInfo = db.model('ClientInfo', ClientSchema);
+        getable = ClientInfo;
+
+        var exists = false;
+
+        getable.find({}).exec(function(err, data) {
+            if (err) {
+                error(err);
+                return;
+            }
+
+            if (!data.length) return error({ message: 'client not found' })
+
+            exists = data[0].applications.find(app => app.name == appId);
+
+            if (!exists) {
+                error({ message: "applications doesn't exist" });
+                return;
+            }
+
+            getable.update({
+                "$pull": {
+                    "applications": {
+                        "name": appId
+                    }
                 }
             }, function(err, data) {
                 if (err) {
