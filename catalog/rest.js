@@ -541,44 +541,60 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+            if (options.resetPasswordMethod) {
 
-                    OBJY.client(req.params.client);
-
-                    OBJY['user'](_data.uId).get(function(data) {
-
-                            data.password = bcrypt.hashSync(req.body.password);
-
-                            data.update(function(spooElem) {
-                                    res.json({
-                                        message: "Password changed"
-                                    });
-                                    return;
-                                },
-                                function(err) {
-                                    res.status(400);
-                                    res.json({
-                                        error: err
-                                    });
-                                    return;
-                                });
-
-                        },
-                        function(err) {
-                            res.status(400);
-                            res.json({
-                                error: err
-                            });
-                            return;
-                        });
-                },
-                function(err) {
+                options.resetPasswordMethod(req.user, req.body.password, success => {
+                    res.json({
+                        message: "Password changed"
+                    });
+                }, error => {
                     res.status(400);
                     res.json({
-                        error: err
+                        error: error
                     });
-                    return;
-                });
+                }, undefined, client)
+
+            } else {
+
+                metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+
+                        OBJY.client(req.params.client);
+
+                        OBJY['user'](_data.uId).get(function(data) {
+
+                                data.password = bcrypt.hashSync(req.body.password);
+
+                                data.update(function(spooElem) {
+                                        res.json({
+                                            message: "Password changed"
+                                        });
+                                        return;
+                                    },
+                                    function(err) {
+                                        res.status(400);
+                                        res.json({
+                                            error: err
+                                        });
+                                        return;
+                                    });
+
+                            },
+                            function(err) {
+                                res.status(400);
+                                res.json({
+                                    error: err
+                                });
+                                return;
+                            });
+                    },
+                    function(err) {
+                        res.status(400);
+                        res.json({
+                            error: err
+                        });
+                        return;
+                    });
+            }
         });
 
     // ADD: one or many, GET: one or many
