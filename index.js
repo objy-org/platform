@@ -184,7 +184,7 @@ const SPOO = {
 
     },
 
-    REST: function(options, enabledObjectFymilies) {
+    REST: function(options) {
         if (options.OBJY) this.OBJY = options.OBJY;
         if (options.OBJY_CATALOG) {
             this.OBJY_CATALOG = options.OBJY_CATALOG;

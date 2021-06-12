@@ -69,6 +69,8 @@ Platform = function(SPOO, OBJY, options) {
 
     var metaMapper = options.metaMapper;
     var messageMapper = options.messageMapper;
+    var sessionMapper = options.sessionMapper;
+    var functionalMapper = options.functionalMapper;
 
     var checkObjectFamily = function(req, res, next) {
         if (objectFamilies.indexOf(req.params.entity) == -1 && !objectFamilies.length == 0) {
