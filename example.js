@@ -1,35 +1,40 @@
 SPOO.REST({
 	port: 80,
-	mappers: {
-		meta : SPOO.mapper({
-				requestPasswordReset: () => {
+	meta : SPOO.mapper({
+		requestPasswordReset: () => {
 
-				},
-				countUserSessions: () => {
+		},
+		countUserSessions: () => {
 
-				},
-				setRefreshToken: () => {
+		},
+		setRefreshToken: () => {
 
-				},
-				setAccessToken: () => {
-					
-				},
-				authenticateUser: () => {
+		},
+		setAccessToken: () => {
+			
+		},
+		authenticateUser: () => {
 
-				},
-				checkPassword: () => {
+		},
+		checkPassword: () => {
 
-				},
-				authenticateUser: () => {
+		},
+		authenticateUser: () => {
 
-				}
-			}),
-			session: new RedisMapper()
-	},
+		}
+	}),
+	session: new RedisMapper()
 	routes: [{
-		paths: ['/client/:client/:entity/:id'],
+		paths: ['/store/apps'],
+		auth: true,
 		post: () => {
 			res.json(req.params.id)
+		}
+	},
+	{
+		paths: ['/client/:client/apps'],
+		post: () => {
+			OBJY.app({}).get()
 		}
 	}]
 })

@@ -1,7 +1,7 @@
 module.exports = (SPOO) => {
 	SPOO.registerRoutes([
 		{
-			paths: [],
+			paths: [''],
 			post: () => {},
 			get: () => {},
 			patch: () => {}

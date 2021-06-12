@@ -988,7 +988,6 @@ Platform = function(SPOO, OBJY, options) {
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/:entity/count', '/client/:client/app/:app/:entity/count'])
 
-
         .get(checkAuthentication, function(req, res) {
 
 
