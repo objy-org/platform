@@ -17,27 +17,9 @@ var Duplex = require("stream").Duplex;
 var isStream = require('is-stream');
 var timeout = require('connect-timeout');
 
-
-// Helper functions
-function propsSerialize(obj) {
-    if (obj.properties) {
-        var propsObj = {};
-        var i;
-        for (i = 0; i < obj.properties.length; i++) {
-            if (obj.properties[i].type == 'bag' || obj.properties[i].type == 'array')
-                propsSerialize(obj.properties[i]);
-            if (typeof obj.properties[i].name == 'undefined') obj.properties[i].name = SPOO.RANDOM();
-            propsObj[obj.properties[i].name] = obj.properties[i];
-            if (propsObj[obj.properties[i].permissions]) propsObj[obj.properties[i].permissions] = permSerialize(propsObj[obj.properties[i].permissions]);
-            delete obj.properties[i].name;
-        }
-        obj.properties = propsObj;
-    }
-}
-
 Platform = function(SPOO, OBJY, options) {
 
-    OBJY.Logger.log("Platform options: " + options);
+    console.log("Platform options: " + options);
 
     this.router = router;
 
@@ -72,15 +54,6 @@ Platform = function(SPOO, OBJY, options) {
     var sessionMapper = options.sessionMapper;
     var functionalMapper = options.functionalMapper;
 
-    var checkObjectFamily = function(req, res, next) {
-        if (objectFamilies.indexOf(req.params.entity) == -1 && !objectFamilies.length == 0) {
-            res.status(500).json({
-                message: 'Object Family not available for this interface'
-            })
-        }
-        next();
-    }
-
     var checkAuthentication = function(req, res, next) {
 
         var token;
@@ -97,18 +70,10 @@ Platform = function(SPOO, OBJY, options) {
                 message: 'Failed to authenticate token'
             });
 
-            redis.get('at_' + decoded.tokenId, function(err, result) {
 
-                OBJY.Logger.log("Got token from redis " + result);
-
-                if (err || !result) return res.status(401).send({
-                    auth: false,
-                    message: 'Failed to authenticate token'
-                });
+            options.sessionMapper.getAccessToken(decoded.tokenId, data => {
 
                 req.user = decoded
-
-                if (req.user) OBJY.useUser(req.user);
 
                 if ((decoded.clients || []).indexOf(req.params.client) == -1 && (decoded.clients || []).length > 0) return res.status(401).send({
                     auth: false,
@@ -116,7 +81,14 @@ Platform = function(SPOO, OBJY, options) {
                 });
 
                 next()
-            });
+
+            }, err => {
+                return res.status(401).send({
+                    auth: false,
+                    message: 'Failed to authenticate token'
+                });
+            })
+
         });
     }
 
@@ -200,17 +172,6 @@ Platform = function(SPOO, OBJY, options) {
 
                 metaMapper.createClient(req.body.registrationKey, reqdata.clientname, function(data) {
 
-                    //res.json(data)
-
-                    OBJY.client(reqdata.clientname);
-
-                    if (!OBJY['user']) {
-                        res.json({
-                            message: "object family does not exist"
-                        })
-                        return;
-                    }
-
                     var user = req.body;
 
                     if (!user.username) user.username = shortid.generate();
@@ -221,13 +182,11 @@ Platform = function(SPOO, OBJY, options) {
 
                     if (user.username) {
 
-                        console.log('adding', { username: user.username, email: user.email, password: user.password, spooAdmin: true });
-
-                        OBJY['user']({ username: user.username, email: user.email, password: user.password, spooAdmin: true }).add(function(udata) {
+                        options.functionalMapper.createUser({ username: user.username, email: user.email, password: user.password, spooAdmin: true }, userdata => {
                             delete udata.password;
-                            res.json({ client: data, user: SPOO.deserialize(udata) })
-                        }, function(err) {
-                            res.json(data)
+                            res.json({ client: data, user: userdata })
+                        }, err => {
+                            res.json(err)
                         })
                     }
 
@@ -853,7 +812,7 @@ Platform = function(SPOO, OBJY, options) {
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/:entity', '/client/:client/app/:app/:entity'])
 
-        .post(checkAuthentication, checkObjectFamily, function(req, res) {
+        .post(checkAuthentication, function(req, res) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -937,7 +896,7 @@ Platform = function(SPOO, OBJY, options) {
 
         })
 
-        .get(checkAuthentication, checkObjectFamily, function(req, res) {
+        .get(checkAuthentication, function(req, res) {
 
             var filterFieldsEnabled;
 
@@ -1030,7 +989,7 @@ Platform = function(SPOO, OBJY, options) {
     router.route(['/client/:client/:entity/count', '/client/:client/app/:app/:entity/count'])
 
 
-        .get(checkAuthentication, checkObjectFamily, function(req, res) {
+        .get(checkAuthentication, function(req, res) {
 
 
             OBJY.client(req.params.client);
@@ -1083,7 +1042,7 @@ Platform = function(SPOO, OBJY, options) {
     // GET: one, UPDATE: one, DELETE: one
     router.route(['/client/:client/:entity/:id/password', '/client/:client/app/:app/:entity/:id/password'])
 
-        .patch(checkAuthentication, checkObjectFamily, function(req, res) {
+        .patch(checkAuthentication, function(req, res) {
 
             OBJY.client(req.params.client);
 
@@ -1191,7 +1150,7 @@ Platform = function(SPOO, OBJY, options) {
     // GET: one, UPDATE: one, DELETE: one
     router.route(['/client/:client/:entity/:id', '/client/:client/app/:app/:entity/:id'])
 
-        .get(checkAuthentication, checkObjectFamily, function(req, res) {
+        .get(checkAuthentication, function(req, res) {
 
             var filterFieldsEnabled;
 
@@ -1237,7 +1196,7 @@ Platform = function(SPOO, OBJY, options) {
             }
         })
 
-        .delete(checkAuthentication, checkObjectFamily, function(req, res) {
+        .delete(checkAuthentication, function(req, res) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -1266,7 +1225,7 @@ Platform = function(SPOO, OBJY, options) {
 
         })
 
-        .patch(checkAuthentication, checkObjectFamily, function(req, res) {
+        .patch(checkAuthentication, function(req, res) {
 
             OBJY.client(req.params.client);
 
@@ -1333,7 +1292,7 @@ Platform = function(SPOO, OBJY, options) {
         })
 
 
-        .put(checkAuthentication, checkObjectFamily, function(req, res) {
+        .put(checkAuthentication, function(req, res) {
 
             OBJY.client(req.params.client);
 
@@ -1376,7 +1335,7 @@ Platform = function(SPOO, OBJY, options) {
 
     router.route(['/client/:client/:entity/:id/stream', '/client/:client/app/:app/:entity/:id/stream'])
 
-        .get(checkAuthentication, checkObjectFamily, function(req, res) {
+        .get(checkAuthentication, function(req, res) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
@@ -1411,7 +1370,7 @@ Platform = function(SPOO, OBJY, options) {
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/:entity/:id/property/:propName/call', '/client/:client/app/:app/:entity/:id/property/:propName/call'])
 
-        .post(checkAuthentication, checkObjectFamily, function(req, res) {
+        .post(checkAuthentication, function(req, res) {
 
             OBJY.client(req.params.client);
             if (req.params.app)
