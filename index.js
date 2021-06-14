@@ -1,4 +1,4 @@
-var Rest = require('./catalog/rest.js');
+var Rest = require('./interface/rest.js');
 var OBJY = require('objy');
 var OBJY_CATALOG = require('objy-catalog');
 
@@ -168,11 +168,11 @@ const SPOO = {
     },
 
     metaMappers: {
-        mongoMapper: require('./mappers/MetaMapper.js')
+        mongoMapper: require('./mappers/meta/mongo.js')
     },
 
     messageMappers: {
-        sendgridMapper: require('./mappers/MessageMapper.js')
+        sendgridMapper: require('./mappers/messaging/sendgrid.js')
     },
 
     MetaMapper: {},
