@@ -52,6 +52,8 @@ const SPOO = {
 
     serialize: function(obj) {
 
+        return obj;
+
         if (this.metaPropPrefix == '') return obj;
 
         if (obj.properties) return obj;
@@ -133,6 +135,8 @@ const SPOO = {
     },
 
     deserialize: function(obj) {
+
+        return obj;
 
         if (this.metaPropPrefix == '') return obj;
 
