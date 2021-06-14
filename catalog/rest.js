@@ -715,44 +715,60 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+            if (options.resetPasswordMethod) {
 
-                    OBJY.client(req.params.client);
-
-                    OBJY['user'](_data.uId).get(function(data) {
-
-                            data.password = bcrypt.hashSync(req.body.password);
-
-                            data.update(function(spooElem) {
-                                    res.json({
-                                        message: "Password changed"
-                                    });
-                                    return;
-                                },
-                                function(err) {
-                                    res.status(400);
-                                    res.json({
-                                        error: err
-                                    });
-                                    return;
-                                });
-
-                        },
-                        function(err) {
-                            res.status(400);
-                            res.json({
-                                error: err
-                            });
-                            return;
-                        });
-                },
-                function(err) {
+                options.resetPasswordMethod(req.user, req.body.password, success => {
+                    res.json({
+                        message: "Password changed"
+                    });
+                }, error => {
                     res.status(400);
                     res.json({
-                        error: err
+                        error: error
                     });
-                    return;
-                });
+                }, undefined, client)
+
+            } else {
+
+                metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+
+                        OBJY.client(req.params.client);
+
+                        OBJY['user'](_data.uId).get(function(data) {
+
+                                data.password = bcrypt.hashSync(req.body.password);
+
+                                data.update(function(spooElem) {
+                                        res.json({
+                                            message: "Password changed"
+                                        });
+                                        return;
+                                    },
+                                    function(err) {
+                                        res.status(400);
+                                        res.json({
+                                            error: err
+                                        });
+                                        return;
+                                    });
+
+                            },
+                            function(err) {
+                                res.status(400);
+                                res.json({
+                                    error: err
+                                });
+                                return;
+                            });
+                    },
+                    function(err) {
+                        res.status(400);
+                        res.json({
+                            error: err
+                        });
+                        return;
+                    });
+            }
         });
 
     // ADD: one or many, GET: one or many
@@ -1291,48 +1307,59 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            try {
+            if (options.changePasswordMethod) {
+                options.changePasswordMethod(req.user, oldPassword, newPassword, success => {
+                    res.json(SPOO.deserialize(req.user))
+                }, error => {
+                    res.status(400);
+                    res.json({
+                        error: error
+                    });
+                })
+            } else {
+                try {
 
-                OBJY[req.params.entity](req.params.id).get(function(data) {
+                    OBJY[req.params.entity](req.params.id).get(function(data) {
 
-                    if (!bcrypt.compareSync(oldPassword, data.password)) {
-                        res.status(400);
-                        res.json({
-                            error: 'Old password not correct'
-                        });
-                        return;
-                    }
+                        if (!bcrypt.compareSync(oldPassword, data.password)) {
+                            res.status(400);
+                            res.json({
+                                error: 'Old password not correct'
+                            });
+                            return;
+                        }
 
-                    try {
-                        data.setPassword(bcrypt.hashSync(newPassword));
-                    } catch (err) {
+                        try {
+                            data.setPassword(bcrypt.hashSync(newPassword));
+                        } catch (err) {
+                            res.status(400);
+                            res.json({
+                                error: err
+                            });
+                            return;
+                        }
+
+                        data.update(function(_data) {
+
+                            redis.del('rt_' + tokenId);
+                            redis.del('at_' + tokenId);
+
+                            res.json(SPOO.deserialize(_data))
+                        }, function(err) {
+
+                        })
+
+                    }, function(err) {
                         res.status(400);
                         res.json({
                             error: err
-                        });
-                        return;
-                    }
-
-                    data.update(function(_data) {
-
-                        redis.del('rt_' + tokenId);
-                        redis.del('at_' + tokenId);
-
-                        res.json(SPOO.deserialize(_data))
-                    }, function(err) {
-
+                        })
                     })
 
-                }, function(err) {
+                } catch (e) {
                     res.status(400);
-                    res.json({
-                        error: err
-                    })
-                })
-
-            } catch (e) {
-                res.status(400);
-                res.json({ error: e });
+                    res.json({ error: e });
+                }
             }
 
         })
