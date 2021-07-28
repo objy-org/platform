@@ -1094,7 +1094,7 @@ Platform = function(SPOO, OBJY, options) {
 
                         if (req.body.username) {
                             console.log('sending welcome email');
-                            messageMapper.send('SPOO', req.body.email, 'your password', pw)
+                            messageMapper.send((options.userRegistrationMessage || {}).from || 'SPOO',  req.body.email, 'your password', pw)
                         }
 
                     }, function(err) {
