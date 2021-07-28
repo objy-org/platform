@@ -11,7 +11,7 @@ var MessageMapper = function() {
         console.log(arguments)
         var msg = {
             to: to,
-            from: from + " <noreply@spoo.io>",
+            from: from,
             subject: subject,
             text: body
         };

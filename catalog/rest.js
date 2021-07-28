@@ -6,6 +6,7 @@ var bodyParser = require('body-parser');
 var moment = require("moment")
 var Redis = require("ioredis");
 var jwt = require('jsonwebtoken');
+var jwt_decode = require('jwt-decode');
 var bcrypt = require('bcryptjs');
 var app = express();
 var router = express.Router();
@@ -16,7 +17,7 @@ var fileUpload = require('express-fileupload');
 var Duplex = require("stream").Duplex;
 var isStream = require('is-stream');
 var timeout = require('connect-timeout');
-
+var ClientOAuth2 = require('client-oauth2')
 
 // Helper functions
 function propsSerialize(obj) {
@@ -34,6 +35,16 @@ function propsSerialize(obj) {
         obj.properties = propsObj;
     }
 }
+
+function parseJwt(token) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+};
 
 Platform = function(SPOO, OBJY, options) {
 
@@ -66,6 +77,22 @@ Platform = function(SPOO, OBJY, options) {
     app.options('*', cors());
 
     OBJY.hello();
+
+    // OAuth
+    if (options.oauth) {
+
+        options.oauth.client = new ClientOAuth2({
+            clientId: options.oauth.clientId,
+            clientSecret: options.oauth.clientSecret,
+            accessTokenUri: options.oauth.accessTokenUri,
+            authorizationUri: options.oauth.authorizationUri,
+            redirectUri: options.oauth.redirectUri,
+            scopes: options.oauth.scopes
+        })
+
+    }
+
+
 
     var metaMapper = options.metaMapper;
     var messageMapper = options.messageMapper;
@@ -219,8 +246,6 @@ Platform = function(SPOO, OBJY, options) {
 
                     if (user.username) {
 
-                        console.log('adding', { username: user.username, email: user.email, password: user.password, spooAdmin: true });
-
                         OBJY['user']({ username: user.username, email: user.email, password: user.password, spooAdmin: true }).add(function(udata) {
                             delete udata.password;
                             res.json({ client: data, user: SPOO.deserialize(udata) })
@@ -252,6 +277,158 @@ Platform = function(SPOO, OBJY, options) {
             });
             return;
         });
+
+
+    // OAuth
+
+    router.route('/client/:client/oauth-login')
+
+        .get(function(req, res) {
+
+
+            if (options.oauth) {
+
+                var uri = new ClientOAuth2({
+                    clientId: options.oauth.clientId,
+                    clientSecret: options.oauth.clientSecret,
+                    accessTokenUri: options.oauth.accessTokenUri,
+                    authorizationUri: options.oauth.authorizationUri,
+                    redirectUri: options.oauth.redirectUri,
+                    scopes: options.oauth.scopes
+                }).code.getUri()
+
+                res.redirect(uri)
+
+            } else return res.status(400).json({ error: "oauth not available" })
+
+        });
+
+    router.route('/client/:client/auth-callback')
+
+        .get(function(req, res) {
+
+            var oauth_client;
+
+            if (options.oauth) {
+                oauth_client = new ClientOAuth2({
+                    clientId: options.oauth.clientId,
+                    clientSecret: options.oauth.clientSecret,
+                    accessTokenUri: options.oauth.accessTokenUri,
+                    authorizationUri: options.oauth.authorizationUri,
+                    redirectUri: options.oauth.redirectUri,
+                    scopes: options.oauth.scopes
+                });
+            } else return res.status(400).json({ error: "oauth not available" })
+
+            function authenticateUser(req, user) {
+
+                var clients = user._clients || [];
+                if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
+
+                var _user = JSON.parse(JSON.stringify(user));
+
+                var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
+
+                var refreshToken;
+
+                /*if (req.body.permanent)*/
+                refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
+
+                var token = jwt.sign({
+                    id: _user._id,
+                    username: _user.username,
+                    privileges: _user.privileges,
+                    applications: _user.applications,
+                    spooAdmin: _user.spooAdmin,
+                    clients: clients,
+                    authorisations: _user.authorisations,
+                    tokenId: tokenId
+                }, options.jwtSecret || defaultSecret, {
+                    expiresIn: 20 * 60000
+                });
+
+                user.clients = clients;
+                //redis.set(token, 'true', "EX", 1200)
+                redis.set('at_' + tokenId, token, "EX", 1200)
+
+
+                //if (req.body.permanent) {
+                redis.set('rt_' + tokenId, JSON.stringify(user), "EX", 2592000)
+                //}
+
+                delete user.password;
+
+                //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
+
+                if (!options.oauth.clientRedirect) {
+                    res.json({
+                        message: "authenticated",
+                        user: SPOO.deserialize(user),
+                        token: {
+                            accessToken: token,
+                            refreshToken: refreshToken
+                        }
+                    })
+
+                    //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
+
+                } else res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client)
+
+            }
+
+            OBJY.client(req.params.client);
+
+            oauth_client.code.getToken(req.originalUrl)
+                .then(function(user) {
+
+                    var userdata = jwt_decode(user.data.id_token);
+
+                    var query = {};
+
+                    Object.keys(options.oauth.userFieldsMapping).forEach(key => {
+                        query[key] = { $regex: '^' + userdata[options.oauth.userFieldsMapping[key]] + '$', $options: 'i' }
+                    })
+
+                    OBJY.users(query).get(users => {
+                        if (users.length == 0) {
+
+                            var newUser = { inherits: [] };
+
+                            Object.keys(options.oauth.userFieldsMapping).forEach(key => {
+                                newUser[key] = userdata[options.oauth.userFieldsMapping[key]]
+                            })
+
+                            newUser.password = 'oauth:' + user.accessToken;
+
+                            if (!newUser.username) newUser.username = SPOO.OBJY.RANDOM();
+                            OBJY.user(newUser).add(user => {
+
+                                OBJY.user(user._id).get(usr => {
+                                    authenticateUser(req, usr)
+                                })
+
+                            })
+                        } else if (users.length == 1) {
+                           
+                            OBJY.user(users[0]._id).get(usr => {
+                                usr.password = 'oauth:' + user.accessToken;
+
+                                usr.update(updatedUser => {
+                                    authenticateUser(req, updatedUser)
+                                }, err => {
+                                    res.status(400).json({ err: err })
+                                })
+                            }, err => {
+
+                            })
+                        }
+                    }, err => {
+
+                    })
+
+                })
+        });
+
 
 
     router.route(['/client/:client/application'])
@@ -321,11 +498,9 @@ Platform = function(SPOO, OBJY, options) {
         .get(checkAuthentication, function(req, res) {
 
             var client = req.params.client;
-            console.log('letsgo');
+           
             try {
                 metaMapper.getClientApplications(function(data) {
-
-                    console.log('clientapps', data);
 
                     var _data = [];
                     var clientApps = [];
@@ -336,8 +511,7 @@ Platform = function(SPOO, OBJY, options) {
                         })
                     } else _data = data;
 
-                    console.log('ru', req.user);
-
+                   
                     function getFullAppDetails(name) {
                         var details;
                         _data.forEach(a => {
@@ -365,7 +539,7 @@ Platform = function(SPOO, OBJY, options) {
                         }*/
                     } else clientApps = _data;
 
-                    console.log('clientapps after:', clientApps);
+                 
                     /* _data.forEach(function(d, i) {
 
                          //if (req.user.applications.indexOf(d.name) == -1) _data.splice(i, 1);
@@ -541,44 +715,60 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+            if (options.resetPasswordMethod) {
 
-                    OBJY.client(req.params.client);
-
-                    OBJY['user'](_data.uId).get(function(data) {
-
-                            data.password = bcrypt.hashSync(req.body.password);
-
-                            data.update(function(spooElem) {
-                                    res.json({
-                                        message: "Password changed"
-                                    });
-                                    return;
-                                },
-                                function(err) {
-                                    res.status(400);
-                                    res.json({
-                                        error: err
-                                    });
-                                    return;
-                                });
-
-                        },
-                        function(err) {
-                            res.status(400);
-                            res.json({
-                                error: err
-                            });
-                            return;
-                        });
-                },
-                function(err) {
+                options.resetPasswordMethod(req.user, req.body.password, success => {
+                    res.json({
+                        message: "Password changed"
+                    });
+                }, error => {
                     res.status(400);
                     res.json({
-                        error: err
+                        error: error
                     });
-                    return;
-                });
+                }, undefined, client)
+
+            } else {
+
+                metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+
+                        OBJY.client(req.params.client);
+
+                        OBJY['user'](_data.uId).get(function(data) {
+
+                                data.password = bcrypt.hashSync(req.body.password);
+
+                                data.update(function(spooElem) {
+                                        res.json({
+                                            message: "Password changed"
+                                        });
+                                        return;
+                                    },
+                                    function(err) {
+                                        res.status(400);
+                                        res.json({
+                                            error: err
+                                        });
+                                        return;
+                                    });
+
+                            },
+                            function(err) {
+                                res.status(400);
+                                res.json({
+                                    error: err
+                                });
+                                return;
+                            });
+                    },
+                    function(err) {
+                        res.status(400);
+                        res.json({
+                            error: err
+                        });
+                        return;
+                    });
+            }
         });
 
     // ADD: one or many, GET: one or many
@@ -635,8 +825,7 @@ Platform = function(SPOO, OBJY, options) {
 
             redis.get('cnt_' + req.body.username, function(err, result) {
 
-                console.log('count result', result);
-
+              
                 if (result !== null) {
                     if (parseInt(result) >= (options.maxUserSessions || defaultMaxUserSessions)) {
                         res.status(401)
@@ -672,7 +861,11 @@ Platform = function(SPOO, OBJY, options) {
                         }
                     }
 
-                    if (bcrypt.compareSync(req.body.password, user.password)) {
+                    // Default checkPassword method can be overwritten
+                    var checkPassword = bcrypt.compareSync;
+                    if (options.checkPassword) checkPassword = options.checkPassword;
+
+                    if (checkPassword(req.body.password, user.password)) {
 
                         var clients = user._clients || [];
                         if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
@@ -697,6 +890,8 @@ Platform = function(SPOO, OBJY, options) {
                         }, options.jwtSecret || defaultSecret, {
                             expiresIn: 20 * 60000
                         });
+
+                        user.clients = clients;
 
                         //redis.set(token, 'true', "EX", 1200)
                         redis.set('at_' + tokenId, token, "EX", 1200)
@@ -729,7 +924,7 @@ Platform = function(SPOO, OBJY, options) {
                     res.json({
                         message: "not authenticated"
                     })
-                })
+                }, req.params.client, req.params.app)
 
             });
 
@@ -899,7 +1094,7 @@ Platform = function(SPOO, OBJY, options) {
 
                         if (req.body.username) {
                             console.log('sending welcome email');
-                            messageMapper.send('SPOO', req.body.email, 'your password', pw)
+                            messageMapper.send((options.userRegistrationMessage || {}).from || 'SPOO',  req.body.email, 'your password', pw)
                         }
 
                     }, function(err) {
@@ -955,8 +1150,7 @@ Platform = function(SPOO, OBJY, options) {
                 if (search[k] == 'false') search[k] = false;
             }
 
-            console.warn('search', search)
-
+          
             Object.keys(search).forEach(function(k) {
                 if (k == "$query") {
                     console.warn(k, search[k])
@@ -969,8 +1163,6 @@ Platform = function(SPOO, OBJY, options) {
             })
 
             delete search.token;
-
-            console.warn('OBJY.activeApp', OBJY.activeApp, req.params.app)
 
             try {
                 OBJY[req.params.entity](search).get(function(data) {
@@ -994,12 +1186,15 @@ Platform = function(SPOO, OBJY, options) {
                     res.json(_data);
 
                 }, function(err) {
+                    console.log(err)
                     res.status(400);
+                    console.log(err)
                     res.json({
                         error: err
                     })
                 })
             } catch (e) {
+                console.log(e)
                 res.status(400);
                 res.json({
                     error: e
@@ -1010,7 +1205,6 @@ Platform = function(SPOO, OBJY, options) {
 
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/:entity/count', '/client/:client/app/:app/:entity/count'])
-
 
         .get(checkAuthentication, checkObjectFamily, function(req, res) {
 
@@ -1050,12 +1244,14 @@ Platform = function(SPOO, OBJY, options) {
                     res.json(data)
 
                 }, function(err) {
+                    console.log('count err', err)
                     res.json({
                         error: err
                     })
                 })
 
             } catch (e) {
+                console.log('count err', e)
                 res.status(400);
                 res.json({ error: e });
             }
@@ -1111,48 +1307,59 @@ Platform = function(SPOO, OBJY, options) {
                     message: "object family does not exist"
                 })
 
-            try {
+            if (options.changePasswordMethod) {
+                options.changePasswordMethod(req.user, oldPassword, newPassword, success => {
+                    res.json(SPOO.deserialize(req.user))
+                }, error => {
+                    res.status(400);
+                    res.json({
+                        error: error
+                    });
+                })
+            } else {
+                try {
 
-                OBJY[req.params.entity](req.params.id).get(function(data) {
+                    OBJY[req.params.entity](req.params.id).get(function(data) {
 
-                    if (!bcrypt.compareSync(oldPassword, data.password)) {
-                        res.status(400);
-                        res.json({
-                            error: 'Old password not correct'
-                        });
-                        return;
-                    }
+                        if (!bcrypt.compareSync(oldPassword, data.password)) {
+                            res.status(400);
+                            res.json({
+                                error: 'Old password not correct'
+                            });
+                            return;
+                        }
 
-                    try {
-                        data.setPassword(bcrypt.hashSync(newPassword));
-                    } catch (err) {
+                        try {
+                            data.setPassword(bcrypt.hashSync(newPassword));
+                        } catch (err) {
+                            res.status(400);
+                            res.json({
+                                error: err
+                            });
+                            return;
+                        }
+
+                        data.update(function(_data) {
+
+                            redis.del('rt_' + tokenId);
+                            redis.del('at_' + tokenId);
+
+                            res.json(SPOO.deserialize(_data))
+                        }, function(err) {
+
+                        })
+
+                    }, function(err) {
                         res.status(400);
                         res.json({
                             error: err
-                        });
-                        return;
-                    }
-
-                    data.update(function(_data) {
-
-                        redis.del('rt_' + tokenId);
-                        redis.del('at_' + tokenId);
-
-                        res.json(SPOO.deserialize(_data))
-                    }, function(err) {
-
+                        })
                     })
 
-                }, function(err) {
+                } catch (e) {
                     res.status(400);
-                    res.json({
-                        error: err
-                    })
-                })
-
-            } catch (e) {
-                res.status(400);
-                res.json({ error: e });
+                    res.json({ error: e });
+                }
             }
 
         })
@@ -1186,7 +1393,7 @@ Platform = function(SPOO, OBJY, options) {
             try {
                 OBJY[req.params.entity](req.params.id).get(function(data) {
 
-                    if (data.properties.data) {
+                    if ((data.properties || {}).data) {
                         if (isStream(data.properties.data)) {
                             delete data.properties.data;
                             data.properties.path = req.params.entity + '/' + req.params.id + '/stream'
@@ -1195,8 +1402,6 @@ Platform = function(SPOO, OBJY, options) {
 
                     data = SPOO.deserialize(data);
                     if (filterFieldsEnabled) data = SPOO.filterFields(data, filterFieldsEnabled);
-
-
 
                     res.json(data)
                 }, function(err) {
