@@ -715,26 +715,26 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            if (options.resetPasswordMethod) {
+            metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
 
-                options.resetPasswordMethod(req.user, req.body.password, success => {
-                    res.json({
-                        message: "Password changed"
-                    });
-                }, error => {
-                    res.status(400);
-                    res.json({
-                        error: error
-                    });
-                }, undefined, client)
+                    OBJY.client(req.params.client);
 
-            } else {
+                    OBJY['user'](_data.uId).get(function(data) {
 
-                metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+                            if (options.resetPasswordMethod) {
 
-                        OBJY.client(req.params.client);
+                                options.resetPasswordMethod(data, req.body.password, success => {
+                                    res.json({
+                                        message: "Password changed"
+                                    });
+                                }, error => {
+                                    res.status(400);
+                                    res.json({
+                                        error: error
+                                    });
+                                }, undefined, client)
 
-                        OBJY['user'](_data.uId).get(function(data) {
+                            } else {
 
                                 data.password = bcrypt.hashSync(req.body.password);
 
@@ -751,24 +751,24 @@ Platform = function(SPOO, OBJY, options) {
                                         });
                                         return;
                                     });
-
-                            },
-                            function(err) {
-                                res.status(400);
-                                res.json({
-                                    error: err
-                                });
-                                return;
+                            }
+                        },
+                        function(err) {
+                            res.status(400);
+                            res.json({
+                                error: err
                             });
-                    },
-                    function(err) {
-                        res.status(400);
-                        res.json({
-                            error: err
+                            return;
                         });
-                        return;
+                },
+                function(err) {
+                    res.status(400);
+                    res.json({
+                        error: err
                     });
-            }
+                    return;
+                });
+
         });
 
     // ADD: one or many, GET: one or many
@@ -1315,7 +1315,7 @@ Platform = function(SPOO, OBJY, options) {
                     res.json({
                         error: error
                     });
-                })
+                }, req.params.app, req.params.client)
             } else {
                 try {
 
@@ -1636,10 +1636,9 @@ Platform = function(SPOO, OBJY, options) {
                 }
 
                 if (ext.appContext) {
-                    if (ext.tenancyContext){
+                    if (ext.tenancyContext) {
                         if (!ext.route.includes('app/:app')) modifiedRoute.push('/client/:client/app/:app' + ext.route)
-                    }
-                    else if (!ext.route.includes('app/:app')) modifiedRoute.push('/app/:app' + ext.route)
+                    } else if (!ext.route.includes('app/:app')) modifiedRoute.push('/app/:app' + ext.route)
                 }
 
                 if (modifiedRoute.length > 0) ext.route = modifiedRoute;
