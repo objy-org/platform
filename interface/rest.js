@@ -400,7 +400,7 @@ Platform = function(SPOO, OBJY, options) {
 
                             newUser.password = 'oauth:' + user.accessToken;
 
-                            if (!newUser.username) newUser.username = SPOO.OBJY.RANDOM();
+                            if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
                             OBJY.user(newUser).add(user => {
 
                                 OBJY.user(user._id).get(usr => {
@@ -408,7 +408,7 @@ Platform = function(SPOO, OBJY, options) {
                                 })
 
                             })
-                        } else if (users.length == 1) {
+                        } else if (users.length > 0) {
 
                             OBJY.user(users[0]._id).get(usr => {
                                 usr.password = 'oauth:' + user.accessToken;
@@ -426,6 +426,8 @@ Platform = function(SPOO, OBJY, options) {
 
                     })
 
+                }).catch(e => {
+                    res.status(400).json({ err: e })
                 })
         });
 
@@ -1569,6 +1571,13 @@ Platform = function(SPOO, OBJY, options) {
                 OBJY[req.params.entity](req.params.id).get(function(data) {
 
                     //res.type(data.mimetype)
+
+                    var downloadable = true;
+                    ['pdf', 'png', 'jpg', 'jpeg'].forEach(f => {
+                        if(downloadable && (data.name || '').toLowerCase().includes('.'+f)) downloadable = false;
+                    });
+
+                    if(downloadable) res.set("Content-Disposition", "attachment;filename=" + encodeURI(data.name));
 
                     data.properties.data.resume();
                     data.properties.data.pipe(res);
