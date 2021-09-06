@@ -383,6 +383,9 @@ Platform = function(SPOO, OBJY, options) {
 
                     var userdata = jwt_decode(user.data.id_token);
 
+                    console.log('userdata', userdata)
+                    console.log('options.oauth.userFieldsMapping', options.oauth.userFieldsMapping)
+
                     var query = {};
 
                     Object.keys(options.oauth.userFieldsMapping).forEach(key => {
