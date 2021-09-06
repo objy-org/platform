@@ -400,7 +400,7 @@ Platform = function(SPOO, OBJY, options) {
 
                             newUser.password = 'oauth:' + user.accessToken;
 
-                            if (!newUser.username) newUser.username = SPOO.OBJY.RANDOM();
+                            if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
                             OBJY.user(newUser).add(user => {
 
                                 OBJY.user(user._id).get(usr => {
@@ -408,8 +408,8 @@ Platform = function(SPOO, OBJY, options) {
                                 })
 
                             })
-                        } else if (users.length == 1) {
-                           
+                        } else if (users.length > 0) {
+
                             OBJY.user(users[0]._id).get(usr => {
                                 usr.password = 'oauth:' + user.accessToken;
 
@@ -426,6 +426,8 @@ Platform = function(SPOO, OBJY, options) {
 
                     })
 
+                }).catch(e => {
+                    res.status(400).json({ err: e })
                 })
         });
 
@@ -498,7 +500,7 @@ Platform = function(SPOO, OBJY, options) {
         .get(checkAuthentication, function(req, res) {
 
             var client = req.params.client;
-           
+
             try {
                 metaMapper.getClientApplications(function(data) {
 
@@ -511,7 +513,7 @@ Platform = function(SPOO, OBJY, options) {
                         })
                     } else _data = data;
 
-                   
+
                     function getFullAppDetails(name) {
                         var details;
                         _data.forEach(a => {
@@ -539,7 +541,7 @@ Platform = function(SPOO, OBJY, options) {
                         }*/
                     } else clientApps = _data;
 
-                 
+
                     /* _data.forEach(function(d, i) {
 
                          //if (req.user.applications.indexOf(d.name) == -1) _data.splice(i, 1);
@@ -715,26 +717,26 @@ Platform = function(SPOO, OBJY, options) {
 
             OBJY.client(req.params.client);
 
-            if (options.resetPasswordMethod) {
+            metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
 
-                options.resetPasswordMethod(req.user, req.body.password, success => {
-                    res.json({
-                        message: "Password changed"
-                    });
-                }, error => {
-                    res.status(400);
-                    res.json({
-                        error: error
-                    });
-                }, undefined, client)
+                    OBJY.client(req.params.client);
 
-            } else {
+                    OBJY['user'](_data.uId).get(function(data) {
 
-                metaMapper.redeemPasswordResetKey(req.body.resetKey, req.params.client, function(_data) {
+                            if (options.resetPasswordMethod) {
 
-                        OBJY.client(req.params.client);
+                                options.resetPasswordMethod(data, req.body.password, success => {
+                                    res.json({
+                                        message: "Password changed"
+                                    });
+                                }, error => {
+                                    res.status(400);
+                                    res.json({
+                                        error: error
+                                    });
+                                }, undefined, client)
 
-                        OBJY['user'](_data.uId).get(function(data) {
+                            } else {
 
                                 data.password = bcrypt.hashSync(req.body.password);
 
@@ -751,24 +753,24 @@ Platform = function(SPOO, OBJY, options) {
                                         });
                                         return;
                                     });
-
-                            },
-                            function(err) {
-                                res.status(400);
-                                res.json({
-                                    error: err
-                                });
-                                return;
+                            }
+                        },
+                        function(err) {
+                            res.status(400);
+                            res.json({
+                                error: err
                             });
-                    },
-                    function(err) {
-                        res.status(400);
-                        res.json({
-                            error: err
+                            return;
                         });
-                        return;
+                },
+                function(err) {
+                    res.status(400);
+                    res.json({
+                        error: err
                     });
-            }
+                    return;
+                });
+
         });
 
     // ADD: one or many, GET: one or many
@@ -825,7 +827,7 @@ Platform = function(SPOO, OBJY, options) {
 
             redis.get('cnt_' + req.body.username, function(err, result) {
 
-              
+
                 if (result !== null) {
                     if (parseInt(result) >= (options.maxUserSessions || defaultMaxUserSessions)) {
                         res.status(401)
@@ -1150,7 +1152,7 @@ Platform = function(SPOO, OBJY, options) {
                 if (search[k] == 'false') search[k] = false;
             }
 
-          
+
             Object.keys(search).forEach(function(k) {
                 if (k == "$query") {
                     console.warn(k, search[k])
@@ -1315,7 +1317,7 @@ Platform = function(SPOO, OBJY, options) {
                     res.json({
                         error: error
                     });
-                })
+                }, req.params.app, req.params.client)
             } else {
                 try {
 
@@ -1570,6 +1572,13 @@ Platform = function(SPOO, OBJY, options) {
 
                     //res.type(data.mimetype)
 
+                    var downloadable = true;
+                    ['pdf', 'png', 'jpg', 'jpeg'].forEach(f => {
+                        if(downloadable && (data.name || '').toLowerCase().includes('.'+f)) downloadable = false;
+                    });
+
+                    if(downloadable) res.set("Content-Disposition", "attachment;filename=" + encodeURI(data.name));
+
                     data.properties.data.resume();
                     data.properties.data.pipe(res);
 
@@ -1622,6 +1631,38 @@ Platform = function(SPOO, OBJY, options) {
                 res.json({ error: e });
             }
         });
+
+
+    // PLUG IN EXTENTIONS
+    if (Array.isArray(options.extensions || [])) {
+        (options.extensions || []).forEach(ext => {
+            if (ext.route) {
+                var modifiedRoute = [];
+
+                // Check if tenancy and app contexts are enabled
+                if (ext.tenancyContext) {
+                    if (!ext.route.includes('client/:client')) modifiedRoute.push('/client/:client' + ext.route)
+                }
+
+                if (ext.appContext) {
+                    if (ext.tenancyContext) {
+                        if (!ext.route.includes('app/:app')) modifiedRoute.push('/client/:client/app/:app' + ext.route)
+                    } else if (!ext.route.includes('app/:app')) modifiedRoute.push('/app/:app' + ext.route)
+                }
+
+                if (modifiedRoute.length > 0) ext.route = modifiedRoute;
+
+                var newRoute = router.route(ext.route);
+
+                Object.keys(ext.methods).forEach(method => {
+                    var authFn = () => {};
+                    if (ext.authable) authFn = checkAuthentication;
+                    newRoute[method](authFn, ext.methods[method]);
+                    console.log('registered', ext.route, method)
+                })
+            }
+        })
+    }
 
     this.run = function() {
         app.use('/api', router);

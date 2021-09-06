@@ -6,6 +6,23 @@ SPOO.define({
     authable: true
 })
 
+
+var P = SPOO.REST({
+    port: 80,
+    extensions: [{
+        route: '/:entity/:id/property/:propName/call',
+        authable: true,
+        tenancyContext: true,
+        appContext: true,
+        methods: {
+            post: (req, res) => {
+
+            }
+        }
+    }]
+}).run();
+
+/*
 SPOO.OBJY.client('default');
 
 SPOO.OBJY.user({username: "sdgsg"}).add(usr => {
@@ -26,3 +43,4 @@ var P = SPOO.REST({
         }
     }
 }).run();
+*/
