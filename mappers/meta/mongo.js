@@ -1,4 +1,4 @@
-var mongoose = require('mongoose');
+ var mongoose = require('mongoose');
 var shortid = require('shortid');
 var Schema = mongoose.Schema;
 var Admin = mongoose.mongo.Admin;
@@ -28,7 +28,7 @@ var UserRegistrationSchema = new Schema(userRegistrationSchema);
 
 
 var passwordResetSchema = {
-    uId: Schema.Types.ObjectId,
+    uId: String,
     key: String,
     client: String,
     date: { type: Date, default: Date.now, expires: '1d' }
