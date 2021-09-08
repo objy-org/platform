@@ -285,7 +285,6 @@ Platform = function(SPOO, OBJY, options) {
 
         .get(function(req, res) {
 
-
             if (options.oauth) {
 
                 var uri = new ClientOAuth2({
@@ -406,14 +405,14 @@ Platform = function(SPOO, OBJY, options) {
                             if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
                             OBJY.user(newUser).add(user => {
 
-                                OBJY.user(user._id).get(usr => {
+                                OBJY.user(user._id.toString()).get(usr => {
                                     authenticateUser(req, usr)
                                 })
 
                             })
                         } else if (users.length > 0) {
 
-                            OBJY.user(users[0]._id).get(usr => {
+                            OBJY.user(users[0]._id.toString()).get(usr => {
                                 usr.password = 'oauth:' + user.accessToken;
 
                                 usr.update(updatedUser => {
@@ -422,7 +421,7 @@ Platform = function(SPOO, OBJY, options) {
                                     res.status(400).json({ err: err })
                                 })
                             }, err => {
-
+                                res.status(400).json({ err: err })
                             })
                         }
                     }, err => {
