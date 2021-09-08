@@ -391,6 +391,8 @@ Platform = function(SPOO, OBJY, options) {
                         query[key] = { $regex: '^' + userdata[options.oauth.userFieldsMapping[key]] + '$', $options: 'i' }
                     })
 
+                    OBJY.useUser(undefined);
+
                     OBJY.users(query).get(users => {
                         if (users.length == 0) {
 
@@ -425,8 +427,8 @@ Platform = function(SPOO, OBJY, options) {
                             })
                         }
                     }, err => {
-
-                    })
+                        res.status(400).json({ err: err })
+                    })  
 
                 }).catch(e => {
                     res.status(400).json({ err: e })
