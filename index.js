@@ -1,6 +1,4 @@
 var Rest = require('./interface/rest.js');
-var OBJY = require('objy');
-var OBJY_CATALOG = require('objy-catalog');
 
 const LEGACY_BLACKLIST = ['$propsAsObj']
 
@@ -176,11 +174,6 @@ const SPOO = {
     },
 
     MetaMapper: {},
-
-    OBJY: OBJY,
-
-    OBJY_CATALOG: OBJY_CATALOG,
-    CATALOG: OBJY_CATALOG,
 
     define: function(options) {
 
