@@ -23,6 +23,7 @@
     "localStorage": "^1.0.4",
     "mingo": "^2.3.5",
     "moment": "^2.24.0",
+    "mongoose": "6.0.7",
     "openid-client": "^4.6.0",
     "shortid": "^2.2.14",
     "vm2": "^3.8.1"
@@ -45,5 +46,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.9.927"
+  "version": "0.9.928"
 }
