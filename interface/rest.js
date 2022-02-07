@@ -321,6 +321,8 @@ Platform = function(SPOO, OBJY, options) {
 
             function authenticateUser(req, user) {
 
+                console.log('2', user)
+
                 var clients = user._clients || [];
                 if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
 
@@ -358,6 +360,8 @@ Platform = function(SPOO, OBJY, options) {
                 delete user.password;
 
                 //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
+
+                console.log('3', options.oauth.clientRedirect);
 
                 if (!options.oauth.clientRedirect) {
                     res.json({
@@ -414,10 +418,16 @@ Platform = function(SPOO, OBJY, options) {
                             })
                         } else if (users.length > 0) {
 
+                            console.log('-1', users)
+
                             OBJY.user(users[0]._id.toString()).get(usr => {
+
+                                console.log('0', usr)
+
                                 usr.password = 'oauth:' + user.accessToken;
 
                                 usr.update(updatedUser => {
+                                    console.log('1', updatedUser)
                                     authenticateUser(req, updatedUser)
                                 }, err => {
                                     res.status(400).json({ err: err })

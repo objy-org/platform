@@ -36,7 +36,7 @@
     "javascript",
     "objects"
   ],
-  "license": "AGPL",
+  "license": "MIT",
   "main": "index.js",
   "name": "spoojs",
   "repository": {
@@ -46,5 +46,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.9.930"
+  "version": "0.9.931"
 }
