@@ -1692,9 +1692,9 @@ Platform = function(SPOO, OBJY, options) {
     }
 
 }
-
+/*
 process.on('uncaughtException', function(err) {
     console.error(err);
 })
-
+*/
 module.exports = Platform;
