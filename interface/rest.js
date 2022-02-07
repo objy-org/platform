@@ -377,10 +377,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 } else {
                     console.log('4', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client)
-                    setTimeout(() => {
-                        console.log('5 redirecting')
-                        res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client)
-                    }, 100) 
+                    return res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client)
                 }
 
             }
