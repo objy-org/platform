@@ -1,6 +1,6 @@
-# SPOO 
+# SPOO - Build a platform
 
-SPOO (Single Point of Object) is a JavaScript framework for creating custom platforms.
+SPOO (Single Point of Object) is a JavaScript framework for creating custom platforms using OBJY.
 
 ![Platform](https://spoo.io/assets/img/platform.png)
 
@@ -15,21 +15,22 @@ SPOO is built on [OBJY](https://objy-org.github.io).
 # Spin up a Platform
 
 ```shell
-npm i spoojs
+npm i spoojs objy
 ```
 
 ```javascript
 // 1. import spoo
 const SPOO = require('spoojs');
+const OBJY = require('objy');
 
 // 2. define some "object wrappers"
-SPOO.OBJY.define({
+OBJY.define({
   name: "user",
   pluralName: "users",
   authable: true
 })
 
-SPOO.OBJY.define({
+OBJY.define({
   name: "object",
   pluralName: "objects"
 })
@@ -37,6 +38,7 @@ SPOO.OBJY.define({
 // 3. run the platform via REST
 SPOO.REST({
   port:80,
+  OBJY,
   metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost") // The matamapper is for basic config
 }).run()
 ```
