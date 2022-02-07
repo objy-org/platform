@@ -361,7 +361,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
-                console.log('3', options.oauth.clientRedirect, options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client);
+                console.log('3', options.oauth.clientRedirect;
 
                 if (!options.oauth.clientRedirect) {
                     res.json({
@@ -375,7 +375,13 @@ Platform = function(SPOO, OBJY, options) {
 
                     //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
-                } else res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client)
+                } else {
+                    console.log('4', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client)
+                    setTimeout(() => {
+                        console.log('5 redirecting')
+                        res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client)
+                    }, 100) 
+                }
 
             }
 
