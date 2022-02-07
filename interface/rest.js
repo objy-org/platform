@@ -361,7 +361,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
-                console.log('3', options.oauth.clientRedirect);
+                console.log('3', options.oauth.clientRedirect, options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client);
 
                 if (!options.oauth.clientRedirect) {
                     res.json({
