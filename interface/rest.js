@@ -293,7 +293,8 @@ Platform = function(SPOO, OBJY, options) {
                     accessTokenUri: options.oauth.accessTokenUri,
                     authorizationUri: options.oauth.authorizationUri,
                     redirectUri: options.oauth.redirectUri,
-                    scopes: options.oauth.scopes
+                    scopes: options.oauth.scopes,
+                    state: req.query.state
                 }).code.getUri()
 
                 res.redirect(uri)
@@ -319,7 +320,7 @@ Platform = function(SPOO, OBJY, options) {
                 });
             } else return res.status(400).json({ error: "oauth not available" })
 
-            function authenticateUser(req, user) {
+            function authenticateUser(req, user, state) {
 
                 console.log('2', user)
 
@@ -376,8 +377,8 @@ Platform = function(SPOO, OBJY, options) {
                     //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
                 } else {
-                    console.log('4', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client)
-                    return res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client)
+                    console.log('4', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client + '&state='+ state)
+                    return res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client + '&state='+ state)
                 }
 
             }
@@ -388,6 +389,7 @@ Platform = function(SPOO, OBJY, options) {
                 .then(function(user) {
 
                     var userdata = jwt_decode(user.data.id_token);
+                    var state = user.data.state;
 
                     console.log('userdata', userdata)
                     console.log('options.oauth.userFieldsMapping', options.oauth.userFieldsMapping)
@@ -415,7 +417,7 @@ Platform = function(SPOO, OBJY, options) {
                             OBJY.user(newUser).add(user => {
 
                                 OBJY.user(user._id.toString()).get(usr => {
-                                    authenticateUser(req, usr)
+                                    authenticateUser(req, usr, state)
                                 })
 
                             })
@@ -431,7 +433,7 @@ Platform = function(SPOO, OBJY, options) {
 
                                 usr.update(updatedUser => {
                                     console.log('1', updatedUser)
-                                    authenticateUser(req, updatedUser)
+                                    authenticateUser(req, updatedUser, state)
                                 }, err => {
                                     res.status(400).json({ err: err })
                                 })
