@@ -388,7 +388,8 @@ Platform = function(SPOO, OBJY, options) {
             oauth_client.code.getToken(req.originalUrl)
                 .then(function(user) {
 
-                    console.log('user', user);
+                    console.log('user__', user);
+                    console.log(req.originalUrl, req.query)
 
                     var userdata = jwt_decode(user.data.id_token);
                     var state = user.state;
