@@ -309,6 +309,8 @@ Platform = function(SPOO, OBJY, options) {
 
             var oauth_client;
 
+            console.log('req.query.state', req.query.state)
+
             if (options.oauth) {
                 oauth_client = new ClientOAuth2({
                     clientId: options.oauth.clientId,
