@@ -316,7 +316,8 @@ Platform = function(SPOO, OBJY, options) {
                     accessTokenUri: options.oauth.accessTokenUri,
                     authorizationUri: options.oauth.authorizationUri,
                     redirectUri: options.oauth.redirectUri,
-                    scopes: options.oauth.scopes
+                    scopes: options.oauth.scopes,
+                    state: req.query.state
                 });
             } else return res.status(400).json({ error: "oauth not available" })
 
