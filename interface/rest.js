@@ -48,6 +48,8 @@ function parseJwt(token) {
 
 Platform = function(SPOO, OBJY, options) {
 
+    this.server = app;
+
     OBJY.Logger.log("Platform options: " + options);
 
     this.router = router;
