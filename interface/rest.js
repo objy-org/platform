@@ -19,6 +19,7 @@ var isStream = require('is-stream');
 var timeout = require('connect-timeout');
 var ClientOAuth2 = require('client-oauth2')
 
+
 // Helper functions
 function propsSerialize(obj) {
     if (obj.properties) {
