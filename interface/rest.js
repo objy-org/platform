@@ -1123,7 +1123,7 @@ Platform = function(SPOO, OBJY, options) {
 
                         res.json(SPOO.deserialize(data))
 
-                        if (req.body.username) {
+                        if (req.body.username && !req.query.noemail) {
                             console.log('sending welcome email');
                             messageMapper.send((options.userRegistrationMessage || {}).from || 'SPOO',  req.body.email, 'your password', pw)
                         }
