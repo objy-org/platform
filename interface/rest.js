@@ -111,6 +111,10 @@ Platform = function(SPOO, OBJY, options) {
 
     var checkAuthentication = function(req, res, next) {
 
+        if(options.publicPlatform) {
+            if(req.method == 'GET') return next();
+        }
+
         var token;
 
         if (req.headers.authorization) {
