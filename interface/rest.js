@@ -554,7 +554,9 @@ Platform = function(SPOO, OBJY, options) {
                         return details;
                     }
 
-                    if (!req.user.spooAdmin) {
+                    if(!req.user){
+                        clientApps = _data;
+                    } else if (!req.user.spooAdmin) {
 
                         req.user.applications.forEach(a => {
                             clientApps.push(getFullAppDetails(a))

@@ -13,7 +13,7 @@ var MessageMapper = function() {
             to: to,
             from: from,
             subject: subject,
-            text: body
+            html: body
         };
         sgMail.send(msg);
     }
