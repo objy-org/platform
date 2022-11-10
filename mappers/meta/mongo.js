@@ -312,7 +312,9 @@ var MetaMapper = function() {
         getable = ClientInfo;
 
         getable.findOne({}, function(err, data) {
+            console.log(1, arguments)
             if (err) {
+                console.log('err:', err)
                 error(err);
                 return;
             }
