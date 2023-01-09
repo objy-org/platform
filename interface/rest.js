@@ -316,8 +316,6 @@ Platform = function(SPOO, OBJY, options) {
 
             var oauth_client;
 
-            console.log('req.query.state', req.query.state)
-
             if (options.oauth) {
                 oauth_client = new ClientOAuth2({
                     clientId: options.oauth.clientId,
@@ -331,8 +329,6 @@ Platform = function(SPOO, OBJY, options) {
             } else return res.status(400).json({ error: "oauth not available" })
 
             function authenticateUser(req, user, state) {
-
-                console.log('2', user)
 
                 var clients = user._clients || [];
                 if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
@@ -372,12 +368,10 @@ Platform = function(SPOO, OBJY, options) {
 
                 //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
-                console.log('3', options.oauth.clientRedirect);
-
                 if (!options.oauth.clientRedirect) {
                     res.json({
                         message: "authenticated",
-                        user: SPOO.deserialize(user),
+                        /*user: SPOO.deserialize(user),*/
                         token: {
                             accessToken: token,
                             refreshToken: refreshToken
@@ -387,7 +381,6 @@ Platform = function(SPOO, OBJY, options) {
                     //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
                 } else {
-                    console.log('4', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client + '&state='+ state)
                     return res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&clientId=' + req.params.client + '&state='+ state)
                 }
 
@@ -398,14 +391,8 @@ Platform = function(SPOO, OBJY, options) {
             oauth_client.code.getToken(req.originalUrl)
                 .then(function(user) {
 
-                    console.log('user__', user);
-                    console.log(req.originalUrl, req.query)
-
                     var userdata = jwt_decode(user.data.id_token);
                     var state = req.query.state;
-
-                    console.log('userdata', userdata)
-                    console.log('options.oauth.userFieldsMapping', options.oauth.userFieldsMapping)
 
                     var query = {};
 
@@ -436,16 +423,11 @@ Platform = function(SPOO, OBJY, options) {
                             })
                         } else if (users.length > 0) {
 
-                            console.log('-1', users)
-
                             OBJY.user(users[0]._id.toString()).get(usr => {
-
-                                console.log('0', usr)
 
                                 usr.password = 'oauth:' + user.accessToken;
 
                                 usr.update(updatedUser => {
-                                    console.log('1', updatedUser)
                                     authenticateUser(req, updatedUser, state)
                                 }, err => {
                                     res.status(400).json({ err: err })
@@ -943,7 +925,7 @@ Platform = function(SPOO, OBJY, options) {
 
                         res.json({
                             message: "authenticated",
-                            user: SPOO.deserialize(user),
+                            /*user: SPOO.deserialize(user),*/
                             token: {
                                 accessToken: token,
                                 refreshToken: refreshToken
@@ -1015,7 +997,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 res.json({
                     message: "authenticated",
-                    user: result,
+                    /*user: result,*/
                     token: {
                         accessToken: token,
                         refreshToken: refreshToken
