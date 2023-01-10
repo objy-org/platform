@@ -129,7 +129,7 @@ Platform = function(SPOO, OBJY, options) {
                 message: 'Failed to authenticate token'
             });
 
-            redis.get('at_' + decoded.tokenId, function(err, result) {
+            redis.get('ua_' + decoded.tokenId, function(err, result) {
 
                 OBJY.Logger.log("Got token from redis " + result);
 
@@ -138,11 +138,12 @@ Platform = function(SPOO, OBJY, options) {
                     message: 'Failed to authenticate token'
                 });
 
-                req.user = decoded
+                var user = JSON.parse(result)
+                req.user = user
 
                 if (req.user) OBJY.useUser(req.user);
 
-                if ((decoded.clients || []).indexOf(req.params.client) == -1 && (decoded.clients || []).length > 0) return res.status(401).send({
+                if ((user.clients || []).indexOf(req.params.client) == -1 && (user.clients || []).length > 0) return res.status(401).send({
                     auth: false,
                     message: 'Failed to authenticate token'
                 });
@@ -345,11 +346,11 @@ Platform = function(SPOO, OBJY, options) {
                 var token = jwt.sign({
                     id: _user._id,
                     username: _user.username,
-                    privileges: _user.privileges,
+                    //privileges: _user.privileges,
                     applications: _user.applications,
                     spooAdmin: _user.spooAdmin,
                     clients: clients,
-                    authorisations: _user.authorisations,
+                    //authorisations: _user.authorisations,
                     tokenId: tokenId
                 }, options.jwtSecret || defaultSecret, {
                     expiresIn: 20 * 60000
@@ -357,7 +358,15 @@ Platform = function(SPOO, OBJY, options) {
 
                 user.clients = clients;
                 //redis.set(token, 'true', "EX", 1200)
-                redis.set('at_' + tokenId, token, "EX", 1200)
+                redis.set('ua_' + tokenId, JSON.stringify({
+                    id: _user._id,
+                    username: _user.username,
+                    applications: _user.applications,
+                    spooAdmin: _user.spooAdmin,
+                    clients: clients,
+                    privileges: _user.privileges,
+                    authorisations: _user.authorisations
+                }), "EX", 1200)
 
 
                 //if (req.body.permanent) {
@@ -899,11 +908,11 @@ Platform = function(SPOO, OBJY, options) {
                         var token = jwt.sign({
                             id: _user._id,
                             username: _user.username,
-                            privileges: _user.privileges,
+                            //privileges: _user.privileges,
                             applications: _user.applications,
                             spooAdmin: _user.spooAdmin,
                             clients: clients,
-                            authorisations: _user.authorisations,
+                            //authorisations: _user.authorisations,
                             tokenId: tokenId
                         }, options.jwtSecret || defaultSecret, {
                             expiresIn: 20 * 60000
@@ -912,7 +921,18 @@ Platform = function(SPOO, OBJY, options) {
                         user.clients = clients;
 
                         //redis.set(token, 'true', "EX", 1200)
-                        redis.set('at_' + tokenId, token, "EX", 1200)
+                        //redis.set('at_' + tokenId, token, "EX", 1200)
+
+                        // user authentication details
+                        redis.set('ua_' + tokenId, JSON.stringify({
+                            id: _user._id,
+                            username: _user.username,
+                            applications: _user.applications,
+                            spooAdmin: _user.spooAdmin,
+                            clients: clients,
+                            privileges: _user.privileges,
+                            authorisations: _user.authorisations
+                        }), "EX", 1200)
 
                         redis.set('cnt_' + req.body.username, ++result, "EX", 1200)
 
@@ -973,11 +993,11 @@ Platform = function(SPOO, OBJY, options) {
                 var token = jwt.sign({
                     id: result._id,
                     username: result.username,
-                    privileges: result.privileges,
+                    //privileges: result.privileges,
                     clients: result.clients,
                     applications: result.applications,
                     spooAdmin: result.spooAdmin,
-                    authorisations: result.authorisations,
+                    //authorisations: result.authorisations,
                     tokenId: tokenId
                 }, options.jwtSecret || defaultSecret, {
                     expiresIn: 20 * 60000
@@ -985,11 +1005,19 @@ Platform = function(SPOO, OBJY, options) {
 
                 setTimeout(function() {
                     redis.del('rt_' + oldTokenId);
-                    redis.del('at_' + oldTokenId);
+                    redis.del('ua_' + oldTokenId);
                 }, 8000)
 
                 //redis.set(token, 'true', "EX", 1200)
-                redis.set('at_' + tokenId, token, "EX", 1200)
+                redis.set('ua_' + tokenId, JSON.stringify({
+                    id: result._id,
+                    username: result.username,
+                    applications: result.applications,
+                    spooAdmin: result.spooAdmin,
+                    clients: result.clients,
+                    privileges: result.privileges,
+                    authorisations: result.privileges
+                }), "EX", 1200)
                 redis.set('rt_' + tokenId, JSON.stringify(result), "EX", 2592000)
 
                 delete result.password;
@@ -1026,7 +1054,7 @@ Platform = function(SPOO, OBJY, options) {
                         message: 'Token not found'
                     });*/
 
-                    redis.del('at_' + decoded.tokenId);
+                    redis.del('ua_' + decoded.tokenId);
                     redis.del('rt_' + decoded.tokenId);
 
                     redis.get('cnt_' + decoded.username, function(err, result) {
@@ -1360,7 +1388,7 @@ Platform = function(SPOO, OBJY, options) {
                         data.update(function(_data) {
 
                             redis.del('rt_' + tokenId);
-                            redis.del('at_' + tokenId);
+                            redis.del('ua_' + tokenId);
 
                             res.json(SPOO.deserialize(_data))
                         }, function(err) {
