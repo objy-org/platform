@@ -901,7 +901,6 @@ Platform = function(SPOO, OBJY, options) {
                             username: _user.username,
                             privileges: _user.privileges,
                             applications: _user.applications,
-                            authorisations: _user.authorisations,
                             spooAdmin: _user.spooAdmin,
                             clients: clients,
                             authorisations: _user.authorisations,
