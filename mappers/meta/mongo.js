@@ -121,7 +121,6 @@ var MetaMapper = function() {
                 })
 
             });
-
     }
 
     this.createClientRegistration = function(success, error) {

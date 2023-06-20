@@ -1140,7 +1140,7 @@ Platform = function(SPOO, OBJY, options) {
 
                         if (req.body.username && !req.query.noemail) {
                             console.log('sending welcome email');
-                            messageMapper.send((options.userRegistrationMessage || {}).from || 'SPOO',  req.body.email, 'your password', pw)
+                            messageMapper.send((options.userRegistrationMessage || {}).from || 'SPOO',  req.body.email, (options.userRegistrationMessage || {}).subject || 'your password', ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', pw) || pw)
                         }
 
                     }, function(err) {
