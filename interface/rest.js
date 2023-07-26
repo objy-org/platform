@@ -17,7 +17,9 @@ var fileUpload = require('express-fileupload');
 var Duplex = require("stream").Duplex;
 var isStream = require('is-stream');
 var timeout = require('connect-timeout');
-var ClientOAuth2 = require('client-oauth2')
+var ClientOAuth2 = require('client-oauth2');
+var puzzle = require('puzzlelang');
+var vm = require('vm');
 
 
 // Helper functions
@@ -452,6 +454,82 @@ Platform = function(SPOO, OBJY, options) {
                 }).catch(e => {
                     res.status(400).json({ err: e })
                 })
+        });
+
+
+    
+    // SCRIPT: run a script, can return data
+    router.route(['/client/:client/script', '/client/:client/app/:app/script'])
+
+        .get(checkAuthentication, function(req, res) {
+
+            OBJY.client(req.params.client);
+            if (req.params.app)
+                OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
+
+         
+
+                var script = req.query.code;
+
+                /*scriptLang = {
+                    sl: {
+                        _static: {
+                            execStatement: (done, ctx) => {
+                                console.log('doing that return thing')
+                                done();
+                            }
+                        },
+                        get: {
+                            follow: ["{family,query}"],
+                            method: (ctx, data) => {
+                                OBJY[data.family](data.query).get(data => {
+                                    ctx.return = data;
+                                }, error => {
+                                    ctx.return = error;
+                                })
+                                
+                            }
+                        },
+                        return: {
+                            follow: ["{data}"],
+                            method: (ctx, data) => {
+                                console.log('rrret');
+                                ctx.httpReturn = global.puzzle.getRawStatement(data);
+                                res.json({
+                                    data: ctx.httpReturn
+                                });
+                        
+                                console.log('ret done')
+                            }
+                        }
+                    }
+                };
+
+                return puzzle.parse(`
+                    use var:scriptLang;
+                ` + script);
+
+                console.log('response end')*/
+
+                function done(data){
+                    res.json({
+                        data: data
+                    });
+                }
+
+                var _context = {
+                    done: done
+                };
+
+                Object.assign(_context, options.scriptContext || {});
+
+                var script = new vm.Script(script);
+
+                vm.createContext(_context);
+
+                script.runInContext(_context);
+
         });
 
 

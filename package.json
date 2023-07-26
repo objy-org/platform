@@ -24,7 +24,9 @@
     "mingo": "^2.3.5",
     "moment": "^2.24.0",
     "mongoose": "5.13.9",
+    "objy": "^0.6.986",
     "openid-client": "^4.6.0",
+    "puzzlelang": "0.0.969",
     "shortid": "^2.2.14",
     "vm2": "^3.8.1"
   },
@@ -46,5 +48,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.9.951"
+  "version": "0.9.952"
 }
