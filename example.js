@@ -1,6 +1,7 @@
 var SPOO = require('./index.js');
+var OBJY = require('objy');
 
-SPOO.define({
+OBJY.define({
     name: "user",
     pluralName: "users",
     authable: true
@@ -9,6 +10,10 @@ SPOO.define({
 
 var P = SPOO.REST({
     port: 80,
+    OBJY,
+    scriptContext: {
+        objects: function(){console.log(',,,')}
+    },
     extensions: [{
         route: '/:entity/:id/property/:propName/call',
         authable: true,
