@@ -7,13 +7,19 @@ OBJY.define({
     authable: true
 })
 
+OBJY.define({
+    name: "object",
+    pluralName: "objects"
+})
+
+OBJY.client('spoo');
+
+OBJY.object({name: "hello"}).add();
+
 
 var P = SPOO.REST({
     port: 80,
     OBJY,
-    scriptContext: {
-        objects: function(){console.log(',,,')}
-    },
     extensions: [{
         route: '/:entity/:id/property/:propName/call',
         authable: true,

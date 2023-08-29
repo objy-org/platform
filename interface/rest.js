@@ -519,8 +519,12 @@ Platform = function(SPOO, OBJY, options) {
                 }
 
                 var _context = {
-                    done: done
+                    done: done,
+                    OBJY: OBJY
                 };
+
+                OBJY.client=function(){};
+                OBJY.useUser=function(){};
 
                 Object.assign(_context, options.scriptContext || {});
 
@@ -531,7 +535,6 @@ Platform = function(SPOO, OBJY, options) {
                 script.runInContext(_context);
 
         });
-
 
 
     router.route(['/client/:client/application'])
@@ -929,7 +932,6 @@ Platform = function(SPOO, OBJY, options) {
             OBJY.useUser(null);
 
             redis.get('cnt_' + req.body.username, function(err, result) {
-
 
                 if (result !== null) {
                     if (parseInt(result) >= (options.maxUserSessions || defaultMaxUserSessions)) {
