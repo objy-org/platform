@@ -1,26 +1,26 @@
-# SPOO - Build a platform
+# Build a platform
 
-SPOO (Single Point of Object) is a JavaScript framework for creating custom platforms using OBJY.
+ is a JavaScript framework for creating custom platforms using OBJY.
 
-![Platform](https://spoo.io/assets/img/platform.png)
+![Platform](https://PLATFORM.io/assets/img/platform.png)
 
-For the official Documentation, visit [spoo.io/docs](https://spoo.io/docs)
+For the official Documentation, visit [PLATFORM.io/docs](https://PLATFORM.io/docs)
 
-SPOO is built on [OBJY](https://objy-org.github.io).
+PLATFORM is built on [OBJY](https://objy-org.github.io).
 
-[![OBJY](https://raw.githubusercontent.com/objy-org/objy-org.github.io/master/assets/img/badge-sm.png "SPOO runs on OBJY")](https://objy.io)
+[![OBJY](https://raw.githubusercontent.com/objy-org/objy-org.github.io/master/assets/img/badge-sm.png "PLATFORM runs on OBJY")](https://objy.io)
 
 > For running a basic platform you will need ***Node.js***, ***Redis*** and ***MongoDB***
 
 # Spin up a Platform
 
 ```shell
-npm i spoojs objy
+npm i objy-platform objy
 ```
 
 ```javascript
-// 1. import spoo
-const SPOO = require('spoojs');
+// 1. import PLATFORM
+const PLATFORM = require('objy-platform');
 const OBJY = require('objy');
 
 // 2. define some "object wrappers"
@@ -36,10 +36,10 @@ OBJY.define({
 })
 
 // 3. run the platform via REST
-SPOO.REST({
+PLATFORM.REST({
   port:80,
   OBJY,
-  metaMapper: new SPOO.metaMappers.mongoMapper().connect("mongodb://localhost") // The matamapper is for basic config
+  metaMapper: new PLATFORM.metaMappers.mongoMapper().connect("mongodb://localhost") // The matamapper is for basic config
 }).run()
 ```
 
@@ -48,24 +48,24 @@ SPOO.REST({
 > Install via npm or script tag:
 
 ```html
-<script src="spoo.js">
+<script src="PLATFORM.js">
 ```
 or
 ```shell
-npm i spoo-client
+npm i PLATFORM-client
 ```
 
 ```javascript
 // 1. Initialize the client
-const spoo = new SPOO_Client('mytenant');
+const PLATFORM = new PLATFORM_Client('mytenant');
 
 // 2. Authenticate a user
-spoo.io().auth("user", "pass", function(data, err){
+PLATFORM.io().auth("user", "pass", function(data, err){
   if(!err) console.log('you are in!');
 })
 
 // Add an object
-spoo.io().object({
+PLATFORM.io().object({
   name: "Mercedes",
   type: "car",
   properties: {
@@ -81,7 +81,7 @@ spoo.io().object({
 })
 
 // Modify an object
-spoo.io().object("objectid...").addProperty({
+PLATFORM.io().object("objectid...").addProperty({
   color: {
     type: "shortText",
     value: "red"
@@ -101,7 +101,7 @@ spoo.io().object("objectid...").addProperty({
 
 ## License
 
-SPOO is open source and licensed under the GNU Affero General Public License. See [LICENSE](LICENSE) for more details.
+PLATFORM is open source and licensed under the GNU Affero General Public License. See [LICENSE](LICENSE) for more details.
 
 ## Contribute
 
@@ -109,5 +109,5 @@ If you'd like to contribute to the source code, you are welcome to open a PR. Pl
 
 ## Further reading
 
-* For more information on SPOO, go to [spoo.io](https://spoo.io)
+* For more information on PLATFORM, go to [PLATFORM.io](https://PLATFORM.io)
 
