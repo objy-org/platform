@@ -1,27 +1,19 @@
-# Build a platform
+# OBJY Platform
 
- is a JavaScript framework for creating custom platforms using OBJY.
+OBJY Platform is a framework for building custom platforms. It comes with everythyng needed for running a platform, like  <b>Abstract Object Programming Model, Authorizations, Messaging, User Handling, Multi Tenancy</b> and more.
 
-![Platform](https://PLATFORM.io/assets/img/platform.png)
-
-For the official Documentation, visit [PLATFORM.io/docs](https://PLATFORM.io/docs)
-
-PLATFORM is built on [OBJY](https://objy-org.github.io).
-
-[![OBJY](https://raw.githubusercontent.com/objy-org/objy-org.github.io/master/assets/img/badge-sm.png "PLATFORM runs on OBJY")](https://objy.io)
-
-> For running a basic platform you will need ***Node.js***, ***Redis*** and ***MongoDB***
-
-# Spin up a Platform
+Install
 
 ```shell
-npm i objy-platform objy
+npm i objy objy-platform
 ```
 
+> For running a basic platform you will need Node.js, Redis and MongoDB. This will change in the future.
+
 ```javascript
-// 1. import PLATFORM
-const PLATFORM = require('objy-platform');
+// 1. import objy and objy-platform
 const OBJY = require('objy');
+const PLATFORM = require('objy-platform');
 
 // 2. define some "object wrappers"
 OBJY.define({
@@ -43,71 +35,41 @@ PLATFORM.REST({
 }).run()
 ```
 
-# Set up a Client (SDK)
-
-> Install via npm or script tag:
-
-```html
-<script src="PLATFORM.js">
-```
-or
-```shell
-npm i PLATFORM-client
-```
+Parameters help customizing a platform. Some are reqiured, some are optional. Optional ones have default values as shown below.
 
 ```javascript
-// 1. Initialize the client
-const PLATFORM = new PLATFORM_Client('mytenant');
+PLATFORM.REST({
+  // REQUIRED
+  OBJY, // OBJY instance
+  metaMapper: new SomeMapper() // The matamapper is for basic config
+  messageMapper: new MessageMapper, // Mapper that handles messaging
+  redisCon: { // Redis connection
+      host: '',
+      port: '',
+      password: '',
+      username: '',
+  },
+  // or redisCon: 'redis://url.com:port'
 
-// 2. Authenticate a user
-PLATFORM.io().auth("user", "pass", function(data, err){
-  if(!err) console.log('you are in!');
-})
 
-// Add an object
-PLATFORM.io().object({
-  name: "Mercedes",
-  type: "car",
-  properties: {
-    owner : {
-      type: "shortText",
-      value: "Peter Griffin"
-    }
+  // OPTIONAL
+  port: 80, // Port to listen on
+  publicPlatform: false, // When true, ALL read requests don'T require authentication
+  maxUserSessions: 100, // Max concurrent sessions per user
+  userPasswordResetMessage: { // Email params when a user resets a password
+      from: 'mail@domain.com',
+      subject: '',
+      body: '',
+  },
+  clientRegistrationMessage: { // Email params when a client is registered
+      from: 'mail@domain.com',
+      subject: '',
+      body: '',
+  },
+  userRegistrationMessage: { // Email params when a user is registered
+      from: 'mail@domain.com',
+      subject: '',
+      body: '',
   }
-}).add(function(data, err)
-{
-  if(err) return console.error(err);
-  console.log(data); // {...object...}
-})
-
-// Modify an object
-PLATFORM.io().object("objectid...").addProperty({
-  color: {
-    type: "shortText",
-    value: "red"
-  }
-}).save(function(data, err)
-{
-  if(err) return console.error(err);
-  console.log(data); // {...updated object...}
-})
+}).run()
 ```
-
-
-## Authors
-
-* **Marco Boelling** - *Initial work* - [Twitter](https://twitter.com/marcoboelling)
-
-
-## License
-
-PLATFORM is open source and licensed under the GNU Affero General Public License. See [LICENSE](LICENSE) for more details.
-
-## Contribute
-
-If you'd like to contribute to the source code, you are welcome to open a PR. Please make sure to read the [CODE OF CONDUCT](CODE_OF_CONDUCT.md).
-
-## Further reading
-
-* For more information on PLATFORM, go to [PLATFORM.io](https://PLATFORM.io)
-
