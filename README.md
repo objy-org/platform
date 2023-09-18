@@ -2,7 +2,7 @@
 
 OBJY Platform is a framework for building custom platforms. It comes with everythyng needed for running a platform, like  <b>Abstract Object Programming Model, Authorizations, Messaging, User Handling, Multi Tenancy</b> and more.
 
-Install
+Install:
 
 ```shell
 npm i objy objy-platform
