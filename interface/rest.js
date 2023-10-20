@@ -536,6 +536,41 @@ Platform = function(SPOO, OBJY, options) {
 
         });
 
+    .post(checkAuthentication, function(req, res) {
+
+            OBJY.client(req.params.client);
+            if (req.params.app)
+                OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
+
+        
+                var script = req.query.code;
+
+
+                function done(data){
+                    res.json({
+                        data: data
+                    });
+                }
+
+                var _context = {
+                    done: done,
+                    OBJY: OBJY
+                };
+
+                OBJY.client=function(){};
+                OBJY.useUser=function(){};
+
+                Object.assign(_context, options.scriptContext || {});
+
+                var script = new vm.Script(script);
+
+                vm.createContext(_context);
+
+                script.runInContext(_context);
+
+        });
+
 
     router.route(['/client/:client/application'])
 
