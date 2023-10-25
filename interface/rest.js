@@ -1131,7 +1131,7 @@ Platform = function(SPOO, OBJY, options) {
                     spooAdmin: result.spooAdmin,
                     clients: result.clients,
                     privileges: result.privileges,
-                    authorisations: result.privileges
+                    authorisations: result.authorisations
                 }), "EX", 1200)
                 redis.set('rt_' + tokenId, JSON.stringify(result), "EX", 2592000)
 
@@ -1566,6 +1566,7 @@ Platform = function(SPOO, OBJY, options) {
 
                     res.json(data)
                 }, function(err) {
+                    res.status(400);
                     res.json({ error: err })
                 })
             } catch (e) {
