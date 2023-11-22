@@ -1305,7 +1305,6 @@ Platform = function (SPOO, OBJY, options) {
                             res.json(SPOO.deserialize(data));
 
                             if (req.body.username && !req.query.noemail) {
-                                console.log('sending welcome email');
                                 messageMapper.send(
                                     (options.userRegistrationMessage || {}).from || 'SPOO',
                                     req.body.email,
@@ -1367,7 +1366,6 @@ Platform = function (SPOO, OBJY, options) {
 
             Object.keys(search).forEach(function (k) {
                 if (k == '$query') {
-                    console.warn(k, search[k]);
                     try {
                         search[k] = JSON.parse(search[k]);
                     } catch (e) {}
@@ -1397,16 +1395,13 @@ Platform = function (SPOO, OBJY, options) {
                         res.json(_data);
                     },
                     function (err) {
-                        console.log(err);
                         res.status(400);
-                        console.log(err);
                         res.json({
                             error: err,
                         });
                     }
                 );
             } catch (e) {
-                console.log(e);
                 res.status(400);
                 res.json({
                     error: e,
@@ -1451,14 +1446,12 @@ Platform = function (SPOO, OBJY, options) {
                         res.json(data);
                     },
                     function (err) {
-                        console.log('count err', err);
                         res.json({
                             error: err,
                         });
                     }
                 );
             } catch (e) {
-                console.log('count err', e);
                 res.status(400);
                 res.json({ error: e });
             }
@@ -1849,7 +1842,6 @@ Platform = function (SPOO, OBJY, options) {
                     var authFn = () => {};
                     if (ext.authable) authFn = checkAuthentication;
                     newRoute[method](authFn, ext.methods[method]);
-                    console.log('registered', ext.route, method);
                 });
             }
         });
