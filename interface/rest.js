@@ -134,7 +134,7 @@ Platform = function (SPOO, OBJY, options) {
                 });
 
             redis.get('ua_' + decoded.tokenId, function (err, result) {
-                OBJY.Logger.log('Got token from redis ' + result);
+                //OBJY.Logger.log('Got token from redis ' + result);
 
                 if (err || !result)
                     return res.status(401).send({
@@ -1461,7 +1461,7 @@ Platform = function (SPOO, OBJY, options) {
     router
         .route(['/client/:client/:entity/:id/password', '/client/:client/app/:app/:entity/:id/password'])
 
-        .patch(checkAuthentication, checkObjectFamily, function (req, res) {
+        .patch(checkObjectFamily, function (req, res) {
             OBJY.client(req.params.client);
 
             var token = null;
