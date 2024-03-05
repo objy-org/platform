@@ -1461,7 +1461,7 @@ Platform = function (SPOO, OBJY, options) {
     router
         .route(['/client/:client/:entity/:id/password', '/client/:client/app/:app/:entity/:id/password'])
 
-        .patch(checkObjectFamily, function (req, res) {
+        .patch(checkAuthentication, checkObjectFamily, function (req, res) {
             OBJY.client(req.params.client);
 
             var token = null;
