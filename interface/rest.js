@@ -270,6 +270,7 @@ Platform = function (SPOO, OBJY, options) {
                                         res.json({ client: data, user: SPOO.deserialize(udata) });
                                     },
                                     function (err) {
+                                        console.log(err);
                                         res.json(data);
                                     }
                                 );
@@ -1499,10 +1500,18 @@ Platform = function (SPOO, OBJY, options) {
             if (req.params.app) OBJY.activeApp = req.params.app;
             else OBJY.activeApp = undefined;
 
-            if (!OBJY[req.params.entity])
+            if (!OBJY[req.params.entity]) {
                 res.json({
                     message: 'object family does not exist',
                 });
+            }
+
+            OBJY.useUser({
+                name: 'changePWUser',
+                authorisations: { '*': [{ perm: 'crud', query: JSON.stringify({ role: 'user', username: req.user.username }) }] },
+                properties: {},
+                role: 'user',
+            });
 
             if (options.changePasswordMethod) {
                 options.changePasswordMethod(
