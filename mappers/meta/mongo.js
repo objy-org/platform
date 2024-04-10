@@ -65,7 +65,6 @@ var MetaMapper = function() {
 
         ClientActivation = db.model('ClientActivation', ClientActivationSchema);
 
-        console.log(_key);
 
         ClientActivation.findOne({ key: _key }, function(err, data) {
 
@@ -101,24 +100,31 @@ var MetaMapper = function() {
                     error('Name already taken');
                     return;
                 }
-                console.log("ignoring err");
 
                 Client = db.model('ClientInfo', ClientSchema);
 
                 var devSecret = shortid.generate() + '' + shortid.generate();
 
-                var newClient = new Client({ name: clientName, key: _key, displayName: clientName });
+                
+                Client.findOne({ name: clientName }, function(err, data) {
 
-                newClient.save(function(err, data) {
-                    if (err) {
-                        console.log("save err");
-                        error(err);
-                        return;
-                    }
+                    if(data != null) return error('Client already exists');
 
-                    success(data);
-                    console.log('SAVED TO DB');
-                })
+                    var newClient = new Client({ name: clientName, key: _key, displayName: clientName });
+
+                    newClient.save(function(err, data) {
+                        if (err) {
+
+                            error(err);
+                            return;
+                        }
+
+                        success(data);
+                    })
+
+                });
+
+               
 
             });
     }
@@ -133,12 +139,11 @@ var MetaMapper = function() {
 
         newKey.save(function(err, data) {
             if (err) {
-                console.log("save err");
+
                 error(err);
                 return;
             }
-            console.log('SAVED TO DB');
-            console.log(data);
+
             success(data);
         })
 
@@ -155,13 +160,10 @@ var MetaMapper = function() {
 
         newKey.save(function(err, data) {
             if (err) {
-                console.log("save err");
                 error(err);
                 return;
             }
-            console.log(data);
             success(data);
-            console.log('SAVED TO DB');
         })
 
     }
@@ -176,13 +178,10 @@ var MetaMapper = function() {
 
         newKey.save(function(err, data) {
             if (err) {
-                console.log("save err");
                 error(err);
                 return;
             }
-            console.log(data);
             success(data);
-            console.log('SAVED TO DB');
         })
 
     }
@@ -194,7 +193,6 @@ var MetaMapper = function() {
 
         PasswordReset = db.model('PasswordReset', PasswordResetSchema);
 
-        console.log("key", _key);
         PasswordReset.findOne({ key: _key }, function(err, data) {
 
             if (err) {
@@ -251,7 +249,7 @@ var MetaMapper = function() {
                     error(err);
                     return;
                 }
-                console.log(data);
+
                 success({ "message": "ok" });
                 return;
             });
@@ -294,7 +292,7 @@ var MetaMapper = function() {
                     error(err);
                     return;
                 }
-                console.log(data);
+
                 success({ "message": "ok" });
                 return;
             });
@@ -311,13 +309,13 @@ var MetaMapper = function() {
         getable = ClientInfo;
 
         getable.findOne({}, function(err, data) {
-            console.log(1, arguments)
+
             if (err) {
-                console.log('err:', err)
+
                 error(err);
                 return;
             }
-            console.log('data:', data);
+
             if (data.applications) success(data.applications);
             else success(null)
             return;
