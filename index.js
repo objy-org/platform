@@ -134,6 +134,8 @@ const SPOO = {
 
     deserialize: function(obj) {
 
+        if(obj.role == "user") obj.password = '***';
+
         return obj;
 
         if (this.metaPropPrefix == '') return obj;
