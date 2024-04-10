@@ -134,7 +134,6 @@ Platform = function (SPOO, OBJY, options) {
                 });
 
             redis.get('ua_' + decoded.tokenId, function (err, result) {
-                OBJY.Logger.log('Got token from redis ' + result);
 
                 if (err || !result)
                     return res.status(401).send({
@@ -1816,6 +1815,29 @@ Platform = function (SPOO, OBJY, options) {
                 res.json({ error: e });
             }
         });
+
+    // 
+        /*
+    router
+        .route(['/client/:client/:entity/observe'])
+
+        .post(checkAuthentication, checkObjectFamily, function (req, res) {
+            OBJY.client(req.params.client);
+            if (req.params.app) OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
+
+            if (!OBJY[req.params.entity])
+                res.json({
+                    message: 'object family does not exist',
+                });
+
+            
+            // CODE HERE
+
+
+
+        });
+        */
 
     // PLUG IN EXTENTIONS
     if (Array.isArray(options.extensions || [])) {
