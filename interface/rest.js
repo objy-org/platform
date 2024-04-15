@@ -1886,6 +1886,8 @@ Platform = function (SPOO, OBJY, options) {
             if (!req.timedout) next();
         });
         app.listen(options.port || '8888');
+
+        return app;
     };
 };
 
