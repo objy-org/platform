@@ -264,6 +264,8 @@ Platform = function (SPOO, OBJY, options) {
                             user.password = bcrypt.hashSync(user.password);
 
                             if (user.username) {
+                                OBJY.useUser(null);
+
                                 OBJY['user']({ username: user.username, email: user.email, password: user.password, spooAdmin: true }).add(
                                     function (udata) {
                                         delete udata.password;
