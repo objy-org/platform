@@ -297,13 +297,18 @@ Platform = function (SPOO, OBJY, options) {
         .route('/client/:client/oauth/services')
 
         .get(function (req, res) {
-            if (options.oauth) {
+            if (options.oAuth) {
 
                 OBJY.client(req.params.client);
 
                 OBJY[options.oAuthFamily]({}).get(data => {
                     
-                    res.json(data);
+                    var retArr = [];
+
+                    data.forEach(d => {
+                        retArr.push({name: d.name})
+                    })
+                    res.json(retArr);
 
                 }, err => {
                     return res.status(400).json({ error: 'oauth services not found' });
@@ -318,7 +323,7 @@ Platform = function (SPOO, OBJY, options) {
         .route('/client/:client/oauth-login/:oAuthService')
 
         .get(function (req, res) {
-            if (options.oauth) {
+            if (options.oAuth) {
 
                 OBJY.client(req.params.client);
 
@@ -326,12 +331,12 @@ Platform = function (SPOO, OBJY, options) {
                     if(!data) return res.status(400).json({ error: 'oauth service error' });
                     var data = data[0];
                     var uri = new ClientOAuth2({
-                        clientId: data.properties.clientId,
-                        clientSecret: data.properties.clientSecret,
-                        accessTokenUri: data.properties.accessTokenUri,
-                        authorizationUri: data.properties.authorizationUri,
-                        redirectUri: data.properties.redirectUri,
-                        scopes: data.properties.scopes,
+                        clientId: data.properties.clientId.value,
+                        clientSecret: data.properties.clientSecret.value,
+                        accessTokenUri: data.properties.accessTokenUri.value,
+                        authorizationUri: data.properties.authorizationUri.value,
+                        redirectUri: data.properties.redirectUri.value,
+                        scopes: data.properties.scopes.value,
                         state: req.query.state,
                     }).code.getUri();
 
@@ -351,7 +356,7 @@ Platform = function (SPOO, OBJY, options) {
         .get(function (req, res) {
             var oauth_client;
 
-            if (options.oauth) {
+            if (options.oAuth) {
 
                 function authenticateUser(req, user, state, oauth) {
                 var clients = user._clients || [];
@@ -408,7 +413,7 @@ Platform = function (SPOO, OBJY, options) {
 
                 //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
-                if (!oauth.clientRedirect) {
+                if (!oauth.clientRedirect.value) {
                     res.json({
                         message: 'authenticated',
                         /*user: SPOO.deserialize(user),*/
@@ -421,7 +426,7 @@ Platform = function (SPOO, OBJY, options) {
                     //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
                 } else {
                     return res.redirect(
-                        oauth.clientRedirect +
+                        oauth.clientRedirect.value +
                             '?accessToken=' +
                             token +
                             '&refreshToken=' +
@@ -441,20 +446,20 @@ Platform = function (SPOO, OBJY, options) {
                     var data = data[0];
 
                     oauth_client = new ClientOAuth2({
-                        clientId: data.properties.clientId,
-                        clientSecret: data.properties.clientSecret,
-                        accessTokenUri: data.properties.accessTokenUri,
-                        authorizationUri: data.properties.authorizationUri,
-                        redirectUri: data.properties.redirectUri,
-                        scopes: data.properties.scopes,
+                        clientId: data.properties.clientId.value,
+                        clientSecret: data.properties.clientSecret.value,
+                        accessTokenUri: data.properties.accessTokenUri.value,
+                        authorizationUri: data.properties.authorizationUri.value,
+                        redirectUri: data.properties.redirectUri.value,
+                        scopes: data.properties.scopes.value,
                         state: req.query.state,
                     });
 
 
                     try {
-                        data.properties.userFieldsMapping = JSON.parse(data.properties);
+                        data.properties.userFieldsMapping.value = JSON.parse(data.properties);
                     } catch(e) {
-                        data.properties.userFieldsMapping = {};
+                        data.properties.userFieldsMapping.value = {};
                     }
 
                 oauth_client.code
@@ -465,8 +470,8 @@ Platform = function (SPOO, OBJY, options) {
 
                     var query = {};
 
-                    Object.keys(data.properties.userFieldsMapping).forEach((key) => {
-                        query[key] = { $regex: '^' + userdata[data.properties.userFieldsMapping[key]] + '$', $options: 'i' };
+                    Object.keys(data.properties.userFieldsMapping.value).forEach((key) => {
+                        query[key] = { $regex: '^' + userdata[data.properties.userFieldsMapping.value[key]] + '$', $options: 'i' };
                     });
 
                     OBJY.useUser(undefined);
@@ -476,8 +481,8 @@ Platform = function (SPOO, OBJY, options) {
                             if (users.length == 0) {
                                 var newUser = { inherits: [] };
 
-                                Object.keys(data.properties.userFieldsMapping).forEach((key) => {
-                                    newUser[key] = userdata[data.properties.userFieldsMapping[key]];
+                                Object.keys(data.properties.userFieldsMapping.value).forEach((key) => {
+                                    newUser[key] = userdata[data.properties.userFieldsMapping.value[key]];
                                 });
 
                                 newUser.password = 'oauth:' + user.accessToken;
