@@ -89,18 +89,6 @@ Platform = function (SPOO, OBJY, options) {
 
     OBJY.hello();
 
-    // OAuth
-    if (options.oauth) {
-        options.oauth.client = new ClientOAuth2({
-            clientId: options.oauth.clientId,
-            clientSecret: options.oauth.clientSecret,
-            accessTokenUri: options.oauth.accessTokenUri,
-            authorizationUri: options.oauth.authorizationUri,
-            redirectUri: options.oauth.redirectUri,
-            scopes: options.oauth.scopes,
-        });
-    }
-
     var metaMapper = options.metaMapper;
     var messageMapper = options.messageMapper;
 
@@ -304,44 +292,68 @@ Platform = function (SPOO, OBJY, options) {
 
     // OAuth
 
+
     router
-        .route('/client/:client/oauth-login')
+        .route('/client/:client/oauth/services')
 
         .get(function (req, res) {
             if (options.oauth) {
-                var uri = new ClientOAuth2({
-                    clientId: options.oauth.clientId,
-                    clientSecret: options.oauth.clientSecret,
-                    accessTokenUri: options.oauth.accessTokenUri,
-                    authorizationUri: options.oauth.authorizationUri,
-                    redirectUri: options.oauth.redirectUri,
-                    scopes: options.oauth.scopes,
-                    state: req.query.state,
-                }).code.getUri();
 
-                res.redirect(uri);
+                OBJY.client(req.params.client);
+
+                OBJY[options.oAuthFamily]({}).get(data => {
+                    
+                    res.json(data);
+
+                }, err => {
+                    return res.status(400).json({ error: 'oauth services not found' });
+                })
+
+                
+            } else return res.status(400).json({ error: 'oauth not available' });
+        });
+
+
+    router
+        .route('/client/:client/oauth-login/:oAuthService')
+
+        .get(function (req, res) {
+            if (options.oauth) {
+
+                OBJY.client(req.params.client);
+
+                OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
+                    if(!data) return res.status(400).json({ error: 'oauth service error' });
+                    var data = data[0];
+                    var uri = new ClientOAuth2({
+                        clientId: data.properties.clientId,
+                        clientSecret: data.properties.clientSecret,
+                        accessTokenUri: data.properties.accessTokenUri,
+                        authorizationUri: data.properties.authorizationUri,
+                        redirectUri: data.properties.redirectUri,
+                        scopes: data.properties.scopes,
+                        state: req.query.state,
+                    }).code.getUri();
+
+                    res.redirect(uri);
+
+                }, err => {
+                    return res.status(400).json({ error: 'oauth service not found' });
+                })
+
+                
             } else return res.status(400).json({ error: 'oauth not available' });
         });
 
     router
-        .route('/client/:client/auth-callback')
+        .route('/client/:client/auth-callback/:oAuthService')
 
         .get(function (req, res) {
             var oauth_client;
 
             if (options.oauth) {
-                oauth_client = new ClientOAuth2({
-                    clientId: options.oauth.clientId,
-                    clientSecret: options.oauth.clientSecret,
-                    accessTokenUri: options.oauth.accessTokenUri,
-                    authorizationUri: options.oauth.authorizationUri,
-                    redirectUri: options.oauth.redirectUri,
-                    scopes: options.oauth.scopes,
-                    state: req.query.state,
-                });
-            } else return res.status(400).json({ error: 'oauth not available' });
 
-            function authenticateUser(req, user, state) {
+                function authenticateUser(req, user, state, oauth) {
                 var clients = user._clients || [];
                 if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
 
@@ -396,7 +408,7 @@ Platform = function (SPOO, OBJY, options) {
 
                 //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
-                if (!options.oauth.clientRedirect) {
+                if (!oauth.clientRedirect) {
                     res.json({
                         message: 'authenticated',
                         /*user: SPOO.deserialize(user),*/
@@ -409,7 +421,7 @@ Platform = function (SPOO, OBJY, options) {
                     //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
                 } else {
                     return res.redirect(
-                        options.oauth.clientRedirect +
+                        oauth.clientRedirect +
                             '?accessToken=' +
                             token +
                             '&refreshToken=' +
@@ -422,9 +434,30 @@ Platform = function (SPOO, OBJY, options) {
                 }
             }
 
-            OBJY.client(req.params.client);
+                OBJY.client(req.params.client);
 
-            oauth_client.code
+                OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
+                    if(!data) return res.status(400).json({ error: 'oauth service error' });
+                    var data = data[0];
+
+                    oauth_client = new ClientOAuth2({
+                        clientId: data.properties.clientId,
+                        clientSecret: data.properties.clientSecret,
+                        accessTokenUri: data.properties.accessTokenUri,
+                        authorizationUri: data.properties.authorizationUri,
+                        redirectUri: data.properties.redirectUri,
+                        scopes: data.properties.scopes,
+                        state: req.query.state,
+                    });
+
+
+                    try {
+                        data.properties.userFieldsMapping = JSON.parse(data.properties);
+                    } catch(e) {
+                        data.properties.userFieldsMapping = {};
+                    }
+
+                oauth_client.code
                 .getToken(req.originalUrl)
                 .then(function (user) {
                     var userdata = jwt_decode(user.data.id_token);
@@ -432,8 +465,8 @@ Platform = function (SPOO, OBJY, options) {
 
                     var query = {};
 
-                    Object.keys(options.oauth.userFieldsMapping).forEach((key) => {
-                        query[key] = { $regex: '^' + userdata[options.oauth.userFieldsMapping[key]] + '$', $options: 'i' };
+                    Object.keys(data.properties.userFieldsMapping).forEach((key) => {
+                        query[key] = { $regex: '^' + userdata[data.properties.userFieldsMapping[key]] + '$', $options: 'i' };
                     });
 
                     OBJY.useUser(undefined);
@@ -443,8 +476,8 @@ Platform = function (SPOO, OBJY, options) {
                             if (users.length == 0) {
                                 var newUser = { inherits: [] };
 
-                                Object.keys(options.oauth.userFieldsMapping).forEach((key) => {
-                                    newUser[key] = userdata[options.oauth.userFieldsMapping[key]];
+                                Object.keys(data.properties.userFieldsMapping).forEach((key) => {
+                                    newUser[key] = userdata[data.properties.userFieldsMapping[key]];
                                 });
 
                                 newUser.password = 'oauth:' + user.accessToken;
@@ -452,7 +485,7 @@ Platform = function (SPOO, OBJY, options) {
                                 if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
                                 OBJY.user(newUser).add((user) => {
                                     OBJY.user(user._id.toString()).get((usr) => {
-                                        authenticateUser(req, usr, state);
+                                        authenticateUser(req, usr, state, data.properties);
                                     });
                                 });
                             } else if (users.length > 0) {
@@ -462,7 +495,7 @@ Platform = function (SPOO, OBJY, options) {
 
                                         usr.update(
                                             (updatedUser) => {
-                                                authenticateUser(req, updatedUser, state);
+                                                authenticateUser(req, updatedUser, state, data.properties);
                                             },
                                             (err) => {
                                                 res.status(400).json({ err: err });
@@ -483,6 +516,14 @@ Platform = function (SPOO, OBJY, options) {
                 .catch((e) => {
                     res.status(400).json({ err: e });
                 });
+
+
+
+                });
+
+            } else return res.status(400).json({ error: 'oauth not available' });
+
+
         });
 
     // SCRIPT: run a script, can return data
