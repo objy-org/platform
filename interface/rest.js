@@ -94,11 +94,10 @@ Platform = function (SPOO, OBJY, options) {
 
     var checkObjectFamily = function (req, res, next) {
         if (objectFamilies.indexOf(req.params.entity) == -1 && !objectFamilies.length == 0) {
-            res.status(500).json({
+            return res.status(500).json({
                 message: 'Object Family not available for this interface',
             });
-        }
-        next();
+        } else next();
     };
 
     var checkAuthentication = function (req, res, next) {
