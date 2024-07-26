@@ -539,7 +539,7 @@ Platform = function (SPOO, OBJY, options) {
             if (req.params.app) OBJY.activeApp = req.params.app;
             else OBJY.activeApp = undefined;
 
-            var script = req.query.code;
+            var script = req.body.code;
 
             /*scriptLang = {
                     sl: {
