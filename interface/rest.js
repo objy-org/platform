@@ -1126,28 +1126,38 @@ Platform = function (SPOO, OBJY, options) {
                             //redis.set(token, 'true', "EX", 1200)
                             //redis.set('at_' + tokenId, token, "EX", 1200)
 
-                            // user authentication details
-                            redis.set(
-                                'ua_' + tokenId,
-                                JSON.stringify({
-                                    id: _user._id,
-                                    username: _user.username,
-                                    applications: _user.applications,
-                                    spooAdmin: _user.spooAdmin,
-                                    clients: clients,
-                                    privileges: _user.privileges,
-                                    authorisations: _user.authorisations,
-                                }),
-                                'EX',
-                                1200
-                            );
 
-                            redis.set('cnt_' + req.body.username, ++result, 'EX', 1200);
+                            try {
+                                // user authentication details
+                                redis.set(
+                                    'ua_' + tokenId,
+                                    JSON.stringify({
+                                        id: _user._id,
+                                        username: _user.username,
+                                        applications: _user.applications,
+                                        spooAdmin: _user.spooAdmin,
+                                        clients: clients,
+                                        privileges: _user.privileges,
+                                        authorisations: _user.authorisations,
+                                    }),
+                                    'EX',
+                                    1200
+                                );
 
-                            if (req.body.permanent) {
-                                redis.set('rt_' + tokenId, JSON.stringify(user), 'EX', 2592000);
+                                redis.set('cnt_' + req.body.username, ++result, 'EX', 1200);
+
+                                if (req.body.permanent) {
+                                    redis.set('rt_' + tokenId, JSON.stringify(user), 'EX', 2592000);
+                                }
+                            } catch (e) {
+                                res.status(500);
+                                res.json({
+                                    message: 'authentication error',
+                                });
+                                return;
                             }
 
+                            
                             delete user.password;
 
                             res.json({
@@ -1220,7 +1230,7 @@ Platform = function (SPOO, OBJY, options) {
                 setTimeout(function () {
                     redis.del('rt_' + oldTokenId);
                     redis.del('ua_' + oldTokenId);
-                }, 8000);
+                }, 1000);
 
                 //redis.set(token, 'true', "EX", 1200)
                 redis.set(
