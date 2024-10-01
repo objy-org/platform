@@ -329,6 +329,7 @@ Platform = function (SPOO, OBJY, options) {
                 OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
                     if(!data) return res.status(400).json({ error: 'oauth service error' });
                     var data = data[0];
+
                     var uri = new ClientOAuth2({
                         clientId: data.properties.clientId.value,
                         clientSecret: data.properties.clientSecret.value,
@@ -412,7 +413,7 @@ Platform = function (SPOO, OBJY, options) {
 
                 //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
-                if (!oauth.clientRedirect.value) {
+                if (!oauth.clientRedirect?.value) {
                     res.json({
                         message: 'authenticated',
                         /*user: SPOO.deserialize(user),*/
@@ -425,7 +426,7 @@ Platform = function (SPOO, OBJY, options) {
                     //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
                 } else {
                     return res.redirect(
-                        oauth.clientRedirect.value +
+                        oauth.clientRedirect?.value +
                             '?accessToken=' +
                             token +
                             '&refreshToken=' +
@@ -452,25 +453,25 @@ Platform = function (SPOO, OBJY, options) {
                         redirectUri: data.properties.redirectUri.value,
                         scopes: data.properties.scopes.value,
                         state: req.query.state,
-                    });
+                    })
 
-
-                    try {
-                        data.properties.userFieldsMapping.value = JSON.parse(data.properties);
-                    } catch(e) {
-                        data.properties.userFieldsMapping.value = {};
+                    if(!data.properties.userFieldsMapping){
+                        data.properties.userFieldsMapping = {properties: {}, type: 'bag'}
                     }
 
                 oauth_client.code
                 .getToken(req.originalUrl)
                 .then(function (user) {
-                    var userdata = jwt_decode(user.data.id_token);
+                    let userData = jwt_decode(user.accessToken)
+
                     var state = req.query.state;
 
                     var query = {};
 
-                    Object.keys(data.properties.userFieldsMapping.value).forEach((key) => {
-                        query[key] = { $regex: '^' + userdata[data.properties.userFieldsMapping.value[key]] + '$', $options: 'i' };
+                    Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
+                        console.log(userData[data.properties.userFieldsMapping.properties[key].value], data.properties.userFieldsMapping.properties[key])
+
+                        query[key] = { $regex: '^' + userData[data.properties.userFieldsMapping.properties[key].value] + '$', $options: 'i' };
                     });
 
                     OBJY.useUser(undefined);
@@ -480,24 +481,24 @@ Platform = function (SPOO, OBJY, options) {
                             if (users.length == 0) {
                                 var newUser = { inherits: [] };
 
-                                Object.keys(data.properties.userFieldsMapping.value).forEach((key) => {
-                                    newUser[key] = userdata[data.properties.userFieldsMapping.value[key]];
+                                Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
+                                    newUser[key] = userData[data.properties.userFieldsMapping.properties[key].value];
                                 });
 
                                 newUser.password = 'oauth:' + user.accessToken;
 
                                 if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
-                                OBJY.user(newUser).add((user) => {
-                                    OBJY.user(user._id.toString()).get((usr) => {
+                                OBJY.user(newUser).add((_user) => {
+                                    OBJY.user(_user._id.toString()).get((usr) => {
                                         authenticateUser(req, usr, state, data.properties);
                                     });
                                 });
                             } else if (users.length > 0) {
                                 OBJY.user(users[0]._id.toString()).get(
-                                    (usr) => {
-                                        usr.password = 'oauth:' + user.accessToken;
+                                    (_user) => {
+                                        _user.password = 'oauth:' + user.accessToken;
 
-                                        usr.update(
+                                        _user.update(
                                             (updatedUser) => {
                                                 authenticateUser(req, updatedUser, state, data.properties);
                                             },
