@@ -534,9 +534,9 @@ Platform = function (SPOO, OBJY, options) {
         .route(['/client/:client/script', '/client/:client/app/:app/script'])
 
         .get(checkAuthentication, function (req, res) {
-            const _OBJY = new OBJY.client(req.params.client);
+            OBJY.client(req.params.client);
 
-            if (req.params.app) _OBJY.activeApp = req.params.app;
+            if (req.params.app) OBJY.activeApp = req.params.app;
             else OBJY.activeApp = undefined;
 
             var script = req.query.code;
@@ -589,11 +589,11 @@ Platform = function (SPOO, OBJY, options) {
 
             var _context = {
                 done: done,
-                OBJY: _OBJY,
+                OBJY: OBJY,
             };
 
-            _OBJY.client = function () {};
-            _OBJY.useUser = function () {};
+            //OBJY.client = function () {};
+            //OBJY.useUser = function () {};
 
             Object.assign(_context, options.scriptContext || {});
 
@@ -605,10 +605,10 @@ Platform = function (SPOO, OBJY, options) {
         })
 
         .post(checkAuthentication, function (req, res) {
-            const _OBJY = new OBJY.client(req.params.client);
+            OBJY.client(req.params.client);
 
-            if (req.params.app) _OBJY.activeApp = req.params.app;
-            else _OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.activeApp = req.params.app;
+            else OBJY.activeApp = undefined;
 
             var script = req.body.code;
 
@@ -620,11 +620,11 @@ Platform = function (SPOO, OBJY, options) {
 
             var _context = {
                 done: done,
-                OBJY: _OBJY,
+                OBJY: OBJY,
             };
 
-            _OBJY.client = function () {};
-            _OBJY.useUser = function () {};
+            //OBJY.client = function () {};
+            //OBJY.useUser = function () {};
 
             Object.assign(_context, options.scriptContext || {});
 
