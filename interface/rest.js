@@ -469,8 +469,6 @@ Platform = function (SPOO, OBJY, options) {
                     var query = {};
 
                     Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
-                        console.log(userData[data.properties.userFieldsMapping.properties[key].value], data.properties.userFieldsMapping.properties[key])
-
                         query[key] = { $regex: '^' + userData[data.properties.userFieldsMapping.properties[key].value] + '$', $options: 'i' };
                     });
 
@@ -536,8 +534,9 @@ Platform = function (SPOO, OBJY, options) {
         .route(['/client/:client/script', '/client/:client/app/:app/script'])
 
         .get(checkAuthentication, function (req, res) {
-            OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
+            const _OBJY = new OBJY.client(req.params.client);
+
+            if (req.params.app) _OBJY.activeApp = req.params.app;
             else OBJY.activeApp = undefined;
 
             var script = req.query.code;
@@ -590,11 +589,11 @@ Platform = function (SPOO, OBJY, options) {
 
             var _context = {
                 done: done,
-                OBJY: OBJY,
+                OBJY: _OBJY,
             };
 
-            OBJY.client = function () {};
-            OBJY.useUser = function () {};
+            _OBJY.client = function () {};
+            _OBJY.useUser = function () {};
 
             Object.assign(_context, options.scriptContext || {});
 
@@ -606,9 +605,10 @@ Platform = function (SPOO, OBJY, options) {
         })
 
         .post(checkAuthentication, function (req, res) {
-            OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            const _OBJY = new OBJY.client(req.params.client);
+
+            if (req.params.app) _OBJY.activeApp = req.params.app;
+            else _OBJY.activeApp = undefined;
 
             var script = req.body.code;
 
@@ -620,11 +620,11 @@ Platform = function (SPOO, OBJY, options) {
 
             var _context = {
                 done: done,
-                OBJY: OBJY,
+                OBJY: _OBJY,
             };
 
-            OBJY.client = function () {};
-            OBJY.useUser = function () {};
+            _OBJY.client = function () {};
+            _OBJY.useUser = function () {};
 
             Object.assign(_context, options.scriptContext || {});
 
