@@ -326,8 +326,10 @@ Platform = function (SPOO, OBJY, options) {
 
                 OBJY.client(req.params.client);
 
+                OBJY.useUser(null)
+
                 OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
-                    if(!data) return res.status(400).json({ error: 'oauth service error' });
+                    if(data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
                     var data = data[0];
 
                     var uri = new ClientOAuth2({
@@ -440,9 +442,11 @@ Platform = function (SPOO, OBJY, options) {
             }
 
                 OBJY.client(req.params.client);
+                
+                OBJY.useUser(null)
 
                 OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
-                    if(!data) return res.status(400).json({ error: 'oauth service error' });
+                    if(data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
                     var data = data[0];
 
                     oauth_client = new ClientOAuth2({
@@ -472,7 +476,7 @@ Platform = function (SPOO, OBJY, options) {
                         query[key] = { $regex: '^' + userData[data.properties.userFieldsMapping.properties[key].value] + '$', $options: 'i' };
                     });
 
-                    OBJY.useUser(undefined);
+                    OBJY.useUser(null);
 
                     OBJY.users(query).get(
                         (users) => {
