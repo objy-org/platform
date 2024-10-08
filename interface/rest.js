@@ -300,6 +300,8 @@ Platform = function (SPOO, OBJY, options) {
 
                 OBJY.client(req.params.client);
 
+                OBJY.useUser(null)
+
                 OBJY[options.oAuthFamily]({}).get(data => {
                     
                     var retArr = [];
