@@ -306,9 +306,14 @@ Platform = function (SPOO, OBJY, options) {
                     
                     var retArr = [];
 
-                    data.forEach(d => {
-                        retArr.push({name: d.name})
-                    })
+                    let filteredData = data.filter((d) => {
+                        return d.properties?.clientId && d.properties?.clientSecret && d.properties?.accessTokenUri && d.properties?.authorizationUri;
+                    });
+
+                    filteredData.forEach((d) => {
+                        retArr.push({ name: d.name });
+                    });
+
                     res.json(retArr);
 
                 }, err => {
