@@ -473,8 +473,7 @@ Platform = function (SPOO, OBJY, options) {
                 oauth_client.code
                 .getToken(req.originalUrl)
                 .then(function (user) {
-                    let userData = jwt_decode(user.accessToken)
-
+                    var userData = jwt_decode(user.accessToken)
                     var state = req.query.state;
 
                     var query = {};
@@ -489,6 +488,18 @@ Platform = function (SPOO, OBJY, options) {
                         (users) => {
                             if (users.length == 0) {
                                 var newUser = { inherits: [] };
+
+                                if(data.properties.userFieldsTemplate){
+                                    try {
+                                        newUser = JSON.parse(JSON.stringify((data.properties.userFieldsTemplate)))
+                                    } catch(err){
+                                        newUser = { inherits: [] };
+                                    }
+                                  
+                                    if(!newUser.inherits){
+                                        newUser.inherits = []
+                                    }
+                                }
 
                                 Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
                                     newUser[key] = userData[data.properties.userFieldsMapping.properties[key].value];
