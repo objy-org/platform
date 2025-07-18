@@ -300,13 +300,20 @@ Platform = function (SPOO, OBJY, options) {
 
                 OBJY.client(req.params.client);
 
+                OBJY.useUser(null)
+
                 OBJY[options.oAuthFamily]({}).get(data => {
                     
                     var retArr = [];
 
-                    data.forEach(d => {
-                        retArr.push({name: d.name})
-                    })
+                    let filteredData = data.filter((d) => {
+                        return d.properties?.clientId && d.properties?.clientSecret && d.properties?.accessTokenUri && d.properties?.authorizationUri;
+                    });
+
+                    filteredData.forEach((d) => {
+                        retArr.push({ name: d.name });
+                    });
+
                     res.json(retArr);
 
                 }, err => {
@@ -326,9 +333,12 @@ Platform = function (SPOO, OBJY, options) {
 
                 OBJY.client(req.params.client);
 
+                OBJY.useUser(null)
+
                 OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
-                    if(!data) return res.status(400).json({ error: 'oauth service error' });
+                    if(data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
                     var data = data[0];
+
                     var uri = new ClientOAuth2({
                         clientId: data.properties.clientId.value,
                         clientSecret: data.properties.clientSecret.value,
@@ -412,7 +422,7 @@ Platform = function (SPOO, OBJY, options) {
 
                 //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
 
-                if (!oauth.clientRedirect.value) {
+                if (!oauth.clientRedirect?.value) {
                     res.json({
                         message: 'authenticated',
                         /*user: SPOO.deserialize(user),*/
@@ -425,7 +435,7 @@ Platform = function (SPOO, OBJY, options) {
                     //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
                 } else {
                     return res.redirect(
-                        oauth.clientRedirect.value +
+                        oauth.clientRedirect?.value +
                             '?accessToken=' +
                             token +
                             '&refreshToken=' +
@@ -439,9 +449,11 @@ Platform = function (SPOO, OBJY, options) {
             }
 
                 OBJY.client(req.params.client);
+                
+                OBJY.useUser(null)
 
                 OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
-                    if(!data) return res.status(400).json({ error: 'oauth service error' });
+                    if(data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
                     var data = data[0];
 
                     oauth_client = new ClientOAuth2({
@@ -452,52 +464,61 @@ Platform = function (SPOO, OBJY, options) {
                         redirectUri: data.properties.redirectUri.value,
                         scopes: data.properties.scopes.value,
                         state: req.query.state,
-                    });
+                    })
 
-
-                    try {
-                        data.properties.userFieldsMapping.value = JSON.parse(data.properties);
-                    } catch(e) {
-                        data.properties.userFieldsMapping.value = {};
+                    if(!data.properties.userFieldsMapping){
+                        data.properties.userFieldsMapping = {properties: {}, type: 'bag'}
                     }
 
                 oauth_client.code
                 .getToken(req.originalUrl)
                 .then(function (user) {
-                    var userdata = jwt_decode(user.data.id_token);
+                    var userData = jwt_decode(user.accessToken)
                     var state = req.query.state;
 
                     var query = {};
 
-                    Object.keys(data.properties.userFieldsMapping.value).forEach((key) => {
-                        query[key] = { $regex: '^' + userdata[data.properties.userFieldsMapping.value[key]] + '$', $options: 'i' };
+                    Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
+                        query[key] = { $regex: '^' + userData[data.properties.userFieldsMapping.properties[key].value] + '$', $options: 'i' };
                     });
 
-                    OBJY.useUser(undefined);
+                    OBJY.useUser(null);
 
                     OBJY.users(query).get(
                         (users) => {
                             if (users.length == 0) {
                                 var newUser = { inherits: [] };
 
-                                Object.keys(data.properties.userFieldsMapping.value).forEach((key) => {
-                                    newUser[key] = userdata[data.properties.userFieldsMapping.value[key]];
+                                if(data.properties.userFieldsTemplate){
+                                    try {
+                                        newUser = JSON.parse(JSON.stringify((data.properties.userFieldsTemplate)))
+                                    } catch(err){
+                                        newUser = { inherits: [] };
+                                    }
+                                  
+                                    if(!newUser.inherits){
+                                        newUser.inherits = []
+                                    }
+                                }
+
+                                Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
+                                    newUser[key] = userData[data.properties.userFieldsMapping.properties[key].value];
                                 });
 
                                 newUser.password = 'oauth:' + user.accessToken;
 
                                 if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
-                                OBJY.user(newUser).add((user) => {
-                                    OBJY.user(user._id.toString()).get((usr) => {
+                                OBJY.user(newUser).add((_user) => {
+                                    OBJY.user(_user._id.toString()).get((usr) => {
                                         authenticateUser(req, usr, state, data.properties);
                                     });
                                 });
                             } else if (users.length > 0) {
                                 OBJY.user(users[0]._id.toString()).get(
-                                    (usr) => {
-                                        usr.password = 'oauth:' + user.accessToken;
+                                    (_user) => {
+                                        _user.password = 'oauth:' + user.accessToken;
 
-                                        usr.update(
+                                        _user.update(
                                             (updatedUser) => {
                                                 authenticateUser(req, updatedUser, state, data.properties);
                                             },
@@ -536,6 +557,7 @@ Platform = function (SPOO, OBJY, options) {
 
         .get(checkAuthentication, function (req, res) {
             OBJY.client(req.params.client);
+
             if (req.params.app) OBJY.activeApp = req.params.app;
             else OBJY.activeApp = undefined;
 
@@ -592,8 +614,8 @@ Platform = function (SPOO, OBJY, options) {
                 OBJY: OBJY,
             };
 
-            OBJY.client = function () {};
-            OBJY.useUser = function () {};
+            //OBJY.client = function () {};
+            //OBJY.useUser = function () {};
 
             Object.assign(_context, options.scriptContext || {});
 
@@ -606,6 +628,7 @@ Platform = function (SPOO, OBJY, options) {
 
         .post(checkAuthentication, function (req, res) {
             OBJY.client(req.params.client);
+
             if (req.params.app) OBJY.activeApp = req.params.app;
             else OBJY.activeApp = undefined;
 
@@ -622,8 +645,8 @@ Platform = function (SPOO, OBJY, options) {
                 OBJY: OBJY,
             };
 
-            OBJY.client = function () {};
-            OBJY.useUser = function () {};
+            //OBJY.client = function () {};
+            //OBJY.useUser = function () {};
 
             Object.assign(_context, options.scriptContext || {});
 
