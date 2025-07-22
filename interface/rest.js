@@ -879,6 +879,7 @@ Platform = function(SPOO, OBJY, options) {
 
         });
 
+
     // ADD: one or many, GET: one or many
     router.route(['/client/:client/register/user', '/client/:client/aapp/:app/register/user'])
 
@@ -956,6 +957,7 @@ Platform = function(SPOO, OBJY, options) {
 
                 OBJY.users().auth(authQuery, function(user) {
 
+
                     if (!user.spooAdmin) {
                         if (req.params.app) {
                             if (!(user.applications || []).includes(req.params.app)) {
@@ -965,6 +967,156 @@ Platform = function(SPOO, OBJY, options) {
                                 })
                                 return;
                             }
+
+                        // Default checkPassword method can be overwritten
+                        var checkPassword = bcrypt.compareSync;
+                        if (options.checkPassword) checkPassword = options.checkPassword;
+
+                        if (checkPassword(req.body.password, user.password)) {
+                            var clients = user._clients || [];
+                            if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
+
+                            var _user = JSON.parse(JSON.stringify(user));
+
+
+                            function doTheActualLogin(){
+                                var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
+
+                                var refreshToken;
+
+                                if (req.body.permanent) refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
+
+                                var token = jwt.sign(
+                                    {
+                                        id: _user._id,
+                                        username: _user.username,
+                                        //privileges: _user.privileges,
+                                        applications: _user.applications,
+                                        spooAdmin: _user.spooAdmin,
+                                        clients: clients,
+                                        //authorisations: _user.authorisations,
+                                        tokenId: tokenId,
+                                    },
+                                    options.jwtSecret || defaultSecret,
+                                    {
+                                        expiresIn: 20 * 60000,
+                                    }
+                                );
+
+                                user.clients = clients;
+
+                                //redis.set(token, 'true', "EX", 1200)
+                                //redis.set('at_' + tokenId, token, "EX", 1200)
+
+
+                                try {
+                                    // user authentication details
+                                    redis.set(
+                                        'ua_' + tokenId,
+                                        JSON.stringify({
+                                            id: _user._id,
+                                            username: _user.username,
+                                            applications: _user.applications,
+                                            spooAdmin: _user.spooAdmin,
+                                            clients: clients,
+                                            privileges: _user.privileges,
+                                            authorisations: _user.authorisations,
+                                        }),
+                                        'EX',
+                                        1200
+                                    );
+
+                                    redis.set('cnt_' + req.body.username, ++result, 'EX', 1200);
+
+                                    if (req.body.permanent) {
+                                        redis.set('rt_' + tokenId, JSON.stringify(user), 'EX', 2592000);
+                                    }
+                                } catch (e) {
+                                    res.status(500);
+                                    res.json({
+                                        message: 'authentication error',
+                                    });
+                                    return;
+                                }
+
+                                
+                                delete user.password;
+
+                                res.json({
+                                    message: 'authenticated',
+                                    /*user: SPOO.deserialize(user),*/
+                                    token: {
+                                        accessToken: token,
+                                        refreshToken: refreshToken,
+                                    },
+                                });
+                            }
+
+
+
+                            metaMapper.getTwoFAMethod(method => {
+
+                                    if(method == 'email'){
+                                        if(req.body.twoFAKey){
+                                            metaMapper.redeemTwoFAKey(req.body.twoFAKey, _user._id, req.params.client, success => {
+
+                                                // 2Fa Code valid, do the login
+                                                doTheActualLogin()
+
+                                            }, error => {
+                                                res.status(401);
+                                                res.json({
+                                                    message: '2 FA Key could not be verified',
+                                                });
+                                            })
+                                        } else {
+                                            // No 2fa key provided, generating one...
+
+                                             metaMapper.createTwoFAKey(_user._id, req.params.client, _key => {
+
+                                                messageMapper.send(
+                                                    (options.twoFAMessage || {}).from || 'SPOO',
+                                                    _user.email,
+                                                    (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
+                                                    ((options.twoFAMessage || {}).body || '').replace('__KEY__', _key) || _key
+                                                );
+
+                                                res.status(401);
+                                                res.json({
+                                                    message: '2FA key has been generated and send',
+                                                });
+
+                                             }, error => {
+                                                res.status(401);
+                                                res.json({
+                                                    message: '2 FA Key could not be sent',
+                                                });
+                                             })
+
+                                        }
+                                    } else {
+                                        res.status(401);
+                                        res.json({
+                                            message: '2 FA Method invalid',
+                                        }); 
+                                    }
+
+                                }, NoTwoFA => {
+                                    // No 2FA implemented, proceed with normal login
+
+                                    doTheActualLogin()
+
+                                }, req.params.client)
+
+
+
+                            
+                        } else {
+                            res.status(401);
+                            res.json({
+                                message: 'not authenticated',
+                            });
+
                         }
                     }
 

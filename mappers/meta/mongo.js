@@ -1,4 +1,4 @@
- var mongoose = require('mongoose');
+var mongoose = require('mongoose');
 var shortid = require('shortid');
 var Schema = mongoose.Schema;
 var Admin = mongoose.mongo.Admin;
@@ -7,7 +7,8 @@ var clientSchema = {
     name: String,
     key: String,
     displayName: String,
-    applications: []
+    applications: [],
+    twoFA: String
 };
 
 var ClientSchema = new Schema(clientSchema);
@@ -35,6 +36,14 @@ var passwordResetSchema = {
 };
 var PasswordResetSchema = new Schema(passwordResetSchema);
 
+
+var twoFACodeSchema = {
+    uId: String,
+    key: String,
+    client: String,
+    date: { type: Date, default: Date.now, expires: '20m' }
+};
+var TwoFACodeSchema = new Schema(twoFACodeSchema);
 
 
 var MetaMapper = function() {
@@ -215,6 +224,76 @@ var MetaMapper = function() {
                 success(data);
                 return;
             });
+        });
+    }
+
+    this.createTwoFAKey = function(uId, client, success, error) {
+
+        var db = this.database.useDb(client);
+
+        TwoFA = db.model('TwoFaKey', TwoFACodeSchema);
+
+        var _key = Math.floor(100000 + Math.random() * 900000) //shortid.generate();
+
+        var newKey = new TwoFA({ _id: null, client: client, key: _key, uId: uId });
+
+        newKey.save(function(err, data) {
+            if (err) {
+                error(err);
+                return;
+            }
+            success(_key);
+        })
+
+    }
+
+    this.redeemTwoFAKey = function(_key, uId, client, success, error) {
+
+        var db = this.database.useDb(client);
+
+        TwoFA = db.model('TwoFaKey', TwoFACodeSchema);
+
+        TwoFA.findOne({ key: _key, uId: uId }, function(err, data) {
+
+            if (err) {
+                error(err);
+                return;
+            }
+            if (data == null) {
+                error("reset key not found");
+                return;
+            }
+
+            PasswordReset.remove({ key: _key, uId: uId}, function(_err, _data) {
+                if (_err) {
+                    error(_err);
+                    return;
+                }
+
+                success(data);
+                return;
+            });
+        });
+    }
+
+    this.getTwoFAMethod = function(success, error, client) {
+
+        var db = this.database.useDb(client);
+
+        ClientInfo = db.model('ClientInfo', ClientSchema);
+        getable = ClientInfo;
+
+        getable.findOne({}, function(err, data) {
+
+            if (err) {
+
+                error(err);
+                return;
+            }
+
+            if (data.twoFA) success(data.twoFA);
+            else error(null)
+            return;
         });
     }
 
