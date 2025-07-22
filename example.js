@@ -1,10 +1,11 @@
-var SPOO = require('./index.js');
+var Platform = require('./index.js');
 var OBJY = require('objy');
 
 OBJY.define({
     name: "user",
     pluralName: "users",
-    authable: true
+    authable: true,
+    storage: 
 })
 
 OBJY.define({
@@ -12,12 +13,8 @@ OBJY.define({
     pluralName: "objects"
 })
 
-OBJY.client('spoo');
 
-OBJY.object({name: "hello"}).add();
-
-
-var P = SPOO.REST({
+var P = Platform.REST({
     port: 80,
     OBJY,
     extensions: [{

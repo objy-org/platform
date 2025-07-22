@@ -1210,11 +1210,20 @@ Platform = function (SPOO, OBJY, options) {
                                             }, error => {
                                                 res.status(401);
                                                 res.json({
+                                                    key: "2fa_key_invalid",
                                                     message: '2 FA Key could not be verified',
                                                 });
                                             })
                                         } else {
                                             // No 2fa key provided, generating one...
+
+                                            if(!_user.email) {
+                                                res.status(401);
+                                                res.json({
+                                                    key: "2fa_no_email",
+                                                    message: '2FA could not be sent, no email provided',
+                                                });
+                                            }
 
                                              metaMapper.createTwoFAKey(_user._id, req.params.client, _key => {
 
@@ -1222,17 +1231,19 @@ Platform = function (SPOO, OBJY, options) {
                                                     (options.twoFAMessage || {}).from || 'SPOO',
                                                     _user.email,
                                                     (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
-                                                    ((options.twoFAMessage || {}).body || '').replace('__KEY__', _key) || _key
+                                                    ((options.twoFAMessage || {}).body || '').replace('__KEY__', _key) || _key.toString()
                                                 );
 
                                                 res.status(401);
                                                 res.json({
+                                                    key: "2fa_key_sent",
                                                     message: '2FA key has been generated and send',
                                                 });
 
                                              }, error => {
                                                 res.status(401);
                                                 res.json({
+                                                    key: "2fa_key_create_error",
                                                     message: '2 FA Key could not be sent',
                                                 });
                                              })
@@ -1241,6 +1252,7 @@ Platform = function (SPOO, OBJY, options) {
                                     } else {
                                         res.status(401);
                                         res.json({
+                                            key: "2fa_method_invalid",
                                             message: '2 FA Method invalid',
                                         }); 
                                     }

@@ -264,7 +264,7 @@ var MetaMapper = function() {
                 return;
             }
 
-            PasswordReset.remove({ key: _key, uId: uId}, function(_err, _data) {
+            TwoFA.remove({ key: _key, uId: uId}, function(_err, _data) {
                 if (_err) {
                     error(_err);
                     return;
