@@ -1,6 +1,9 @@
-const sgMail = require('@sendgrid/mail');
 
-var MessageMapper = function() {
+import { MailService } from "@sendgrid/mail";
+
+const sgMail = new MailService();
+
+export default function SendgridMapper() {
 
     this.connect = function(key) {
         sgMail.setApiKey(key);
@@ -19,5 +22,3 @@ var MessageMapper = function() {
     }
 
 }
-
-module.exports = MessageMapper;

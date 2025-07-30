@@ -1,5 +1,5 @@
-var mongoose = require('mongoose');
-var shortid = require('shortid');
+import mongoose from 'mongoose';
+import shortid from 'shortid';
 var Schema = mongoose.Schema;
 var Admin = mongoose.mongo.Admin;
 
@@ -46,7 +46,7 @@ var twoFACodeSchema = {
 var TwoFACodeSchema = new Schema(twoFACodeSchema);
 
 
-var MetaMapper = function() {
+export default function SendgridMapper() {
 
     this.database = {};
 
@@ -70,9 +70,9 @@ var MetaMapper = function() {
 
     this.redeemClientRegistration = function(_key, success, error) {
 
-        var db = this.database.useDb('spoo__meta');
+        let db = this.database.useDb('spoo__meta');
 
-        ClientActivation = db.model('ClientActivation', ClientActivationSchema);
+        let ClientActivation = db.model('ClientActivation', ClientActivationSchema);
 
         console.log(_key);
 
@@ -102,7 +102,7 @@ var MetaMapper = function() {
 
     this.createClient = function(_key, clientName, success, error) {
 
-        var db = this.database.useDb(clientName);
+        let db = this.database.useDb(clientName);
 
         this.database.db.listCollections({ name: 'clientinfos' })
             .next(function(err, collinfo) {
@@ -112,11 +112,11 @@ var MetaMapper = function() {
                 }
                 console.log("ignoring err");
 
-                Client = db.model('ClientInfo', ClientSchema);
+                let Client = db.model('ClientInfo', ClientSchema);
 
-                var devSecret = shortid.generate() + '' + shortid.generate();
+                let devSecret = shortid.generate() + '' + shortid.generate();
 
-                var newClient = new Client({ name: clientName, key: _key, displayName: clientName });
+                let newClient = new Client({ name: clientName, key: _key, displayName: clientName });
 
                 newClient.save(function(err, data) {
                     if (err) {
@@ -134,11 +134,11 @@ var MetaMapper = function() {
 
     this.createClientRegistration = function(success, error) {
 
-        var db = this.database.useDb('spoo__meta');
+        let db = this.database.useDb('spoo__meta');
 
-        ClientActivationKey = db.model('ClientActivation', ClientActivationSchema);
+        let ClientActivationKey = db.model('ClientActivation', ClientActivationSchema);
 
-        var newKey = new ClientActivationKey({ _id: null, key: shortid.generate() + shortid.generate() });
+        let newKey = new ClientActivationKey({ _id: null, key: shortid.generate() + shortid.generate() });
 
         newKey.save(function(err, data) {
             if (err) {
@@ -156,11 +156,11 @@ var MetaMapper = function() {
 
     this.createUserRegistrationKey = function(email, client, success, error) {
 
-        var db = this.database.useDb(client);
+        let db = this.database.useDb(client);
 
-        UserRegistration = db.model('UserRegistration', UserRegistrationSchema);
+        let UserRegistration = db.model('UserRegistration', UserRegistrationSchema);
 
-        var newKey = new UserRegistration({ _id: null, client: client, key: shortid.generate() + shortid.generate(), email: email });
+        let newKey = new UserRegistration({ _id: null, client: client, key: shortid.generate() + shortid.generate(), email: email });
 
         newKey.save(function(err, data) {
             if (err) {
@@ -177,11 +177,11 @@ var MetaMapper = function() {
 
     this.createPasswordResetKey = function(uId, client, success, error) {
 
-        var db = this.database.useDb(client);
+        let db = this.database.useDb(client);
 
-        PasswordReset = db.model('PasswordReset', PasswordResetSchema);
+        let PasswordReset = db.model('PasswordReset', PasswordResetSchema);
 
-        var newKey = new PasswordReset({ _id: null, client: client, key: shortid.generate() + shortid.generate(), uId: uId });
+        let newKey = new PasswordReset({ _id: null, client: client, key: shortid.generate() + shortid.generate(), uId: uId });
 
         newKey.save(function(err, data) {
             if (err) {
@@ -199,9 +199,9 @@ var MetaMapper = function() {
 
     this.redeemPasswordResetKey = function(_key, client, success, error) {
 
-        var db = this.database.useDb(client);
+        let db = this.database.useDb(client);
 
-        PasswordReset = db.model('PasswordReset', PasswordResetSchema);
+        let PasswordReset = db.model('PasswordReset', PasswordResetSchema);
 
         console.log("key", _key);
         PasswordReset.findOne({ key: _key }, function(err, data) {
@@ -229,13 +229,13 @@ var MetaMapper = function() {
 
     this.createTwoFAKey = function(uId, client, success, error) {
 
-        var db = this.database.useDb(client);
+        let db = this.database.useDb(client);
 
-        TwoFA = db.model('TwoFaKey', TwoFACodeSchema);
+        let TwoFA = db.model('TwoFaKey', TwoFACodeSchema);
 
-        var _key = Math.floor(100000 + Math.random() * 900000) //shortid.generate();
+        let _key = Math.floor(100000 + Math.random() * 900000) //shortid.generate();
 
-        var newKey = new TwoFA({ _id: null, client: client, key: _key, uId: uId });
+        let newKey = new TwoFA({ _id: null, client: client, key: _key, uId: uId });
 
         newKey.save(function(err, data) {
             if (err) {
@@ -249,9 +249,9 @@ var MetaMapper = function() {
 
     this.redeemTwoFAKey = function(_key, uId, client, success, error) {
 
-        var db = this.database.useDb(client);
+        let db = this.database.useDb(client);
 
-        TwoFA = db.model('TwoFaKey', TwoFACodeSchema);
+        let TwoFA = db.model('TwoFaKey', TwoFACodeSchema);
 
         TwoFA.findOne({ key: _key, uId: uId }, function(err, data) {
 
@@ -278,10 +278,10 @@ var MetaMapper = function() {
 
     this.getTwoFAMethod = function(success, error, client) {
 
-        var db = this.database.useDb(client);
+        let db = this.database.useDb(client);
 
-        ClientInfo = db.model('ClientInfo', ClientSchema);
-        getable = ClientInfo;
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
 
         getable.findOne({}, function(err, data) {
 
@@ -300,12 +300,12 @@ var MetaMapper = function() {
 
     this.addClientApplication = function(app, success, error, client) {
 
-        var db = this.database.useDb(client);
+        let db = this.database.useDb(client);
 
-        ClientInfo = db.model('ClientInfo', ClientSchema);
-        getable = ClientInfo;
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
 
-        var exists = false;
+        let exists = false;
 
         getable.find({}).exec(function(err, data) {
             if (err) {
@@ -340,12 +340,12 @@ var MetaMapper = function() {
 
     this.removeClientApplication = function(appId, success, error, client) {
 
-        var db = this.database.useDb(client);
+        let db = this.database.useDb(client);
 
-        ClientInfo = db.model('ClientInfo', ClientSchema);
-        getable = ClientInfo;
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
 
-        var exists = false;
+        let exists = false;
 
         getable.find({}).exec(function(err, data) {
             if (err) {
@@ -384,10 +384,10 @@ var MetaMapper = function() {
 
     this.getClientApplications = function(success, error, client) {
 
-        var db = this.database.useDb(client);
+        let db = this.database.useDb(client);
 
-        ClientInfo = db.model('ClientInfo', ClientSchema);
-        getable = ClientInfo;
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
 
         getable.findOne({}, function(err, data) {
             console.log(1, arguments)
@@ -406,5 +406,3 @@ var MetaMapper = function() {
     return this;
 
 }
-
-module.exports = MetaMapper;

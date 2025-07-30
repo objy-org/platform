@@ -1,25 +1,29 @@
 // platform.js
 
-var express = require('express');
-var cors = require('cors');
-var bodyParser = require('body-parser');
-var moment = require('moment');
-var Redis = require('ioredis');
-var jwt = require('jsonwebtoken');
-var jwt_decode = require('jwt-decode');
-var bcrypt = require('bcryptjs');
+import express from 'express'
+import cors from 'cors'
+import moment from 'moment'
+import Redis from 'ioredis'
+import jsonwebtoken from 'jsonwebtoken';
+const { sign, decode, verify } = jsonwebtoken;
+import { jwtDecode } from 'jwt-decode';
+import bcrypt from "bcrypt";
+import shortid from 'shortid'
+import fileUpload from 'express-fileupload'
+import {Duplex} from 'stream'
+import {isStream} from 'is-stream';
+import timeout from 'connect-timeout'
+import ClientOAuth2 from 'client-oauth2'
+import vm from 'vm'
+
+
+
+
 var app = express();
 var router = express.Router();
-var shortid = require('shortid');
 var defaultSecret = 'asdgnm0923t923';
 var defaultMaxUserSessions = 20;
-var fileUpload = require('express-fileupload');
-var Duplex = require('stream').Duplex;
-var isStream = require('is-stream');
-var timeout = require('connect-timeout');
-var ClientOAuth2 = require('client-oauth2');
-var puzzle = require('puzzlelang');
-var vm = require('vm');
+
 
 // Helper functions
 function propsSerialize(obj) {
@@ -52,7 +56,7 @@ function parseJwt(token) {
     return JSON.parse(jsonPayload);
 }
 
-Platform = function (SPOO, OBJY, options) {
+var Rest = function (SPOO, OBJY, options) {
     this.server = app;
 
     OBJY.Logger.log('Platform options: ' + options);
@@ -74,12 +78,12 @@ Platform = function (SPOO, OBJY, options) {
     });
 
     app.use(
-        bodyParser.urlencoded({
+        express.urlencoded({
             extended: true,
         })
     );
     app.use(
-        bodyParser.json({
+        express.json({
             limit: '300mb',
         })
     );
@@ -113,7 +117,7 @@ Platform = function (SPOO, OBJY, options) {
             token = req.query.token;
         }
 
-        jwt.verify(token, options.jwtSecret || defaultSecret, function (err, decoded) {
+        verify(token, options.jwtSecret || defaultSecret, function (err, decoded) {
             if (err)
                 return res.status(401).send({
                     auth: false,
@@ -380,7 +384,7 @@ Platform = function (SPOO, OBJY, options) {
                 /*if (req.body.permanent)*/
                 refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
 
-                var token = jwt.sign(
+                var token = sign(
                     {
                         id: _user._id,
                         username: _user.username,
@@ -473,7 +477,7 @@ Platform = function (SPOO, OBJY, options) {
                 oauth_client.code
                 .getToken(req.originalUrl)
                 .then(function (user) {
-                    var userData = jwt_decode(user.accessToken)
+                    var userData = jwtDecode(user.accessToken)
                     var state = req.query.state;
 
                     var query = {};
@@ -563,45 +567,7 @@ Platform = function (SPOO, OBJY, options) {
 
             var script = req.query.code;
 
-            /*scriptLang = {
-                    sl: {
-                        _static: {
-                            execStatement: (done, ctx) => {
-                                console.log('doing that return thing')
-                                done();
-                            }
-                        },
-                        get: {
-                            follow: ["{family,query}"],
-                            method: (ctx, data) => {
-                                OBJY[data.family](data.query).get(data => {
-                                    ctx.return = data;
-                                }, error => {
-                                    ctx.return = error;
-                                })
-                                
-                            }
-                        },
-                        return: {
-                            follow: ["{data}"],
-                            method: (ctx, data) => {
-                                console.log('rrret');
-                                ctx.httpReturn = global.puzzle.getRawStatement(data);
-                                res.json({
-                                    data: ctx.httpReturn
-                                });
-                        
-                                console.log('ret done')
-                            }
-                        }
-                    }
-                };
-
-                return puzzle.parse(`
-                    use var:scriptLang;
-                ` + script);
-
-                console.log('response end')*/
+        
 
             function done(data) {
                 res.json({
@@ -1130,7 +1096,7 @@ Platform = function (SPOO, OBJY, options) {
 
                                 if (req.body.permanent) refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
 
-                                var token = jwt.sign(
+                                var token = sign(
                                     {
                                         id: _user._id,
                                         username: _user.username,
@@ -1309,7 +1275,7 @@ Platform = function (SPOO, OBJY, options) {
 
                 var refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
 
-                var token = jwt.sign(
+                var token = sign(
                     {
                         id: result._id,
                         username: result.username,
@@ -1368,7 +1334,7 @@ Platform = function (SPOO, OBJY, options) {
         .post(checkAuthentication, function (req, res) {
             OBJY.client(req.params.client);
 
-            jwt.verify(req.body.accessToken, options.jwtSecret || defaultSecret, function (err, decoded) {
+            verify(req.body.accessToken, options.jwtSecret || defaultSecret, function (err, decoded) {
                 if (err)
                     return res.status(401).send({
                         auth: false,
@@ -1628,7 +1594,7 @@ Platform = function (SPOO, OBJY, options) {
                 token = req.query.token;
             }
 
-            var decodedToken = jwt.verify(token, options.jwtSecret || defaultSecret);
+            var decodedToken = verify(token, options.jwtSecret || defaultSecret);
             var tokenId = decodedToken.tokenId;
 
             var usrData = req.body;
@@ -2051,4 +2017,4 @@ process.on('uncaughtException', function (err) {
     console.error(err);
 });
 
-module.exports = Platform;
+export default Rest;

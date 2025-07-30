@@ -1,8 +1,10 @@
-var Rest = require('./interface/rest.js');
+import Rest from './interface/rest.js'
+import SendgridMapper from './mappers/messaging/sendgrid.js'
+import MongoMapper from './mappers/meta/mongo.js'
 
 const LEGACY_BLACKLIST = ['$propsAsObj']
 
-const SPOO = {
+const Platform = {
 
     authorisationsEnabled: false,
     allowClientRegistrations: true,
@@ -166,11 +168,11 @@ const SPOO = {
     },
 
     metaMappers: {
-        mongoMapper: require('./mappers/meta/mongo.js')
+        mongoMapper: MongoMapper
     },
 
     messageMappers: {
-        sendgridMapper: require('./mappers/messaging/sendgrid.js')
+        sendgridMapper: SendgridMapper
     },
 
     MetaMapper: {},
@@ -194,5 +196,4 @@ const SPOO = {
         // TODO...
     }*/
 }
-
-module.exports = SPOO;
+export default Platform;
