@@ -1210,7 +1210,7 @@ Platform = function (SPOO, OBJY, options) {
                                             }, error => {
                                                 res.status(401);
                                                 res.json({
-                                                    key: "2fa_key_invalid",
+                                                    type: "2fa_key_invalid",
                                                     message: '2 FA Key could not be verified',
                                                 });
                                             })
@@ -1220,7 +1220,7 @@ Platform = function (SPOO, OBJY, options) {
                                             if(!_user.email) {
                                                 res.status(401);
                                                 res.json({
-                                                    key: "2fa_no_email",
+                                                    type: "2fa_no_email",
                                                     message: '2FA could not be sent, no email provided',
                                                 });
                                             }
@@ -1236,14 +1236,14 @@ Platform = function (SPOO, OBJY, options) {
 
                                                 res.status(401);
                                                 res.json({
-                                                    key: "2fa_key_sent",
+                                                    type: "2fa_key_sent",
                                                     message: '2FA key has been generated and send',
                                                 });
 
                                              }, error => {
                                                 res.status(401);
                                                 res.json({
-                                                    key: "2fa_key_create_error",
+                                                    type: "2fa_key_create_error",
                                                     message: '2 FA Key could not be sent',
                                                 });
                                              })
@@ -1252,7 +1252,7 @@ Platform = function (SPOO, OBJY, options) {
                                     } else {
                                         res.status(401);
                                         res.json({
-                                            key: "2fa_method_invalid",
+                                            type: "2fa_method_invalid",
                                             message: '2 FA Method invalid',
                                         }); 
                                     }
