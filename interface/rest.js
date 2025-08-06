@@ -16,7 +16,7 @@ import timeout from 'connect-timeout'
 import ClientOAuth2 from 'client-oauth2'
 import vm from 'vm'
 
-
+const saltRounds = 10;
 
 
 var app = express();
@@ -72,7 +72,7 @@ var Rest = function (SPOO, OBJY, options) {
     var objectFamilies = options.objectFamilies || [];
 
     app.use(function (req, res, next) {
-        OBJY.activeApp = undefined;
+        OBJY.app(null);
         if (req.headers.metaPropPrefix) SPOO.metaPropPrefix = req.headers.metaPropPrefix;
         next();
     });
@@ -183,12 +183,15 @@ var Rest = function (SPOO, OBJY, options) {
 
             metaMapper.createClientRegistration(
                 function (data) {
-                    messageMapper.send(
-                        (options.clientRegistrationMessage || {}).from || 'SPOO',
-                        req.body.email,
-                        (options.clientRegistrationMessage || {}).subject || 'your workspace registration key',
-                        ((options.clientRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key
-                    );
+                    if(messageMapper){
+                        messageMapper.send(
+                            (options.clientRegistrationMessage || {}).from || 'SPOO',
+                            req.body.email,
+                            (options.clientRegistrationMessage || {}).subject || 'your workspace registration key',
+                            ((options.clientRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key
+                        );
+                    }
+
 
                     res.json({
                         message: 'workspace registration key sent!',
@@ -252,7 +255,7 @@ var Rest = function (SPOO, OBJY, options) {
                             if (!user.password) user.password = shortid.generate();
                             if (!user.email) user.email = shortid.generate() + '@' + shortid.generate() + '.com';
 
-                            user.password = bcrypt.hashSync(user.password);
+                            user.password = bcrypt.hashSync(user.password, saltRounds);
 
                             if (user.username) {
                                 OBJY.useUser(null);
@@ -562,8 +565,8 @@ var Rest = function (SPOO, OBJY, options) {
         .get(checkAuthentication, function (req, res) {
             OBJY.client(req.params.client);
 
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             var script = req.query.code;
 
@@ -595,8 +598,8 @@ var Rest = function (SPOO, OBJY, options) {
         .post(checkAuthentication, function (req, res) {
             OBJY.client(req.params.client);
 
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             var script = req.body.code;
 
@@ -951,7 +954,7 @@ var Rest = function (SPOO, OBJY, options) {
                                     client
                                 );
                             } else {
-                                data.password = bcrypt.hashSync(req.body.password);
+                                data.password = bcrypt.hashSync(req.body.password, saltRounds);
 
                                 data.update(
                                     function (spooElem) {
@@ -1003,7 +1006,7 @@ var Rest = function (SPOO, OBJY, options) {
             }
 
             OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
+            if (req.params.app) OBJY.app(req.params.app);
 
             if (!OBJY['user'])
                 res.json({
@@ -1018,7 +1021,7 @@ var Rest = function (SPOO, OBJY, options) {
             if (!user.password) user.password = shortid.generate();
             if (!user.email) user.email = shortid.generate() + '@' + shortid.generate() + '.com';
 
-            user.password = bcrypt.hashSync(user.password);
+            user.password = bcrypt.hashSync(user.password, saltRounds);
 
             if (req.body) {
                 OBJY['user'](user).add(
@@ -1037,11 +1040,15 @@ var Rest = function (SPOO, OBJY, options) {
         .route(['/client/:client/auth', '/client/:client/app/:app/auth'])
 
         .post(function (req, res) {
-            OBJY.client(req.params.client);
-
-            OBJY.useUser(null);
-
             redis.get('cnt_' + req.body.username, function (err, result) {
+                OBJY.client(req.params.client);
+
+                if (req.params.app) {
+                    OBJY.app(req.params.app);
+                } else OBJY.app(null);
+
+                OBJY.useUser(null);
+
                 if (result !== null) {
                     if (parseInt(result) >= (options.maxUserSessions || defaultMaxUserSessions)) {
                         res.status(401);
@@ -1370,8 +1377,8 @@ var Rest = function (SPOO, OBJY, options) {
 
         .post(checkAuthentication, checkObjectFamily, function (req, res) {
             OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -1417,7 +1424,7 @@ var Rest = function (SPOO, OBJY, options) {
                 var pw = req.body.password || shortid.generate() + '.' + shortid.generate();
 
                 if (req.body.username) {
-                    req.body.password = bcrypt.hashSync(pw);
+                    req.body.password = bcrypt.hashSync(pw, saltRounds);
                 }
 
                 if (Array.isArray(req.body.properties)) propsSerialize(req.body);
@@ -1461,8 +1468,8 @@ var Rest = function (SPOO, OBJY, options) {
             } catch (e) {}
 
             OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -1538,8 +1545,8 @@ var Rest = function (SPOO, OBJY, options) {
 
         .get(checkAuthentication, checkObjectFamily, function (req, res) {
             OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -1619,8 +1626,8 @@ var Rest = function (SPOO, OBJY, options) {
                 return;
             }
 
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             if (!OBJY[req.params.entity]) {
                 res.json({
@@ -1665,7 +1672,7 @@ var Rest = function (SPOO, OBJY, options) {
                             }
 
                             try {
-                                data.setPassword(bcrypt.hashSync(newPassword));
+                                data.setPassword(bcrypt.hashSync(newPassword, saltRounds));
                             } catch (err) {
                                 res.status(400);
                                 res.json({
@@ -1710,8 +1717,8 @@ var Rest = function (SPOO, OBJY, options) {
             } catch (e) {}
 
             OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             if (!OBJY[req.params.entity]) {
                 res.status(400);
@@ -1748,7 +1755,7 @@ var Rest = function (SPOO, OBJY, options) {
 
         .delete(checkAuthentication, checkObjectFamily, function (req, res) {
             OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
+            if (req.params.app) OBJY.app(req.params.app);
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -1776,8 +1783,8 @@ var Rest = function (SPOO, OBJY, options) {
         .patch(checkAuthentication, checkObjectFamily, function (req, res) {
             OBJY.client(req.params.client);
 
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -1839,8 +1846,8 @@ var Rest = function (SPOO, OBJY, options) {
         .put(checkAuthentication, checkObjectFamily, function (req, res) {
             OBJY.client(req.params.client);
 
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -1916,8 +1923,8 @@ var Rest = function (SPOO, OBJY, options) {
 
         .post(checkAuthentication, checkObjectFamily, function (req, res) {
             OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             if (!OBJY[req.params.entity])
                 res.json({
@@ -1955,8 +1962,8 @@ var Rest = function (SPOO, OBJY, options) {
 
         .post(checkAuthentication, checkObjectFamily, function (req, res) {
             OBJY.client(req.params.client);
-            if (req.params.app) OBJY.activeApp = req.params.app;
-            else OBJY.activeApp = undefined;
+            if (req.params.app) OBJY.app(req.params.app);
+            else OBJY.app(null);
 
             if (!OBJY[req.params.entity])
                 res.json({
