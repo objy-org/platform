@@ -74,8 +74,6 @@ export default function SendgridMapper() {
 
         let ClientActivation = db.model('ClientActivation', ClientActivationSchema);
 
-        console.log(_key);
-
         ClientActivation.findOne({ key: _key }, function(err, data) {
 
             if (err) {
@@ -110,7 +108,6 @@ export default function SendgridMapper() {
                     error('Name already taken');
                     return;
                 }
-                console.log("ignoring err");
 
                 let Client = db.model('ClientInfo', ClientSchema);
 
@@ -126,7 +123,6 @@ export default function SendgridMapper() {
                     }
 
                     success(data);
-                    console.log('SAVED TO DB');
                 })
 
             });
@@ -146,8 +142,6 @@ export default function SendgridMapper() {
                 error(err);
                 return;
             }
-            console.log('SAVED TO DB');
-            console.log(data);
             success(data);
         })
 
@@ -168,9 +162,7 @@ export default function SendgridMapper() {
                 error(err);
                 return;
             }
-            console.log(data);
             success(data);
-            console.log('SAVED TO DB');
         })
 
     }
@@ -189,9 +181,7 @@ export default function SendgridMapper() {
                 error(err);
                 return;
             }
-            console.log(data);
             success(data);
-            console.log('SAVED TO DB');
         })
 
     }
@@ -203,7 +193,6 @@ export default function SendgridMapper() {
 
         let PasswordReset = db.model('PasswordReset', PasswordResetSchema);
 
-        console.log("key", _key);
         PasswordReset.findOne({ key: _key }, function(err, data) {
 
             if (err) {
@@ -330,7 +319,6 @@ export default function SendgridMapper() {
                     error(err);
                     return;
                 }
-                console.log(data);
                 success({ "message": "ok" });
                 return;
             });
@@ -373,7 +361,6 @@ export default function SendgridMapper() {
                     error(err);
                     return;
                 }
-                console.log(data);
                 success({ "message": "ok" });
                 return;
             });
@@ -390,13 +377,11 @@ export default function SendgridMapper() {
         let getable = ClientInfo;
 
         getable.findOne({}, function(err, data) {
-            console.log(1, arguments)
             if (err) {
                 console.log('err:', err)
                 error(err);
                 return;
             }
-            console.log('data:', data);
             if (data.applications) success(data.applications);
             else success(null)
             return;
