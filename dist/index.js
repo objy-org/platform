@@ -1186,21 +1186,28 @@ var Rest = function (SPOO, OBJY, options) {
                                                 });
                                             }
 
-                                             metaMapper.createTwoFAKey(_user._id, req.params.client, _key => {
+                                             metaMapper.createTwoFAKey(_user._id, req.params.client, async _key => {
+                                                try {
+                                                    await messageMapper.send(
+                                                        (options.twoFAMessage || {}).from || 'SPOO',
+                                                        _user.email,
+                                                        (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
+                                                        ((options.twoFAMessage || {}).body || '').replace('__KEY__', _key) || _key.toString()
+                                                    );
+                                                } catch (err) {
+                                                    res.status(400);
 
-                                                messageMapper.send(
-                                                    (options.twoFAMessage || {}).from || 'SPOO',
-                                                    _user.email,
-                                                    (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
-                                                    ((options.twoFAMessage || {}).body || '').replace('__KEY__', _key) || _key.toString()
-                                                );
+                                                    return res.json({
+                                                        type: '2fa_key_create_error',
+                                                        message: '2 FA Key could not be sent',
+                                                    });
+                                                }
 
                                                 res.status(401);
                                                 res.json({
-                                                    type: "2fa_key_sent",
+                                                    type: '2fa_key_sent',
                                                     message: '2FA key has been generated and send',
                                                 });
-
                                              }, error => {
                                                 res.status(401);
                                                 res.json({
@@ -2015,21 +2022,26 @@ process.on('uncaughtException', function (err) {
 const sgMail = new MailService();
 
 function SendgridMapper$1() {
-
     this.connect = function(key) {
         sgMail.setApiKey(key);
         return this;
     };
 
-    this.send = function(from, to, subject, body) {
-        console.log(arguments);
+    this.send = async function(from, to, subject, body) {
         var msg = {
             to: to,
             from: from,
             subject: subject,
             html: body
         };
-        sgMail.send(msg);
+
+        try {
+            await sgMail.send(msg);
+        } catch(err){
+            console.log(err);
+            throw err
+        }
+        
     };
 
 }

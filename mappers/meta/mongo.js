@@ -41,7 +41,7 @@ var twoFACodeSchema = {
     uId: String,
     key: String,
     client: String,
-    date: { type: Date, default: Date.now, expires: '20m' }
+    date: { type: Date, default: Date.now, expires: '5m' }
 };
 var TwoFACodeSchema = new Schema(twoFACodeSchema);
 
