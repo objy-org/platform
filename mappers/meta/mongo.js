@@ -296,7 +296,7 @@ export default function MongoMapper() {
         if (typeof method !== 'string')
             return error('invalid method')
 
-        getable.findOneAndUpdate({}, {twoFA: method} function(err, data) {
+        getable.findOneAndUpdate({}, {twoFA: method}, function(err, data) {
 
             if (err) {
 
