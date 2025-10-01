@@ -281,7 +281,7 @@ export default function MongoMapper() {
             }
 
             if (data.twoFA) success(data.twoFA);
-            else error(null)
+            else error('no 2fa method set')
             return;
         });
     }

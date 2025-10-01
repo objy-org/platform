@@ -797,6 +797,34 @@ var Rest = function (SPOO, OBJY, options) {
                 res.status(400);
                 res.json({ error: e });
             }
+        })
+
+        .get(checkAuthentication, function (req, res) {
+            var client = req.params.client;
+
+           
+            if (!req.user.spooAdmin) {
+                res.json({ error: 'Not authorized' });
+                return;
+            }
+
+            try {
+                metaMapper.getTwoFAMethod(
+                    function (data) {
+                        res.json({method: data});
+                    },
+                    function (err) {
+                        res.status(400);
+                        res.json({
+                            error: err,
+                        });
+                    },
+                    client
+                );
+            } catch (e) {
+                res.status(400);
+                res.json({ error: e });
+            }
         });
 
 
