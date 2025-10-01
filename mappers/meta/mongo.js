@@ -46,7 +46,7 @@ var twoFACodeSchema = {
 var TwoFACodeSchema = new Schema(twoFACodeSchema);
 
 
-export default function SendgridMapper() {
+export default function MongoMapper() {
 
     this.database = {};
 
@@ -273,6 +273,30 @@ export default function SendgridMapper() {
         let getable = ClientInfo;
 
         getable.findOne({}, function(err, data) {
+
+            if (err) {
+
+                error(err);
+                return;
+            }
+
+            if (data.twoFA) success(data.twoFA);
+            else error(null)
+            return;
+        });
+    }
+
+    this.setTwoFAMethod = function(method, success, error, client) {
+
+        let db = this.database.useDb(client);
+
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
+
+        if (typeof method !== 'string')
+            return error('invalid method')
+
+        getable.findOneAndUpdate({}, {twoFA: method} function(err, data) {
 
             if (err) {
 
