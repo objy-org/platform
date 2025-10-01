@@ -293,7 +293,7 @@ export default function MongoMapper() {
         let ClientInfo = db.model('ClientInfo', ClientSchema);
         let getable = ClientInfo;
 
-        if (typeof method !== 'string')
+        if (typeof method !== 'string' && method != null)
             return error('invalid method')
 
         getable.findOneAndUpdate({}, {twoFA: method}, function(err, data) {
@@ -304,8 +304,8 @@ export default function MongoMapper() {
                 return;
             }
 
-            if (data.twoFA) success(data.twoFA);
-            else error(null)
+            success(method);
+
             return;
         }, {includeResultMetadata: true});
     }

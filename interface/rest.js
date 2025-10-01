@@ -788,7 +788,7 @@ var Rest = function (SPOO, OBJY, options) {
                     function (err) {
                         res.status(400);
                         res.json({
-                            error: 'Some Error occured',
+                            error: err,
                         });
                     },
                     client
