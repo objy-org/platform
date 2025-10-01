@@ -307,7 +307,7 @@ export default function MongoMapper() {
             if (data.twoFA) success(data.twoFA);
             else error(null)
             return;
-        });
+        }, {includeResultMetadata: true});
     }
 
 
