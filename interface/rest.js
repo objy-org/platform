@@ -662,6 +662,8 @@ var Rest = function (SPOO, OBJY, options) {
             }
         });
 
+  
+
     router
         .route(['/client/:client/application/:appId'])
 
@@ -691,7 +693,48 @@ var Rest = function (SPOO, OBJY, options) {
                 res.status(400);
                 res.json({ error: e });
             }
+        })
+
+        .get(checkAuthentication, function (req, res) {
+            var client = req.params.client;
+
+            var appKey = req.params.appId;
+
+            
+            try {
+                metaMapper.getClientApplications(
+                    function (data) {
+                        
+                        var ret = null;
+
+                        data.forEach(app => {
+                            if(app.name == appKey) ret = app
+                        })
+
+                        if(ret)
+                            res.json(ret);
+                        else {
+                            res.status(404);
+                            res.json({
+                                error: 'app not found',
+                            });
+                        }
+                    },
+                    function (err) {
+                        res.status(400);
+                        res.json({
+                            error: 'Some Error occured',
+                        });
+                    },
+                    client
+                );
+            } catch (e) {
+                res.status(400);
+                res.json({ error: e });
+            }
+
         });
+
 
     router
         .route(['/client/:client/applications'])
