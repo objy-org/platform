@@ -44,6 +44,271 @@ function propsSerialize(obj) {
     }
 }
 
+async function checkAuth(OBJY, redis, headers, params, body, metaMapper, options) {
+    let token = null;
+    let username = null;
+    let password = null;
+    let grantType = null;
+    let user = null;
+
+    if (params.grant_type == 'client_credentials' || body.grant_type == 'client_credentials') {
+        grantType = 'client_credentials';
+
+        if (headers.authorization) {
+            let auth = (headers.authorization || '').split(' ')[1];
+            let headerTokenData = Buffer.from(auth, 'base64').toString().split(':');
+
+            if (headerTokenData?.length == 2) {
+                username = decodeURIComponent(headerTokenData[0]);
+                password = decodeURIComponent(headerTokenData[1]);
+            }
+        } else {
+            username = body.client_id;
+            password = body.client_secret;
+        }
+    } else {
+        grantType = 'password';
+
+        username = body.username;
+        password = body.password;
+    }
+
+    let result = await new Promise((resolve, reject) => {
+        redis.get('cnt_' + username, function (err, result) {
+            if (err) return reject();
+            else resolve(result);
+        });
+    });
+
+    OBJY.client(params.client);
+
+    if (params.app) {
+        OBJY.app(params.app);
+    } else OBJY.app(null);
+
+    OBJY.useUser(null);
+
+    if (result !== null) {
+        if (parseInt(result) >= (options.maxUserSessions || defaultMaxUserSessions)) {
+            throw { code: 401, message: 'too many sessions' };
+        }
+    }
+
+    var authQuery = {
+        username: { $regex: '^' + username + '$', $options: 'i' },
+    };
+
+    if (OBJY.authableFields) {
+        authQuery = {};
+        OBJY.authableFields.forEach((f) => {
+            authQuery[f] = { $regex: '^' + (body[f] || username) + '$', $options: 'i' };
+        });
+    }
+
+    try {
+        user = await new Promise((resolve, reject) => {
+            OBJY.users().auth(
+                authQuery,
+                (user) => resolve(user),
+                (err) => reject(),
+                params.client,
+                params.app
+            );
+        });
+    } catch (err) {
+        throw { code: 401, message: 'not authenticated' };
+    }
+
+    if (!user.spooAdmin) {
+        if (params.app) {
+            if (!(user.applications || []).includes(params.app)) {
+                throw { code: 401, message: 'not authenticated' };
+            }
+        }
+    }
+
+    // Default checkPassword method can be overwritten
+    var checkPassword = bcrypt.compareSync;
+    if (options.checkPassword) checkPassword = options.checkPassword;
+
+    if (checkPassword(password, user.password)) {
+        var clients = user._clients || [];
+        if (clients.indexOf(params.client) == -1) clients.push(params.client);
+
+        var _user = JSON.parse(JSON.stringify(user));
+
+        function doTheActualLogin() {
+            var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
+
+            var refreshToken;
+
+            if (body.permanent) refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
+
+            var accessToken = sign(
+                {
+                    id: _user._id,
+                    username: _user.username,
+                    //privileges: _user.privileges,
+                    applications: _user.applications,
+                    spooAdmin: _user.spooAdmin,
+                    clients: clients,
+                    //authorisations: _user.authorisations,
+                    tokenId: tokenId,
+                },
+                options.jwtSecret || defaultSecret,
+                {
+                    expiresIn: 20 * 60000,
+                }
+            );
+
+            user.clients = clients;
+
+            //redis.set(accessToken, 'true', "EX", 1200)
+            //redis.set('at_' + tokenId, accessToken, "EX", 1200)
+
+            try {
+                // user authentication details
+                redis.set(
+                    'ua_' + tokenId,
+                    JSON.stringify({
+                        id: _user._id,
+                        username: _user.username,
+                        applications: _user.applications,
+                        spooAdmin: _user.spooAdmin,
+                        clients: clients,
+                        privileges: _user.privileges,
+                        authorisations: _user.authorisations,
+                    }),
+                    'EX',
+                    1200
+                );
+
+                redis.set('cnt_' + username, ++result, 'EX', 1200);
+
+                if (body.permanent) {
+                    redis.set('rt_' + tokenId, JSON.stringify(user), 'EX', 2592000);
+                }
+            } catch (e) {
+                throw { code: 500, message: 'authentication error' };
+            }
+
+            delete user.password;
+
+            token = {
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+            };
+        }
+
+        if (grantType == 'client_credentials') {
+            await doTheActualLogin();
+        } else {
+            await new Promise((resolve, reject) => {
+                metaMapper.getTwoFAMethod(
+                    (method) => {
+                        if (method == 'email') {
+                            if (body.twoFAKey) {
+                                metaMapper.redeemTwoFAKey(
+                                    body.twoFAKey,
+                                    _user._id,
+                                    params.client,
+                                    (success) => {
+                                        // 2Fa Code valid, do the login
+                                        doTheActualLogin();
+                                        resolve();
+                                    },
+                                    (error) => {
+                                        throw {
+                                            code: 401,
+                                            message: {
+                                                type: '2fa_key_invalid',
+                                                message: '2 FA Key could not be verified',
+                                            },
+                                        };
+                                    }
+                                );
+                            } else {
+                                // No 2fa key provided, generating one...
+
+                                if (!_user.email) {
+                                    throw {
+                                        code: 401,
+                                        message: {
+                                            type: '2fa_no_email',
+                                            message: '2FA could not be sent, no email provided',
+                                        },
+                                    };
+                                }
+
+                                metaMapper.createTwoFAKey(
+                                    _user._id,
+                                    params.client,
+                                    async (_key) => {
+                                        try {
+                                            await messageMapper.send(
+                                                (options.twoFAMessage || {}).from || 'SPOO',
+                                                _user.email,
+                                                (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
+                                                ((options.twoFAMessage || {}).body || '')
+                                                .replace('__KEY__', _key).replace('__USERNAME__', _user.username)
+                                                .replace('__CLIENT__', params.client) || _key.toString()
+                                            );
+                                        } catch (err) {
+                                            throw {
+                                                code: 400,
+                                                message: {
+                                                    type: '2fa_key_create_error',
+                                                    message: '2 FA Key could not be sent',
+                                                },
+                                            };
+                                        }
+
+                                        throw {
+                                            code: 401,
+                                            message: {
+                                                type: '2fa_key_sent',
+                                                message: '2FA key has been generated and send',
+                                            },
+                                        };
+                                    },
+                                    (error) => {
+                                        throw {
+                                            code: 401,
+                                            message: {
+                                                type: '2fa_key_create_error',
+                                                message: '2 FA Key could not be sent',
+                                            },
+                                        };
+                                    }
+                                );
+                            }
+                        } else {
+                            throw {
+                                code: 401,
+                                message: {
+                                    type: '2fa_method_invalid',
+                                    message: '2 FA Method invalid',
+                                },
+                            };
+                        }
+                    },
+                    (NoTwoFA) => {
+                        // No 2FA implemented, proceed with normal login
+
+                        doTheActualLogin();
+                        resolve();
+                    },
+                    params.client
+                );
+            });
+        }
+    } else {
+        throw { code: 401, message: 'not authenticated' };
+    }
+
+    return token;
+}
+
 var Rest = function (SPOO, OBJY, options) {
     this.server = app;
 
@@ -176,7 +441,8 @@ var Rest = function (SPOO, OBJY, options) {
                             (options.clientRegistrationMessage || {}).from || 'SPOO',
                             req.body.email,
                             (options.clientRegistrationMessage || {}).subject || 'your workspace registration key',
-                            ((options.clientRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key
+                            ((options.clientRegistrationMessage || {}).body || '').replace('__KEY__', data.key)
+                            .replace('__CLIENT__', req.params.client) || data.key
                         );
                     }
 
@@ -359,6 +625,7 @@ var Rest = function (SPOO, OBJY, options) {
 
         .get(function (req, res) {
             var oauth_client;
+            var _OBJY = OBJY.clone();
 
             if (options.oAuth) {
 
@@ -443,11 +710,11 @@ var Rest = function (SPOO, OBJY, options) {
                 }
             }
 
-                OBJY.client(req.params.client);
+                _OBJY.client(req.params.client);
                 
-                OBJY.useUser(null);
+                _OBJY.useUser(null);
 
-                OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
+                _OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
                     if(data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
                     var data = data[0];
 
@@ -477,9 +744,7 @@ var Rest = function (SPOO, OBJY, options) {
                         query[key] = { $regex: '^' + userData[data.properties.userFieldsMapping.properties[key].value] + '$', $options: 'i' };
                     });
 
-                    OBJY.useUser(null);
-
-                    OBJY.users(query).get(
+                    _OBJY.users(query).get(
                         (users) => {
                             if (users.length == 0) {
                                 var newUser = { inherits: [] };
@@ -503,13 +768,13 @@ var Rest = function (SPOO, OBJY, options) {
                                 newUser.password = 'oauth:' + user.accessToken;
 
                                 if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
-                                OBJY.user(newUser).add((_user) => {
-                                    OBJY.user(_user._id.toString()).get((usr) => {
+                                _OBJY.user(newUser).add((_user) => {
+                                    _OBJY.user(_user._id.toString()).get((usr) => {
                                         authenticateUser(req, usr, state, data.properties);
                                     });
                                 });
                             } else if (users.length > 0) {
-                                OBJY.user(users[0]._id.toString()).get(
+                                _OBJY.user(users[0]._id.toString()).get(
                                     (_user) => {
                                         _user.password = 'oauth:' + user.accessToken;
 
@@ -650,6 +915,8 @@ var Rest = function (SPOO, OBJY, options) {
             }
         });
 
+  
+
     router
         .route(['/client/:client/application/:appId'])
 
@@ -679,7 +946,48 @@ var Rest = function (SPOO, OBJY, options) {
                 res.status(400);
                 res.json({ error: e });
             }
+        })
+
+        .get(checkAuthentication, function (req, res) {
+            var client = req.params.client;
+
+            var appKey = req.params.appId;
+
+            
+            try {
+                metaMapper.getClientApplications(
+                    function (data) {
+                        
+                        var ret = null;
+
+                        data.forEach(app => {
+                            if(app.name == appKey) ret = app;
+                        });
+
+                        if(ret)
+                            res.json(ret);
+                        else {
+                            res.status(404);
+                            res.json({
+                                error: 'app not found',
+                            });
+                        }
+                    },
+                    function (err) {
+                        res.status(400);
+                        res.json({
+                            error: 'Some Error occured',
+                        });
+                    },
+                    client
+                );
+            } catch (e) {
+                res.status(400);
+                res.json({ error: e });
+            }
+
         });
+
 
     router
         .route(['/client/:client/applications'])
@@ -751,6 +1059,72 @@ var Rest = function (SPOO, OBJY, options) {
             }
         });
 
+
+    router
+        .route(['/client/:client/twoFaMethod'])
+
+        .put(checkAuthentication, function (req, res) {
+            var client = req.params.client;
+
+            var twoFAMethod = (req.body || {}).method;
+
+            // TODO: add spooAdmin check!
+
+            if (!req.user.spooAdmin) {
+                res.json({ error: 'Not authorized' });
+                return;
+            }
+
+            try {
+                metaMapper.setTwoFAMethod(
+                    twoFAMethod,
+                    function (data) {
+                        res.json(data);
+                    },
+                    function (err) {
+                        res.status(400);
+                        res.json({
+                            error: err,
+                        });
+                    },
+                    client
+                );
+            } catch (e) {
+                res.status(400);
+                res.json({ error: e });
+            }
+        })
+
+        .get(checkAuthentication, function (req, res) {
+            var client = req.params.client;
+
+           
+            if (!req.user.spooAdmin) {
+                res.json({ error: 'Not authorized' });
+                return;
+            }
+
+            try {
+                metaMapper.getTwoFAMethod(
+                    function (data) {
+                        res.json({method: data});
+                    },
+                    function (err) {
+                        res.status(400);
+                        res.json({
+                            error: err,
+                        });
+                    },
+                    client
+                );
+            } catch (e) {
+                res.status(400);
+                res.json({ error: e });
+            }
+        });
+
+
+
     router
         .route('/client/:client/user/requestkey')
 
@@ -779,7 +1153,9 @@ var Rest = function (SPOO, OBJY, options) {
                         (options.userRegistrationMessage || {}).from || 'SPOO',
                         req.body.email,
                         (options.userRegistrationMessage || {}).subject || 'your registration key',
-                        ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', data.key) || data.key
+                        ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', data.key)
+                        .replace('__USERNAME__', data.username)
+                        .replace('__CLIENT__', req.params.client) || data.key
                     );
 
                     res.json({
@@ -848,7 +1224,9 @@ var Rest = function (SPOO, OBJY, options) {
                                 (options.userPasswordResetMessage || {}).from || 'SPOO',
                                 req.body.email,
                                 (options.userPasswordResetMessage || {}).subject || 'your password reset key',
-                                ((options.userPasswordResetMessage || {}).body || '').replace('__KEY__', data.key) || data.key
+                                ((options.userPasswordResetMessage || {}).body || '').replace('__KEY__', data.key)
+                                .replace('__USERNAME__', data.username)
+                                .replace('__CLIENT__', req.params.client) || data.key
                             );
 
                             res.json({
@@ -1027,306 +1405,107 @@ var Rest = function (SPOO, OBJY, options) {
     router
         .route(['/client/:client/auth', '/client/:client/app/:app/auth'])
 
-        .post(function (req, res) {
-            redis.get('cnt_' + req.body.username, function (err, result) {
-                OBJY.client(req.params.client);
+        .post(async function (req, res) {
+            let token = null;
 
-                if (req.params.app) {
-                    OBJY.app(req.params.app);
-                } else OBJY.app(null);
+            try {
+                token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, options);
+            } catch(err){
+                res.status(err.code);
+                return res.json(err.message)
+            }
 
-                OBJY.useUser(null);
-
-                if (result !== null) {
-                    if (parseInt(result) >= (options.maxUserSessions || defaultMaxUserSessions)) {
-                        res.status(401);
-                        res.json({
-                            message: 'too many sessions',
-                        });
-                        return;
-                    }
-                }
-
-                var authQuery = {
-                    username: { $regex: '^' + req.body.username + '$', $options: 'i' },
-                };
-
-                if (OBJY.authableFields) {
-                    authQuery = {};
-                    OBJY.authableFields.forEach((f) => {
-                        authQuery[f] = { $regex: '^' + (req.body[f] || req.body.username) + '$', $options: 'i' };
-                    });
-                }
-
-                OBJY.users().auth(
-                    authQuery,
-                    function (user) {
-                        if (!user.spooAdmin) {
-                            if (req.params.app) {
-                                if (!(user.applications || []).includes(req.params.app)) {
-                                    res.status(401);
-                                    res.json({
-                                        message: 'not authenticated',
-                                    });
-                                    return;
-                                }
-                            }
-                        }
-
-                        // Default checkPassword method can be overwritten
-                        var checkPassword = bcrypt.compareSync;
-                        if (options.checkPassword) checkPassword = options.checkPassword;
-
-                        if (checkPassword(req.body.password, user.password)) {
-                            var clients = user._clients || [];
-                            if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
-
-                            var _user = JSON.parse(JSON.stringify(user));
-
-
-                            function doTheActualLogin(){
-                                var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
-
-                                var refreshToken;
-
-                                if (req.body.permanent) refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
-
-                                var token = sign(
-                                    {
-                                        id: _user._id,
-                                        username: _user.username,
-                                        //privileges: _user.privileges,
-                                        applications: _user.applications,
-                                        spooAdmin: _user.spooAdmin,
-                                        clients: clients,
-                                        //authorisations: _user.authorisations,
-                                        tokenId: tokenId,
-                                    },
-                                    options.jwtSecret || defaultSecret,
-                                    {
-                                        expiresIn: 20 * 60000,
-                                    }
-                                );
-
-                                user.clients = clients;
-
-                                //redis.set(token, 'true', "EX", 1200)
-                                //redis.set('at_' + tokenId, token, "EX", 1200)
-
-
-                                try {
-                                    // user authentication details
-                                    redis.set(
-                                        'ua_' + tokenId,
-                                        JSON.stringify({
-                                            id: _user._id,
-                                            username: _user.username,
-                                            applications: _user.applications,
-                                            spooAdmin: _user.spooAdmin,
-                                            clients: clients,
-                                            privileges: _user.privileges,
-                                            authorisations: _user.authorisations,
-                                        }),
-                                        'EX',
-                                        1200
-                                    );
-
-                                    redis.set('cnt_' + req.body.username, ++result, 'EX', 1200);
-
-                                    if (req.body.permanent) {
-                                        redis.set('rt_' + tokenId, JSON.stringify(user), 'EX', 2592000);
-                                    }
-                                } catch (e) {
-                                    res.status(500);
-                                    res.json({
-                                        message: 'authentication error',
-                                    });
-                                    return;
-                                }
-
-                                
-                                delete user.password;
-
-                                res.json({
-                                    message: 'authenticated',
-                                    /*user: SPOO.deserialize(user),*/
-                                    token: {
-                                        accessToken: token,
-                                        refreshToken: refreshToken,
-                                    },
-                                });
-                            }
-
-
-
-                            metaMapper.getTwoFAMethod(method => {
-
-                                    if(method == 'email'){
-                                        if(req.body.twoFAKey){
-                                            metaMapper.redeemTwoFAKey(req.body.twoFAKey, _user._id, req.params.client, success => {
-
-                                                // 2Fa Code valid, do the login
-                                                doTheActualLogin();
-
-                                            }, error => {
-                                                res.status(401);
-                                                res.json({
-                                                    type: "2fa_key_invalid",
-                                                    message: '2 FA Key could not be verified',
-                                                });
-                                            });
-                                        } else {
-                                            // No 2fa key provided, generating one...
-
-                                            if(!_user.email) {
-                                                res.status(401);
-                                                res.json({
-                                                    type: "2fa_no_email",
-                                                    message: '2FA could not be sent, no email provided',
-                                                });
-                                            }
-
-                                             metaMapper.createTwoFAKey(_user._id, req.params.client, async _key => {
-                                                try {
-                                                    await messageMapper.send(
-                                                        (options.twoFAMessage || {}).from || 'SPOO',
-                                                        _user.email,
-                                                        (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
-                                                        ((options.twoFAMessage || {}).body || '').replace('__KEY__', _key) || _key.toString()
-                                                    );
-                                                } catch (err) {
-                                                    res.status(400);
-
-                                                    return res.json({
-                                                        type: '2fa_key_create_error',
-                                                        message: '2 FA Key could not be sent',
-                                                    });
-                                                }
-
-                                                res.status(401);
-                                                res.json({
-                                                    type: '2fa_key_sent',
-                                                    message: '2FA key has been generated and send',
-                                                });
-                                             }, error => {
-                                                res.status(401);
-                                                res.json({
-                                                    type: "2fa_key_create_error",
-                                                    message: '2 FA Key could not be sent',
-                                                });
-                                             });
-
-                                        }
-                                    } else {
-                                        res.status(401);
-                                        res.json({
-                                            type: "2fa_method_invalid",
-                                            message: '2 FA Method invalid',
-                                        }); 
-                                    }
-
-                                }, NoTwoFA => {
-                                    // No 2FA implemented, proceed with normal login
-
-                                    doTheActualLogin();
-
-                                }, req.params.client);
-
-
-
-                            
-                        } else {
-                            res.status(401);
-                            res.json({
-                                message: 'not authenticated',
-                            });
-                        }
-                    },
-                    function (err) {
-                        res.status(401);
-                        res.json({
-                            message: 'not authenticated',
-                        });
-                    },
-                    req.params.client,
-                    req.params.app
-                );
-            });
+            return res.json({message: 'authenticated', token})
         });
 
     // REFRESH  A TOKEN
     router
         .route(['/client/:client/token', '/client/:client/app/:app/token'])
 
-        .post(function (req, res) {
+        .post(async function (req, res) {
             OBJY.client(req.params.client);
 
-            var refreshToken = req.body.refreshToken;
-            var oldTokenId = refreshToken.split('rt_')[1];
+            if(req.body.grant_type == "client_credentials"){
+                let token = null;
 
-            redis.get('rt_' + oldTokenId, function (err, result) {
-                if (err || !result)
-                    return res.status(401).send({
-                        auth: false,
-                        message: 'Failed to verify refresh token.',
+                try {
+                    token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, options);
+                } catch (err) {
+                    console.log(err);
+
+                    res.status(err.code);
+                    return res.json(err.message);
+                }
+
+                return res.json({ message: 'authenticated', access_token: token.accessToken, token_type: 'Bearer', expires_in: 1200 });
+            } else {
+                var refreshToken = req.body.refreshToken;
+                var oldTokenId = refreshToken.split('rt_')[1];
+
+                redis.get('rt_' + oldTokenId, function (err, result) {
+                    if (err || !result)
+                        return res.status(401).send({
+                            auth: false,
+                            message: 'Failed to verify refresh token.',
+                        });
+
+                    result = JSON.parse(result);
+
+                    var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
+
+                    var refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
+
+                    var token = sign(
+                        {
+                            id: result._id,
+                            username: result.username,
+                            //privileges: result.privileges,
+                            clients: result.clients,
+                            applications: result.applications,
+                            spooAdmin: result.spooAdmin,
+                            //authorisations: result.authorisations,
+                            tokenId: tokenId,
+                        },
+                        options.jwtSecret || defaultSecret,
+                        {
+                            expiresIn: 20 * 60000,
+                        }
+                    );
+
+                    setTimeout(function () {
+                        redis.del('rt_' + oldTokenId);
+                        redis.del('ua_' + oldTokenId);
+                    }, 1000);
+
+                    //redis.set(token, 'true', "EX", 1200)
+                    redis.set(
+                        'ua_' + tokenId,
+                        JSON.stringify({
+                            id: result._id,
+                            username: result.username,
+                            applications: result.applications,
+                            spooAdmin: result.spooAdmin,
+                            clients: result.clients,
+                            privileges: result.privileges,
+                            authorisations: result.authorisations,
+                        }),
+                        'EX',
+                        1200
+                    );
+                    redis.set('rt_' + tokenId, JSON.stringify(result), 'EX', 2592000);
+
+                    delete result.password;
+
+                    res.json({
+                        message: 'authenticated',
+                        /*user: result,*/
+                        token: {
+                            accessToken: token,
+                            refreshToken: refreshToken,
+                        },
                     });
-
-                result = JSON.parse(result);
-
-                var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
-
-                var refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
-
-                var token = sign(
-                    {
-                        id: result._id,
-                        username: result.username,
-                        //privileges: result.privileges,
-                        clients: result.clients,
-                        applications: result.applications,
-                        spooAdmin: result.spooAdmin,
-                        //authorisations: result.authorisations,
-                        tokenId: tokenId,
-                    },
-                    options.jwtSecret || defaultSecret,
-                    {
-                        expiresIn: 20 * 60000,
-                    }
-                );
-
-                setTimeout(function () {
-                    redis.del('rt_' + oldTokenId);
-                    redis.del('ua_' + oldTokenId);
-                }, 1000);
-
-                //redis.set(token, 'true', "EX", 1200)
-                redis.set(
-                    'ua_' + tokenId,
-                    JSON.stringify({
-                        id: result._id,
-                        username: result.username,
-                        applications: result.applications,
-                        spooAdmin: result.spooAdmin,
-                        clients: result.clients,
-                        privileges: result.privileges,
-                        authorisations: result.authorisations,
-                    }),
-                    'EX',
-                    1200
-                );
-                redis.set('rt_' + tokenId, JSON.stringify(result), 'EX', 2592000);
-
-                delete result.password;
-
-                res.json({
-                    message: 'authenticated',
-                    /*user: result,*/
-                    token: {
-                        accessToken: token,
-                        refreshToken: refreshToken,
-                    },
                 });
-            });
+            }
         });
 
     // REJECT A TOKEN
@@ -1434,7 +1613,9 @@ var Rest = function (SPOO, OBJY, options) {
                                     (options.userRegistrationMessage || {}).from || 'SPOO',
                                     req.body.email,
                                     (options.userRegistrationMessage || {}).subject || 'your password',
-                                    ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', pw) || pw
+                                    ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', pw)
+                                    .replace('__USERNAME__', req.body.username)
+                                    .replace('__CLIENT__', req.params.client) || pw
                                 );
                             }
                         },
@@ -2021,7 +2202,7 @@ process.on('uncaughtException', function (err) {
 
 const sgMail = new MailService();
 
-function SendgridMapper$1() {
+function SendgridMapper() {
     this.connect = function(key) {
         sgMail.setApiKey(key);
         return this;
@@ -2091,7 +2272,7 @@ var twoFACodeSchema = {
 var TwoFACodeSchema = new Schema(twoFACodeSchema);
 
 
-function SendgridMapper() {
+function MongoMapper() {
 
     this.database = {};
 
@@ -2326,9 +2507,33 @@ function SendgridMapper() {
             }
 
             if (data.twoFA) success(data.twoFA);
-            else error(null);
+            else error('no 2fa method set');
             return;
         });
+    };
+
+    this.setTwoFAMethod = function(method, success, error, client) {
+
+        let db = this.database.useDb(client);
+
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
+
+        if (typeof method !== 'string' && method != null)
+            return error('invalid method')
+
+        getable.findOneAndUpdate({}, {twoFA: method}, function(err, data) {
+
+            if (err) {
+
+                error(err);
+                return;
+            }
+
+            success(method);
+
+            return;
+        }, {includeResultMetadata: true});
     };
 
 
@@ -2557,11 +2762,11 @@ const Platform = {
     },
 
     metaMappers: {
-        mongoMapper: SendgridMapper
+        mongoMapper: MongoMapper
     },
 
     messageMappers: {
-        sendgridMapper: SendgridMapper$1
+        sendgridMapper: SendgridMapper
     },
 
     MetaMapper: {},
