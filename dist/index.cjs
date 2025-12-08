@@ -1,20 +1,25 @@
+'use strict';
+
+var express = require('express');
+var cors = require('cors');
+require('moment');
+var Redis = require('ioredis');
+var jsonwebtoken = require('jsonwebtoken');
+var jwtDecode = require('jwt-decode');
+var bcrypt = require('bcrypt');
+var shortid = require('shortid');
+var fileUpload = require('express-fileupload');
+var stream = require('stream');
+var isStream = require('is-stream');
+var timeout = require('connect-timeout');
+var ClientOAuth2 = require('client-oauth2');
+var vm = require('vm');
+var mail = require('@sendgrid/mail');
+var mongoose = require('mongoose');
+
 // platform.js
 
-import express from 'express'
-import cors from 'cors'
-import moment from 'moment'
-import Redis from 'ioredis'
-import jsonwebtoken from 'jsonwebtoken';
 const { sign, decode, verify } = jsonwebtoken;
-import { jwtDecode } from 'jwt-decode';
-import bcrypt from "bcrypt";
-import shortid from 'shortid'
-import fileUpload from 'express-fileupload'
-import {Duplex} from 'stream'
-import {isStream} from 'is-stream';
-import timeout from 'connect-timeout'
-import ClientOAuth2 from 'client-oauth2'
-import vm from 'vm'
 
 const saltRounds = 10;
 
@@ -39,21 +44,6 @@ function propsSerialize(obj) {
         }
         obj.properties = propsObj;
     }
-}
-
-function parseJwt(token) {
-    var base64Url = token.split('.')[1];
-    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    var jsonPayload = decodeURIComponent(
-        atob(base64)
-            .split('')
-            .map(function (c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            })
-            .join('')
-    );
-
-    return JSON.parse(jsonPayload);
 }
 
 async function checkAuth(OBJY, redis, headers, params, body, metaMapper, options) {
@@ -573,7 +563,7 @@ var Rest = function (SPOO, OBJY, options) {
 
                 OBJY.client(req.params.client);
 
-                OBJY.useUser(null)
+                OBJY.useUser(null);
 
                 OBJY[options.oAuthFamily]({}).get(data => {
                     
@@ -591,7 +581,7 @@ var Rest = function (SPOO, OBJY, options) {
 
                 }, err => {
                     return res.status(400).json({ error: 'oauth services not found' });
-                })
+                });
 
                 
             } else return res.status(400).json({ error: 'oauth not available' });
@@ -606,7 +596,7 @@ var Rest = function (SPOO, OBJY, options) {
 
                 OBJY.client(req.params.client);
 
-                OBJY.useUser(null)
+                OBJY.useUser(null);
 
                 OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
                     if(data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
@@ -626,7 +616,7 @@ var Rest = function (SPOO, OBJY, options) {
 
                 }, err => {
                     return res.status(400).json({ error: 'oauth service not found' });
-                })
+                });
 
                 
             } else return res.status(400).json({ error: 'oauth not available' });
@@ -724,7 +714,7 @@ var Rest = function (SPOO, OBJY, options) {
 
                 _OBJY.client(req.params.client);
                 
-                _OBJY.useUser(null)
+                _OBJY.useUser(null);
 
                 _OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
                     if(data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
@@ -738,16 +728,16 @@ var Rest = function (SPOO, OBJY, options) {
                         redirectUri: data.properties.redirectUri.value,
                         scopes: data.properties.scopes.value,
                         state: req.query.state,
-                    })
+                    });
 
                     if(!data.properties.userFieldsMapping){
-                        data.properties.userFieldsMapping = {properties: {}, type: 'bag'}
+                        data.properties.userFieldsMapping = {properties: {}, type: 'bag'};
                     }
 
                 oauth_client.code
                 .getToken(req.originalUrl)
                 .then(function (user) {
-                    var userData = jwtDecode(user.accessToken)
+                    var userData = jwtDecode.jwtDecode(user.accessToken);
                     var state = req.query.state;
 
                     var query = {};
@@ -763,13 +753,13 @@ var Rest = function (SPOO, OBJY, options) {
 
                                 if(data.properties.userFieldsTemplate){
                                     try {
-                                        newUser = JSON.parse(JSON.stringify((data.properties.userFieldsTemplate)))
+                                        newUser = JSON.parse(JSON.stringify((data.properties.userFieldsTemplate)));
                                     } catch(err){
                                         newUser = { inherits: [] };
                                     }
                                   
                                     if(!newUser.inherits){
-                                        newUser.inherits = []
+                                        newUser.inherits = [];
                                     }
                                 }
 
@@ -898,7 +888,7 @@ var Rest = function (SPOO, OBJY, options) {
             var client = req.params.client;
 
             var appData = req.body;
-            var appKey = Object.keys(appData)[0];
+            Object.keys(appData)[0];
 
             // TODO: add spooAdmin check!
 
@@ -973,8 +963,8 @@ var Rest = function (SPOO, OBJY, options) {
                         var ret = null;
 
                         data.forEach(app => {
-                            if(app.name == appKey) ret = app
-                        })
+                            if(app.name == appKey) ret = app;
+                        });
 
                         if(ret)
                             res.json(ret);
@@ -1267,7 +1257,7 @@ var Rest = function (SPOO, OBJY, options) {
         .route('/client/:client/user/resetpassword')
 
         .post(function (req, res) {
-            var userData = req.body;
+            req.body;
 
             var client = req.params.client || client;
 
@@ -1421,9 +1411,9 @@ var Rest = function (SPOO, OBJY, options) {
             let token = null;
 
             try {
-                token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, options)
+                token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, options);
             } catch(err){
-                res.status(err.code)
+                res.status(err.code);
                 return res.json(err.message)
             }
 
@@ -1578,10 +1568,10 @@ var Rest = function (SPOO, OBJY, options) {
                 var file = req.files[k];
 
                 function bufferToStream(buffer) {
-                    var stream = new Duplex();
-                    stream.push(buffer);
-                    stream.push(null);
-                    return stream;
+                    var stream$1 = new stream.Duplex();
+                    stream$1.push(buffer);
+                    stream$1.push(null);
+                    return stream$1;
                 }
 
                 var inStream = bufferToStream(file.data);
@@ -1698,7 +1688,7 @@ var Rest = function (SPOO, OBJY, options) {
                         var _data = [];
                         data.forEach(function (d) {
                             if ((d.properties || {}).data) {
-                                if (isStream(d.properties.data)) {
+                                if (isStream.isStream(d.properties.data)) {
                                     delete d.properties.data;
                                     d.properties.path = req.params.entity + '/' + req.params.id + '/stream';
                                 }
@@ -1793,7 +1783,7 @@ var Rest = function (SPOO, OBJY, options) {
             var tokenId = decodedToken.tokenId;
 
             var usrData = req.body;
-            var passwordKey = Object.keys(usrData)[0];
+            Object.keys(usrData)[0];
 
             var oldPassword = usrData['old'];
             var newPassword = usrData['new'];
@@ -1919,7 +1909,7 @@ var Rest = function (SPOO, OBJY, options) {
                 OBJY[req.params.entity](req.params.id).get(
                     function (data) {
                         if ((data.properties || {}).data) {
-                            if (isStream(data.properties.data)) {
+                            if (isStream.isStream(data.properties.data)) {
                                 delete data.properties.data;
                                 data.properties.path = req.params.entity + '/' + req.params.id + '/stream';
                             }
@@ -2212,4 +2202,596 @@ process.on('uncaughtException', function (err) {
     console.error(err);
 });
 
-export default Rest;
+const sgMail = new mail.MailService();
+
+function SendgridMapper() {
+    this.connect = function(key) {
+        sgMail.setApiKey(key);
+        return this;
+    };
+
+    this.send = async function(from, to, subject, body) {
+        var msg = {
+            to: to,
+            from: from,
+            subject: subject,
+            html: body
+        };
+
+        try {
+            await sgMail.send(msg);
+        } catch(err){
+            throw err
+        }
+        
+    };
+
+}
+
+var Schema = mongoose.Schema;
+mongoose.mongo.Admin;
+
+var clientSchema = {
+    name: String,
+    key: String,
+    displayName: String,
+    applications: [],
+    twoFA: String
+};
+
+var ClientSchema = new Schema(clientSchema);
+
+var clientActivationSchema = {
+    key: String
+};
+var ClientActivationSchema = new Schema(clientActivationSchema);
+
+
+var userRegistrationSchema = {
+    email: String,
+    client: String,
+    key: String,
+    date: { type: Date, default: Date.now, expires: '30d' }
+};
+var UserRegistrationSchema = new Schema(userRegistrationSchema);
+
+
+var passwordResetSchema = {
+    uId: String,
+    key: String,
+    client: String,
+    date: { type: Date, default: Date.now, expires: '1d' }
+};
+var PasswordResetSchema = new Schema(passwordResetSchema);
+
+
+var twoFACodeSchema = {
+    uId: String,
+    key: String,
+    client: String,
+    date: { type: Date, default: Date.now, expires: '5m' }
+};
+var TwoFACodeSchema = new Schema(twoFACodeSchema);
+
+
+function MongoMapper() {
+
+    this.database = {};
+
+    this.connect = function(connectionString, success, error, options) {
+        this.database = mongoose.createConnection(connectionString, options);
+
+        this.database.on('error', function(err) {
+            error(err);
+        });
+
+        this.database.once('open', function() {
+            success();
+        });
+
+        return this;
+    };
+
+    this.setConnection = function(connection) {
+        this.database = connection;
+    };
+
+    this.redeemClientRegistration = function(_key, success, error) {
+
+        let db = this.database.useDb('spoo__meta');
+
+        let ClientActivation = db.model('ClientActivation', ClientActivationSchema);
+
+        ClientActivation.findOne({ key: _key }, function(err, data) {
+
+            if (err) {
+                error(err);
+                return;
+            }
+            if (data == null) {
+                error("activation key not found");
+                return;
+            }
+
+            ClientActivation.remove({ key: _key }, function(err, data) {
+                if (err) {
+                    error(err);
+                    return;
+                }
+
+                success(_key);
+                return;
+            });
+        });
+
+    };
+
+    this.createClient = function(_key, clientName, success, error) {
+
+        let db = this.database.useDb(clientName);
+
+        this.database.db.listCollections({ name: 'clientinfos' })
+            .next(function(err, collinfo) {
+                if (collinfo) {
+                    error('Name already taken');
+                    return;
+                }
+
+                let Client = db.model('ClientInfo', ClientSchema);
+
+                shortid.generate() + '' + shortid.generate();
+
+                let newClient = new Client({ name: clientName, key: _key, displayName: clientName });
+
+                newClient.save(function(err, data) {
+                    if (err) {
+                        console.log("save err");
+                        error(err);
+                        return;
+                    }
+
+                    success(data);
+                });
+
+            });
+    };
+
+    this.createClientRegistration = function(success, error) {
+
+        let db = this.database.useDb('spoo__meta');
+
+        let ClientActivationKey = db.model('ClientActivation', ClientActivationSchema);
+
+        let newKey = new ClientActivationKey({ _id: null, key: shortid.generate() + shortid.generate() });
+
+        newKey.save(function(err, data) {
+            if (err) {
+                console.log("save err");
+                error(err);
+                return;
+            }
+            success(data);
+        });
+
+    };
+
+
+    this.createUserRegistrationKey = function(email, client, success, error) {
+
+        let db = this.database.useDb(client);
+
+        let UserRegistration = db.model('UserRegistration', UserRegistrationSchema);
+
+        let newKey = new UserRegistration({ _id: null, client: client, key: shortid.generate() + shortid.generate(), email: email });
+
+        newKey.save(function(err, data) {
+            if (err) {
+                console.log("save err");
+                error(err);
+                return;
+            }
+            success(data);
+        });
+
+    };
+
+    this.createPasswordResetKey = function(uId, client, success, error) {
+
+        let db = this.database.useDb(client);
+
+        let PasswordReset = db.model('PasswordReset', PasswordResetSchema);
+
+        let newKey = new PasswordReset({ _id: null, client: client, key: shortid.generate() + shortid.generate(), uId: uId });
+
+        newKey.save(function(err, data) {
+            if (err) {
+                console.log("save err");
+                error(err);
+                return;
+            }
+            success(data);
+        });
+
+    };
+
+
+    this.redeemPasswordResetKey = function(_key, client, success, error) {
+
+        let db = this.database.useDb(client);
+
+        let PasswordReset = db.model('PasswordReset', PasswordResetSchema);
+
+        PasswordReset.findOne({ key: _key }, function(err, data) {
+
+            if (err) {
+                error(err);
+                return;
+            }
+            if (data == null) {
+                error("reset key not found");
+                return;
+            }
+
+            PasswordReset.remove({ key: _key }, function(_err, _data) {
+                if (_err) {
+                    error(_err);
+                    return;
+                }
+
+                success(data);
+                return;
+            });
+        });
+    };
+
+    this.createTwoFAKey = function(uId, client, success, error) {
+
+        let db = this.database.useDb(client);
+
+        let TwoFA = db.model('TwoFaKey', TwoFACodeSchema);
+
+        let _key = Math.floor(100000 + Math.random() * 900000); //shortid.generate();
+
+        let newKey = new TwoFA({ _id: null, client: client, key: _key, uId: uId });
+
+        newKey.save(function(err, data) {
+            if (err) {
+                error(err);
+                return;
+            }
+            success(_key);
+        });
+
+    };
+
+    this.redeemTwoFAKey = function(_key, uId, client, success, error) {
+
+        let db = this.database.useDb(client);
+
+        let TwoFA = db.model('TwoFaKey', TwoFACodeSchema);
+
+        TwoFA.findOne({ key: _key, uId: uId }, function(err, data) {
+
+            if (err) {
+                error(err);
+                return;
+            }
+            if (data == null) {
+                error("reset key not found");
+                return;
+            }
+
+            TwoFA.remove({ key: _key, uId: uId}, function(_err, _data) {
+                if (_err) {
+                    error(_err);
+                    return;
+                }
+
+                success(data);
+                return;
+            });
+        });
+    };
+
+    this.getTwoFAMethod = function(success, error, client) {
+
+        let db = this.database.useDb(client);
+
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
+
+        getable.findOne({}, function(err, data) {
+
+            if (err) {
+
+                error(err);
+                return;
+            }
+
+            if (data.twoFA) success(data.twoFA);
+            else error('no 2fa method set');
+            return;
+        });
+    };
+
+    this.setTwoFAMethod = function(method, success, error, client) {
+
+        let db = this.database.useDb(client);
+
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
+
+        if (typeof method !== 'string' && method != null)
+            return error('invalid method')
+
+        getable.findOneAndUpdate({}, {twoFA: method}, function(err, data) {
+
+            if (err) {
+
+                error(err);
+                return;
+            }
+
+            success(method);
+
+            return;
+        }, {includeResultMetadata: true});
+    };
+
+
+    this.addClientApplication = function(app, success, error, client) {
+
+        let db = this.database.useDb(client);
+
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
+
+        let exists = false;
+
+        getable.find({}).exec(function(err, data) {
+            if (err) {
+                error(err);
+                return;
+            }
+            if (!data.length) return error({ message: 'client not found' })
+
+            exists = data[0].applications.find(app_ => app_.name == app.name);
+
+            if (exists) {
+                error({ message: "applications already exists" });
+                return;
+            }
+
+            getable.update({
+                "$addToSet": {
+                    "applications": app
+                }
+            }, function(err, data) {
+                if (err) {
+                    error(err);
+                    return;
+                }
+                success({ "message": "ok" });
+                return;
+            });
+        });
+
+    };
+
+    this.removeClientApplication = function(appId, success, error, client) {
+
+        let db = this.database.useDb(client);
+
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
+
+        let exists = false;
+
+        getable.find({}).exec(function(err, data) {
+            if (err) {
+                error(err);
+                return;
+            }
+
+            if (!data.length) return error({ message: 'client not found' })
+
+            exists = data[0].applications.find(app => app.name == appId);
+
+            if (!exists) {
+                error({ message: "applications doesn't exist" });
+                return;
+            }
+
+            getable.update({
+                "$pull": {
+                    "applications": {
+                        "name": appId
+                    }
+                }
+            }, function(err, data) {
+                if (err) {
+                    error(err);
+                    return;
+                }
+                success({ "message": "ok" });
+                return;
+            });
+        });
+
+    };
+
+
+    this.getClientApplications = function(success, error, client) {
+
+        let db = this.database.useDb(client);
+
+        let ClientInfo = db.model('ClientInfo', ClientSchema);
+        let getable = ClientInfo;
+
+        getable.findOne({}, function(err, data) {
+            if (err) {
+                console.log('err:', err);
+                error(err);
+                return;
+            }
+            if (data.applications) success(data.applications);
+            else success(null);
+            return;
+        });
+    };
+
+    return this;
+
+}
+
+const LEGACY_BLACKLIST = ['$propsAsObj'];
+
+const Platform = {
+
+    authorisationsEnabled: false,
+    allowClientRegistrations: true,
+    allowUserRegistrations: true,
+
+    metaPropPrefix: '',
+
+    metaProperties: ['role', 'applications', 'inherits', 'onCreate', 'onChange', 'onDelete', 'permissions', 'privileges', 'created', 'lastModified', 'authorisations'],
+    staticProperties: ['name', '_id', 'type', 'username', 'email', 'password', '$in', '$and', '$or'],
+    flagProperties: ['$sort', '$page', '$query'],
+
+    filterFields: function(obj, filterObj) {
+
+        obj = JSON.parse(JSON.stringify(obj));
+
+        function filter(filterObj, realObj, ignore) {
+
+            Object.keys(realObj || {}).forEach(function(f) {
+
+                if (typeof realObj[f] === 'object') {
+
+                    if (!filterObj) return;
+
+                    var ignore = false;
+
+                    if (filterObj[f]) ignore = true;
+
+                    filter(filterObj[f], realObj[f]);
+
+                }
+
+                if (!filterObj[f] && !ignore && realObj[f]) delete realObj[f];
+
+            });
+
+        }
+
+        filter(filterObj, obj);
+
+        obj._filtered = true;
+
+        return obj;
+
+    },
+
+    serialize: function(obj) {
+
+        return obj;
+    },
+
+    serializeQuery: function(obj) {
+        var self = this;
+
+        Object.keys(obj).forEach(function(k) {
+            if (LEGACY_BLACKLIST.indexOf(k) != -1) delete obj[k];
+        });
+
+        if (this.metaPropPrefix == '') return obj;
+
+        if (obj.properties) return obj;
+
+        var self = this;
+
+        var nObj = {
+            properties: {}
+        };
+
+        for (var prop in obj) {
+            try {
+                obj[prop] = JSON.parse(obj[prop]);
+            } catch (e) {
+
+            }
+        }
+
+        for (var prop in obj) {
+            if (self.metaProperties.indexOf(prop.substr(1)) == -1) {
+                if (self.staticProperties.indexOf(prop) != -1) nObj[prop] = obj[prop];
+                else {
+                    if (prop.charAt(0) != '$') nObj['properties.' + prop] = obj[prop];
+                    else if (prop.charAt(0) == '$' && self.flagProperties.indexOf(prop) != -1) {
+                        if (typeof obj[prop] === 'string') {
+
+                            if (obj[prop].charAt(0) == '-') {
+                                if (self.staticProperties.indexOf(obj[prop].substr(1)) != -1) {
+                                    nObj[prop] = obj[prop];
+                                } else nObj[prop] = "-properties." + obj[prop].substr(1);
+                            } else {
+                                if (self.staticProperties.indexOf(obj[prop]) != -1) {
+                                    nObj[prop] = obj[prop];
+                                } else nObj[prop] = "properties." + obj[prop];
+                            }
+
+                        } else {
+                            nObj[prop] = obj[prop];
+                        }
+                    } else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) == -1) nObj[prop] = "properties." + obj[prop];
+                    else if (prop.charAt(0) == '$' && self.staticProperties.indexOf(prop) != -1) nObj[prop] = obj[prop];
+                    else nObj[prop] = obj[prop];
+                }
+            } else {
+                if (self.staticProperties.indexOf(prop) != -1) nObj[prop.substr(1)] = obj[prop];
+                else nObj[prop.substr(1)] = "properties." + obj[prop];
+            }
+
+        }
+
+        delete nObj.properties;
+        return nObj;
+    },
+
+    deserialize: function(obj) {
+
+        return obj;
+    },
+
+    metaMappers: {
+        mongoMapper: MongoMapper
+    },
+
+    messageMappers: {
+        sendgridMapper: SendgridMapper
+    },
+
+    MetaMapper: {},
+
+    define: function(options) {
+
+        this.OBJY.define(options);
+
+    },
+
+    REST: function(options, enabledObjectFymilies) {
+        if (options.OBJY) this.OBJY = options.OBJY;
+        if (options.OBJY_CATALOG) {
+            this.OBJY_CATALOG = options.OBJY_CATALOG;
+            this.CATALOG = options.OBJY_CATALOG;
+        }
+        return new Rest(this, this.OBJY, options)
+    },
+
+    /*MQTT: function(options, enabledObjectFymilies) {
+        // TODO...
+    }*/
+};
+
+module.exports = Platform;
+//# sourceMappingURL=index.cjs.map

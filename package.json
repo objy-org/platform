@@ -3,12 +3,12 @@
         "name": "Marco Boelling"
     },
     "bugs": {
-        "url": "https://github.com/objy-org/platform/issues"
+        "url": "https://github.com/spootechnologies/spoo/issues"
     },
-    "bundleDependencies": false,
+    "bundleDependencies": [],
     "dependencies": {
         "@sendgrid/mail": "^6.5.0",
-        "bcrypt": "^3.0.6",
+        "bcrypt": "^6.0.0",
         "bcryptjs": "^2.4.3",
         "body-parser": "^1.19.0",
         "client-oauth2": "^4.3.3",
@@ -17,9 +17,9 @@
         "express": "^4.17.1",
         "express-fileupload": "^1.1.7-alpha.3",
         "ioredis": "^4.14.0",
-        "is-stream": "^2.0.0",
+        "is-stream": "^4.0.1",
         "jsonwebtoken": "^8.5.1",
-        "jwt-decode": "^3.1.2",
+        "jwt-decode": "^4.0.0",
         "localStorage": "^1.0.4",
         "mingo": "^2.3.5",
         "moment": "^2.24.0",
@@ -32,7 +32,7 @@
     },
     "deprecated": false,
     "description": "A JavaScript framework to build multi purpose platforms",
-    "homepage": "https://github.com/objy-org/platform#readme",
+    "homepage": "https://github.com/spootechnologies/spoo#readme",
     "keywords": [
         "platform",
         "javascript",
@@ -40,13 +40,23 @@
     ],
     "license": "MIT",
     "main": "index.js",
-    "name": "objy-platform",
+    "name": "spoojs",
+    "type": "module",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/objy-org/platform.git"
+        "url": "git+https://github.com/spootechnologies/spoo.git"
     },
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "version": "0.9.22"
+    "version": "0.9.953",
+    "devDependencies": {
+        "rollup": "^4.46.2"
+    },
+    "exports": {
+        ".": {
+            "require": "./dist/index.cjs",
+            "import": "./dist/index.js"
+        }
+    }
 }
