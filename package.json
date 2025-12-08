@@ -3,7 +3,7 @@
         "name": "Marco Boelling"
     },
     "bugs": {
-        "url": "https://github.com/spootechnologies/spoo/issues"
+        "url": "https://github.com/objy-org/objy-platform/issues"
     },
     "bundleDependencies": [],
     "dependencies": {
@@ -32,7 +32,7 @@
     },
     "deprecated": false,
     "description": "A JavaScript framework to build multi purpose platforms",
-    "homepage": "https://github.com/spootechnologies/spoo#readme",
+    "homepage": "https://github.com/objy-org/objy-platform#readme",
     "keywords": [
         "platform",
         "javascript",
@@ -40,16 +40,16 @@
     ],
     "license": "MIT",
     "main": "index.js",
-    "name": "spoojs",
+    "name": "objy-platform",
     "type": "module",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/spootechnologies/spoo.git"
+        "url": "git+https://github.com/objy-org/platform.git"
     },
     "scripts": {
         "build": "rollup -c"
     },
-    "version": "0.9.956",
+    "version": "0.9.23",
     "devDependencies": {
         "rollup": "^4.46.2"
     },
