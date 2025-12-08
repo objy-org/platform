@@ -49,7 +49,7 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "version": "0.9.953",
+    "version": "0.9.954",
     "devDependencies": {
         "rollup": "^4.46.2"
     },
