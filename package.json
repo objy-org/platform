@@ -47,7 +47,7 @@
         "url": "git+https://github.com/spootechnologies/spoo.git"
     },
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "build": "rollup -c"
     },
     "version": "0.9.954",
     "devDependencies": {
