@@ -100,9 +100,9 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, options
         username: { $regex: '^' + username + '$', $options: 'i' },
     };
 
-    if (OBJY.authableFields) {
+    if (OBJY?.globalCtx?.authableFields) {
         authQuery = {};
-        OBJY.authableFields.forEach((f) => {
+        OBJY.globalCtx.authableFields.forEach((f) => {
             authQuery[f] = { $regex: '^' + (body[f] || username) + '$', $options: 'i' };
         });
     }
@@ -2759,6 +2759,8 @@ const Platform = {
     },
 
     deserialize: function(obj) {
+
+        if(obj.role == "user") obj.password = '***';
 
         return obj;
     },
