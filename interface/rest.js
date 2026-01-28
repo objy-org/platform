@@ -56,7 +56,7 @@ function parseJwt(token) {
     return JSON.parse(jsonPayload);
 }
 
-async function checkAuth(OBJY, redis, headers, params, body, metaMapper, options) {
+async function checkAuth(OBJY, redis, headers, params, body, metaMapper, messageMapper, options) {
     let token = null;
     let username = null;
     let password = null;
@@ -217,7 +217,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, options
         } else {
             await new Promise((resolve, reject) => {
                 metaMapper.getTwoFAMethod(
-                    (method) => {
+                    async (method) => {
                         if (method == 'email') {
                             if (body.twoFAKey) {
                                 metaMapper.redeemTwoFAKey(
@@ -252,47 +252,54 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, options
                                     };
                                 }
 
-                                metaMapper.createTwoFAKey(
-                                    _user._id,
-                                    params.client,
-                                    async (_key) => {
-                                        try {
-                                            await messageMapper.send(
-                                                (options.twoFAMessage || {}).from || 'SPOO',
-                                                _user.email,
-                                                (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
-                                                ((options.twoFAMessage || {}).body || '')
-                                                .replace('__KEY__', _key).replace('__USERNAME__', _user.username)
-                                                .replace('__CLIENT__', params.client) || _key.toString()
-                                            );
-                                        } catch (err) {
-                                            throw {
-                                                code: 400,
-                                                message: {
-                                                    type: '2fa_key_create_error',
-                                                    message: '2 FA Key could not be sent',
-                                                },
-                                            };
-                                        }
+                                try {
+                                    await new Promise((_resolve, _reject) => {
+                                        metaMapper.createTwoFAKey(
+                                            _user._id,
+                                            params.client,
+                                            async (_key) => {
+                                                try {
+                                                    await messageMapper.send(
+                                                        (options.twoFAMessage || {}).from || 'SPOO',
+                                                        _user.email,
+                                                        (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
+                                                        ((options.twoFAMessage || {}).body || '')
+                                                            .replace('__KEY__', _key)
+                                                            .replace('__USERNAME__', _user.username)
+                                                            .replace('__CLIENT__', params.client) || _key.toString(),
+                                                    );
+                                                } catch (err) {
+                                                    _reject({
+                                                        code: 400,
+                                                        message: {
+                                                            type: '2fa_key_create_error',
+                                                            message: '2 FA Key could not be sent',
+                                                        },
+                                                    });
+                                                }
 
-                                        throw {
-                                            code: 401,
-                                            message: {
-                                                type: '2fa_key_sent',
-                                                message: '2FA key has been generated and send',
+                                                _reject({
+                                                    code: 401,
+                                                    message: {
+                                                        type: '2fa_key_sent',
+                                                        message: '2FA key has been generated and send',
+                                                    },
+                                                });
                                             },
-                                        };
-                                    },
-                                    (error) => {
-                                        throw {
-                                            code: 401,
-                                            message: {
-                                                type: '2fa_key_create_error',
-                                                message: '2 FA Key could not be sent',
+                                            (error) => {
+                                                _reject({
+                                                    code: 401,
+                                                    message: {
+                                                        type: '2fa_key_create_error',
+                                                        message: '2 FA Key could not be sent',
+                                                    },
+                                                });
                                             },
-                                        };
-                                    }
-                                );
+                                        );
+                                    });
+                                } catch (e) {
+                                    throw e;
+                                }
                             }
                         } else {
                             throw {
@@ -1421,7 +1428,7 @@ var Rest = function (SPOO, OBJY, options) {
             let token = null;
 
             try {
-                token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, options)
+                token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, messageMapper, options)
             } catch(err){
                 res.status(err.code)
                 return res.json(err.message)
@@ -1441,7 +1448,7 @@ var Rest = function (SPOO, OBJY, options) {
                 let token = null;
 
                 try {
-                    token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, options);
+                    token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, messageMapper, options);
                 } catch (err) {
                     console.log(err);
 
