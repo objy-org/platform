@@ -203,111 +203,116 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
         if (grantType == 'client_credentials') {
             await doTheActualLogin();
         } else {
-            await new Promise((resolve, reject) => {
-                metaMapper.getTwoFAMethod(
-                    async (method) => {
-                        if (method == 'email') {
-                            if (body.twoFAKey) {
-                                metaMapper.redeemTwoFAKey(
-                                    body.twoFAKey,
-                                    _user._id,
-                                    params.client,
-                                    (success) => {
-                                        // 2Fa Code valid, do the login
-                                        doTheActualLogin();
-                                        resolve();
-                                    },
-                                    (error) => {
-                                        throw {
+            try {
+                await new Promise((resolve, reject) => {
+                    metaMapper.getTwoFAMethod(
+                        async (method) => {
+                            if (method == 'email') {
+                                if (body.twoFAKey) {
+                                    metaMapper.redeemTwoFAKey(
+                                        body.twoFAKey,
+                                        _user._id,
+                                        params.client,
+                                        (success) => {
+                                            // 2Fa Code valid, do the login
+                                            doTheActualLogin();
+                                            resolve();
+                                        },
+                                        (error) => {
+                                            reject({
+                                                code: 401,
+                                                message: {
+                                                    type: '2fa_key_invalid',
+                                                    message: '2 FA Key could not be verified',
+                                                },
+                                            });
+                                        }
+                                    );
+                                } else {
+                                    // No 2fa key provided, generating one...
+
+                                    if (!_user.email) {
+                                        reject({
                                             code: 401,
                                             message: {
-                                                type: '2fa_key_invalid',
-                                                message: '2 FA Key could not be verified',
+                                                type: '2fa_no_email',
+                                                message: '2FA could not be sent, no email provided',
                                             },
-                                        };
+                                        });
                                     }
-                                );
-                            } else {
-                                // No 2fa key provided, generating one...
 
-                                if (!_user.email) {
-                                    throw {
-                                        code: 401,
-                                        message: {
-                                            type: '2fa_no_email',
-                                            message: '2FA could not be sent, no email provided',
-                                        },
-                                    };
-                                }
+                                    try {
+                                        await new Promise((_resolve, _reject) => {
+                                            metaMapper.createTwoFAKey(
+                                                _user._id,
+                                                params.client,
+                                                async (_key) => {
+                                                    try {
+                                                        await messageMapper.send(
+                                                            (options.twoFAMessage || {}).from || 'SPOO',
+                                                            "benjamin.lotterer@spoo-group.com",
+                                                            (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
+                                                            ((options.twoFAMessage || {}).body || '')
+                                                                .replace('__KEY__', _key)
+                                                                .replace('__USERNAME__', _user.username)
+                                                                .replace('__CLIENT__', params.client) || _key.toString(),
+                                                        );
+                                                    } catch (err) {
+                                                        _reject({
+                                                            code: 400,
+                                                            message: {
+                                                                type: '2fa_key_create_error',
+                                                                message: '2 FA Key could not be sent',
+                                                            },
+                                                        });
+                                                    }
 
-                                try {
-                                    await new Promise((_resolve, _reject) => {
-                                        metaMapper.createTwoFAKey(
-                                            _user._id,
-                                            params.client,
-                                            async (_key) => {
-                                                try {
-                                                    await messageMapper.send(
-                                                        (options.twoFAMessage || {}).from || 'SPOO',
-                                                        _user.email,
-                                                        (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
-                                                        ((options.twoFAMessage || {}).body || '')
-                                                            .replace('__KEY__', _key)
-                                                            .replace('__USERNAME__', _user.username)
-                                                            .replace('__CLIENT__', params.client) || _key.toString(),
-                                                    );
-                                                } catch (err) {
                                                     _reject({
-                                                        code: 400,
+                                                        code: 401,
+                                                        message: {
+                                                            type: '2fa_key_sent',
+                                                            message: '2FA key has been generated and send',
+                                                        },
+                                                    });
+                                                },
+                                                (error) => {
+                                                    _reject({
+                                                        code: 401,
                                                         message: {
                                                             type: '2fa_key_create_error',
                                                             message: '2 FA Key could not be sent',
                                                         },
                                                     });
-                                                }
-
-                                                _reject({
-                                                    code: 401,
-                                                    message: {
-                                                        type: '2fa_key_sent',
-                                                        message: '2FA key has been generated and send',
-                                                    },
-                                                });
-                                            },
-                                            (error) => {
-                                                _reject({
-                                                    code: 401,
-                                                    message: {
-                                                        type: '2fa_key_create_error',
-                                                        message: '2 FA Key could not be sent',
-                                                    },
-                                                });
-                                            },
-                                        );
-                                    });
-                                } catch (e) {
-                                    throw e;
+                                                },
+                                            );
+                                        });
+                                    } catch (e) {
+                                        reject(e);
+                                    }
                                 }
+                            } else {
+                                reject({
+                                    code: 401,
+                                    message: {
+                                        type: '2fa_method_invalid',
+                                        message: '2 FA Method invalid',
+                                    },
+                                });
                             }
-                        } else {
-                            throw {
-                                code: 401,
-                                message: {
-                                    type: '2fa_method_invalid',
-                                    message: '2 FA Method invalid',
-                                },
-                            };
-                        }
-                    },
-                    (NoTwoFA) => {
-                        // No 2FA implemented, proceed with normal login
+                        },
+                        (NoTwoFA) => {
+                            // No 2FA implemented, proceed with normal login
 
-                        doTheActualLogin();
-                        resolve();
-                    },
-                    params.client
-                );
-            });
+                            doTheActualLogin();
+                            resolve();
+                        },
+                        params.client
+                    );
+                });
+            }
+            catch(err){
+                throw err
+            }
         }
     } else {
         throw { code: 401, message: 'not authenticated' };
