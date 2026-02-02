@@ -4,7 +4,7 @@ import 'moment';
 import Redis from 'ioredis';
 import jsonwebtoken from 'jsonwebtoken';
 import { jwtDecode } from 'jwt-decode';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import shortid from 'shortid';
 import fileUpload from 'express-fileupload';
 import { Duplex } from 'stream';
@@ -21,12 +21,10 @@ const { sign, decode, verify } = jsonwebtoken;
 
 const saltRounds = 10;
 
-
 var app = express();
 var router = express.Router();
 var defaultSecret = 'asdgnm0923t923';
 var defaultMaxUserSessions = 20;
-
 
 // Helper functions
 function propsSerialize(obj) {
@@ -112,7 +110,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                 (user) => resolve(user),
                 (err) => reject(),
                 params.client,
-                params.app
+                params.app,
             );
         });
     } catch (err) {
@@ -158,7 +156,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                 options.jwtSecret || defaultSecret,
                 {
                     expiresIn: 20 * 60000,
-                }
+                },
             );
 
             user.clients = clients;
@@ -180,7 +178,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                         authorisations: _user.authorisations,
                     }),
                     'EX',
-                    1200
+                    1200,
                 );
 
                 redis.set('cnt_' + username, ++result, 'EX', 1200);
@@ -226,7 +224,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                                                     message: '2 FA Key could not be verified',
                                                 },
                                             });
-                                        }
+                                        },
                                     );
                                 } else {
                                     // No 2fa key provided, generating one...
@@ -250,7 +248,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                                                     try {
                                                         await messageMapper.send(
                                                             (options.twoFAMessage || {}).from || 'SPOO',
-                                                            "benjamin.lotterer@spoo-group.com",
+                                                            _user.email,
                                                             (options.twoFAMessage || {}).subject || 'Your 2 Factor Authentication Key',
                                                             ((options.twoFAMessage || {}).body || '')
                                                                 .replace('__KEY__', _key)
@@ -306,12 +304,11 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                             doTheActualLogin();
                             resolve();
                         },
-                        params.client
+                        params.client,
                     );
                 });
-            }
-            catch(err){
-                throw err
+            } catch (err) {
+                throw err;
             }
         }
     } else {
@@ -345,12 +342,12 @@ var Rest = function (SPOO, OBJY, options) {
     app.use(
         express.urlencoded({
             extended: true,
-        })
+        }),
     );
     app.use(
         express.json({
             limit: '300mb',
-        })
+        }),
     );
     app.use(cors());
     app.use(fileUpload());
@@ -390,8 +387,6 @@ var Rest = function (SPOO, OBJY, options) {
                 });
 
             redis.get('ua_' + decoded.tokenId, function (err, result) {
-
-
                 if (err || !result)
                     return res.status(401).send({
                         auth: false,
@@ -448,16 +443,15 @@ var Rest = function (SPOO, OBJY, options) {
 
             metaMapper.createClientRegistration(
                 function (data) {
-                    if(messageMapper){
+                    if (messageMapper) {
                         messageMapper.send(
                             (options.clientRegistrationMessage || {}).from || 'SPOO',
                             req.body.email,
                             (options.clientRegistrationMessage || {}).subject || 'your workspace registration key',
-                            ((options.clientRegistrationMessage || {}).body || '').replace('__KEY__', data.key)
-                            .replace('__CLIENT__', req.params.client) || data.key
+                            ((options.clientRegistrationMessage || {}).body || '').replace('__KEY__', data.key).replace('__CLIENT__', req.params.client) ||
+                                data.key,
                         );
                     }
-
 
                     res.json({
                         message: 'workspace registration key sent!',
@@ -468,7 +462,7 @@ var Rest = function (SPOO, OBJY, options) {
                     res.json({
                         error: err,
                     });
-                }
+                },
             );
         });
 
@@ -534,20 +528,20 @@ var Rest = function (SPOO, OBJY, options) {
                                     function (err) {
                                         console.log(err);
                                         res.json(data);
-                                    }
+                                    },
                                 );
                             }
                         },
                         function (err) {
                             res.status(400);
                             res.json(err);
-                        }
+                        },
                     );
                 },
                 function (err) {
                     res.status(400);
                     res.json(err);
-                }
+                },
             );
         });
 
@@ -564,71 +558,66 @@ var Rest = function (SPOO, OBJY, options) {
 
     // OAuth
 
-
     router
         .route('/client/:client/oauth/services')
 
         .get(function (req, res) {
             if (options.oAuth) {
-
                 OBJY.client(req.params.client);
 
                 OBJY.useUser(null);
 
-                OBJY[options.oAuthFamily]({}).get(data => {
-                    
-                    var retArr = [];
+                OBJY[options.oAuthFamily]({}).get(
+                    (data) => {
+                        var retArr = [];
 
-                    let filteredData = data.filter((d) => {
-                        return d.properties?.clientId && d.properties?.clientSecret && d.properties?.accessTokenUri && d.properties?.authorizationUri;
-                    });
+                        let filteredData = data.filter((d) => {
+                            return d.properties?.clientId && d.properties?.clientSecret && d.properties?.accessTokenUri && d.properties?.authorizationUri;
+                        });
 
-                    filteredData.forEach((d) => {
-                        retArr.push({ name: d.name });
-                    });
+                        filteredData.forEach((d) => {
+                            retArr.push({ name: d.name });
+                        });
 
-                    res.json(retArr);
-
-                }, err => {
-                    return res.status(400).json({ error: 'oauth services not found' });
-                });
-
-                
+                        res.json(retArr);
+                    },
+                    (err) => {
+                        return res.status(400).json({ error: 'oauth services not found' });
+                    },
+                );
             } else return res.status(400).json({ error: 'oauth not available' });
         });
-
 
     router
         .route('/client/:client/oauth-login/:oAuthService')
 
         .get(function (req, res) {
             if (options.oAuth) {
-
                 OBJY.client(req.params.client);
 
                 OBJY.useUser(null);
 
-                OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
-                    if(data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
-                    var data = data[0];
+                OBJY[options.oAuthFamily]({ name: req.params.oAuthService }).get(
+                    (data) => {
+                        if (data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
+                        var data = data[0];
 
-                    var uri = new ClientOAuth2({
-                        clientId: data.properties.clientId.value,
-                        clientSecret: data.properties.clientSecret.value,
-                        accessTokenUri: data.properties.accessTokenUri.value,
-                        authorizationUri: data.properties.authorizationUri.value,
-                        redirectUri: data.properties.redirectUri.value,
-                        scopes: data.properties.scopes.value,
-                        state: req.query.state,
-                    }).code.getUri();
+                        var uri = new ClientOAuth2({
+                            clientId: data.properties.clientId.value,
+                            clientSecret: data.properties.clientSecret.value,
+                            accessTokenUri: data.properties.accessTokenUri.value,
+                            authorizationUri: data.properties.authorizationUri.value,
+                            redirectUri: data.properties.redirectUri.value,
+                            scopes: data.properties.scopes.value,
+                            state: req.query.state,
+                        }).code.getUri();
 
-                    res.redirect(uri);
-
-                }, err => {
-                    return res.status(400).json({ error: 'oauth service not found' });
-                });
-
-                
+                        res.redirect(uri);
+                    },
+                    (err) => {
+                        return res.status(400).json({ error: 'oauth service not found' });
+                    },
+                );
             } else return res.status(400).json({ error: 'oauth not available' });
         });
 
@@ -640,94 +629,93 @@ var Rest = function (SPOO, OBJY, options) {
             var _OBJY = OBJY.clone();
 
             if (options.oAuth) {
-
                 function authenticateUser(req, user, state, oauth) {
-                var clients = user._clients || [];
-                if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
+                    var clients = user._clients || [];
+                    if (clients.indexOf(req.params.client) == -1) clients.push(req.params.client);
 
-                var _user = JSON.parse(JSON.stringify(user));
+                    var _user = JSON.parse(JSON.stringify(user));
 
-                var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
+                    var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
 
-                var refreshToken;
+                    var refreshToken;
 
-                /*if (req.body.permanent)*/
-                refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
+                    /*if (req.body.permanent)*/
+                    refreshToken = 'rt_' + tokenId + 'rt_' + shortid.generate() + shortid.generate() + shortid.generate();
 
-                var token = sign(
-                    {
-                        id: _user._id,
-                        username: _user.username,
-                        //privileges: _user.privileges,
-                        applications: _user.applications,
-                        spooAdmin: _user.spooAdmin,
-                        clients: clients,
-                        //authorisations: _user.authorisations,
-                        tokenId: tokenId,
-                    },
-                    options.jwtSecret || defaultSecret,
-                    {
-                        expiresIn: 20 * 60000,
-                    }
-                );
-
-                user.clients = clients;
-                //redis.set(token, 'true', "EX", 1200)
-                redis.set(
-                    'ua_' + tokenId,
-                    JSON.stringify({
-                        id: _user._id,
-                        username: _user.username,
-                        applications: _user.applications,
-                        spooAdmin: _user.spooAdmin,
-                        clients: clients,
-                        privileges: _user.privileges,
-                        authorisations: _user.authorisations,
-                    }),
-                    'EX',
-                    1200
-                );
-
-                //if (req.body.permanent) {
-                redis.set('rt_' + tokenId, JSON.stringify(user), 'EX', 2592000);
-                //}
-
-                delete user.password;
-
-                //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
-
-                if (!oauth.clientRedirect?.value) {
-                    res.json({
-                        message: 'authenticated',
-                        /*user: SPOO.deserialize(user),*/
-                        token: {
-                            accessToken: token,
-                            refreshToken: refreshToken,
+                    var token = sign(
+                        {
+                            id: _user._id,
+                            username: _user.username,
+                            //privileges: _user.privileges,
+                            applications: _user.applications,
+                            spooAdmin: _user.spooAdmin,
+                            clients: clients,
+                            //authorisations: _user.authorisations,
+                            tokenId: tokenId,
                         },
-                    });
-
-                    //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
-                } else {
-                    return res.redirect(
-                        oauth.clientRedirect?.value +
-                            '?accessToken=' +
-                            token +
-                            '&refreshToken=' +
-                            refreshToken +
-                            '&clientId=' +
-                            req.params.client +
-                            '&state=' +
-                            state
+                        options.jwtSecret || defaultSecret,
+                        {
+                            expiresIn: 20 * 60000,
+                        },
                     );
+
+                    user.clients = clients;
+                    //redis.set(token, 'true', "EX", 1200)
+                    redis.set(
+                        'ua_' + tokenId,
+                        JSON.stringify({
+                            id: _user._id,
+                            username: _user.username,
+                            applications: _user.applications,
+                            spooAdmin: _user.spooAdmin,
+                            clients: clients,
+                            privileges: _user.privileges,
+                            authorisations: _user.authorisations,
+                        }),
+                        'EX',
+                        1200,
+                    );
+
+                    //if (req.body.permanent) {
+                    redis.set('rt_' + tokenId, JSON.stringify(user), 'EX', 2592000);
+                    //}
+
+                    delete user.password;
+
+                    //res.redirect(options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
+
+                    if (!oauth.clientRedirect?.value) {
+                        res.json({
+                            message: 'authenticated',
+                            /*user: SPOO.deserialize(user),*/
+                            token: {
+                                accessToken: token,
+                                refreshToken: refreshToken,
+                            },
+                        });
+
+                        //console.log('client redirect', options.oauth.clientRedirect + '?accessToken=' + token + '&refreshToken=' + refreshToken + '&userdata='+Buffer.from(JSON.stringify(SPOO.deserialize(user))).toString('base64'))
+                    } else {
+                        return res.redirect(
+                            oauth.clientRedirect?.value +
+                                '?accessToken=' +
+                                token +
+                                '&refreshToken=' +
+                                refreshToken +
+                                '&clientId=' +
+                                req.params.client +
+                                '&state=' +
+                                state,
+                        );
+                    }
                 }
-            }
 
                 _OBJY.client(req.params.client);
-                
+
                 _OBJY.useUser(null);
 
-                _OBJY[options.oAuthFamily]({name: req.params.oAuthService}).get(data => {
-                    if(data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
+                _OBJY[options.oAuthFamily]({ name: req.params.oAuthService }).get((data) => {
+                    if (data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
                     var data = data[0];
 
                     oauth_client = new ClientOAuth2({
@@ -740,87 +728,81 @@ var Rest = function (SPOO, OBJY, options) {
                         state: req.query.state,
                     });
 
-                    if(!data.properties.userFieldsMapping){
-                        data.properties.userFieldsMapping = {properties: {}, type: 'bag'};
+                    if (!data.properties.userFieldsMapping) {
+                        data.properties.userFieldsMapping = { properties: {}, type: 'bag' };
                     }
 
-                oauth_client.code
-                .getToken(req.originalUrl)
-                .then(function (user) {
-                    var userData = jwtDecode(user.accessToken);
-                    var state = req.query.state;
+                    oauth_client.code
+                        .getToken(req.originalUrl)
+                        .then(function (user) {
+                            var userData = jwtDecode(user.accessToken);
+                            var state = req.query.state;
 
-                    var query = {};
+                            var query = {};
 
-                    Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
-                        query[key] = { $regex: '^' + userData[data.properties.userFieldsMapping.properties[key].value] + '$', $options: 'i' };
-                    });
+                            Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
+                                query[key] = { $regex: '^' + userData[data.properties.userFieldsMapping.properties[key].value] + '$', $options: 'i' };
+                            });
 
-                    _OBJY.users(query).get(
-                        (users) => {
-                            if (users.length == 0) {
-                                var newUser = { inherits: [] };
+                            _OBJY.users(query).get(
+                                (users) => {
+                                    if (users.length == 0) {
+                                        var newUser = { inherits: [] };
 
-                                if(data.properties.userFieldsTemplate){
-                                    try {
-                                        newUser = JSON.parse(JSON.stringify((data.properties.userFieldsTemplate)));
-                                    } catch(err){
-                                        newUser = { inherits: [] };
-                                    }
-                                  
-                                    if(!newUser.inherits){
-                                        newUser.inherits = [];
-                                    }
-                                }
+                                        if (data.properties.userFieldsTemplate) {
+                                            try {
+                                                newUser = JSON.parse(JSON.stringify(data.properties.userFieldsTemplate));
+                                            } catch (err) {
+                                                newUser = { inherits: [] };
+                                            }
 
-                                Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
-                                    newUser[key] = userData[data.properties.userFieldsMapping.properties[key].value];
-                                });
+                                            if (!newUser.inherits) {
+                                                newUser.inherits = [];
+                                            }
+                                        }
 
-                                newUser.password = 'oauth:' + user.accessToken;
+                                        Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
+                                            newUser[key] = userData[data.properties.userFieldsMapping.properties[key].value];
+                                        });
 
-                                if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
-                                _OBJY.user(newUser).add((_user) => {
-                                    _OBJY.user(_user._id.toString()).get((usr) => {
-                                        authenticateUser(req, usr, state, data.properties);
-                                    });
-                                });
-                            } else if (users.length > 0) {
-                                _OBJY.user(users[0]._id.toString()).get(
-                                    (_user) => {
-                                        _user.password = 'oauth:' + user.accessToken;
+                                        newUser.password = 'oauth:' + user.accessToken;
 
-                                        _user.update(
-                                            (updatedUser) => {
-                                                authenticateUser(req, updatedUser, state, data.properties);
+                                        if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
+                                        _OBJY.user(newUser).add((_user) => {
+                                            _OBJY.user(_user._id.toString()).get((usr) => {
+                                                authenticateUser(req, usr, state, data.properties);
+                                            });
+                                        });
+                                    } else if (users.length > 0) {
+                                        _OBJY.user(users[0]._id.toString()).get(
+                                            (_user) => {
+                                                _user.password = 'oauth:' + user.accessToken;
+
+                                                _user.update(
+                                                    (updatedUser) => {
+                                                        authenticateUser(req, updatedUser, state, data.properties);
+                                                    },
+                                                    (err) => {
+                                                        res.status(400).json({ err: err });
+                                                    },
+                                                );
                                             },
                                             (err) => {
                                                 res.status(400).json({ err: err });
-                                            }
+                                            },
                                         );
-                                    },
-                                    (err) => {
-                                        res.status(400).json({ err: err });
                                     }
-                                );
-                            }
-                        },
-                        (err) => {
-                            res.status(400).json({ err: err });
-                        }
-                    );
-                })
-                .catch((e) => {
-                    res.status(400).json({ err: e });
+                                },
+                                (err) => {
+                                    res.status(400).json({ err: err });
+                                },
+                            );
+                        })
+                        .catch((e) => {
+                            res.status(400).json({ err: e });
+                        });
                 });
-
-
-
-                });
-
             } else return res.status(400).json({ error: 'oauth not available' });
-
-
         });
 
     // SCRIPT: run a script, can return data
@@ -834,8 +816,6 @@ var Rest = function (SPOO, OBJY, options) {
             else OBJY.app(null);
 
             var script = req.query.code;
-
-        
 
             function done(data) {
                 res.json({
@@ -919,15 +899,13 @@ var Rest = function (SPOO, OBJY, options) {
                             error: 'Some Error occured',
                         });
                     },
-                    client
+                    client,
                 );
             } catch (e) {
                 res.status(400);
                 res.json({ error: e });
             }
         });
-
-  
 
     router
         .route(['/client/:client/application/:appId'])
@@ -952,7 +930,7 @@ var Rest = function (SPOO, OBJY, options) {
                         res.status(400);
                         res.json(err);
                     },
-                    client
+                    client,
                 );
             } catch (e) {
                 res.status(400);
@@ -965,19 +943,16 @@ var Rest = function (SPOO, OBJY, options) {
 
             var appKey = req.params.appId;
 
-            
             try {
                 metaMapper.getClientApplications(
                     function (data) {
-                        
                         var ret = null;
 
-                        data.forEach(app => {
-                            if(app.name == appKey) ret = app;
+                        data.forEach((app) => {
+                            if (app.name == appKey) ret = app;
                         });
 
-                        if(ret)
-                            res.json(ret);
+                        if (ret) res.json(ret);
                         else {
                             res.status(404);
                             res.json({
@@ -991,15 +966,13 @@ var Rest = function (SPOO, OBJY, options) {
                             error: 'Some Error occured',
                         });
                     },
-                    client
+                    client,
                 );
             } catch (e) {
                 res.status(400);
                 res.json({ error: e });
             }
-
         });
-
 
     router
         .route(['/client/:client/applications'])
@@ -1063,14 +1036,13 @@ var Rest = function (SPOO, OBJY, options) {
                             error: 'Some Error occured',
                         });
                     },
-                    client
+                    client,
                 );
             } catch (e) {
                 res.status(400);
                 res.json({ error: e });
             }
         });
-
 
     router
         .route(['/client/:client/twoFaMethod'])
@@ -1099,7 +1071,7 @@ var Rest = function (SPOO, OBJY, options) {
                             error: err,
                         });
                     },
-                    client
+                    client,
                 );
             } catch (e) {
                 res.status(400);
@@ -1110,7 +1082,6 @@ var Rest = function (SPOO, OBJY, options) {
         .get(checkAuthentication, function (req, res) {
             var client = req.params.client;
 
-           
             if (!req.user.spooAdmin) {
                 res.json({ error: 'Not authorized' });
                 return;
@@ -1119,7 +1090,7 @@ var Rest = function (SPOO, OBJY, options) {
             try {
                 metaMapper.getTwoFAMethod(
                     function (data) {
-                        res.json({method: data});
+                        res.json({ method: data });
                     },
                     function (err) {
                         res.status(400);
@@ -1127,15 +1098,13 @@ var Rest = function (SPOO, OBJY, options) {
                             error: err,
                         });
                     },
-                    client
+                    client,
                 );
             } catch (e) {
                 res.status(400);
                 res.json({ error: e });
             }
         });
-
-
 
     router
         .route('/client/:client/user/requestkey')
@@ -1165,9 +1134,10 @@ var Rest = function (SPOO, OBJY, options) {
                         (options.userRegistrationMessage || {}).from || 'SPOO',
                         req.body.email,
                         (options.userRegistrationMessage || {}).subject || 'your registration key',
-                        ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', data.key)
-                        .replace('__USERNAME__', data.username)
-                        .replace('__CLIENT__', req.params.client) || data.key
+                        ((options.userRegistrationMessage || {}).body || '')
+                            .replace('__KEY__', data.key)
+                            .replace('__USERNAME__', data.username)
+                            .replace('__CLIENT__', req.params.client) || data.key,
                     );
 
                     res.json({
@@ -1179,7 +1149,7 @@ var Rest = function (SPOO, OBJY, options) {
                     res.json({
                         error: err,
                     });
-                }
+                },
             );
         });
 
@@ -1236,9 +1206,10 @@ var Rest = function (SPOO, OBJY, options) {
                                 (options.userPasswordResetMessage || {}).from || 'SPOO',
                                 req.body.email,
                                 (options.userPasswordResetMessage || {}).subject || 'your password reset key',
-                                ((options.userPasswordResetMessage || {}).body || '').replace('__KEY__', data.key)
-                                .replace('__USERNAME__', data.username)
-                                .replace('__CLIENT__', req.params.client) || data.key
+                                ((options.userPasswordResetMessage || {}).body || '')
+                                    .replace('__KEY__', data.key)
+                                    .replace('__USERNAME__', data.username)
+                                    .replace('__CLIENT__', req.params.client) || data.key,
                             );
 
                             res.json({
@@ -1250,7 +1221,7 @@ var Rest = function (SPOO, OBJY, options) {
                             res.json({
                                 error: err,
                             });
-                        }
+                        },
                     );
                 },
                 function (err) {
@@ -1259,7 +1230,7 @@ var Rest = function (SPOO, OBJY, options) {
                         error: err,
                     });
                     return;
-                }
+                },
             );
         });
 
@@ -1329,7 +1300,7 @@ var Rest = function (SPOO, OBJY, options) {
                                         });
                                     },
                                     undefined,
-                                    client
+                                    client,
                                 );
                             } else {
                                 data.password = bcrypt.hashSync(req.body.password, saltRounds);
@@ -1347,7 +1318,7 @@ var Rest = function (SPOO, OBJY, options) {
                                             error: err,
                                         });
                                         return;
-                                    }
+                                    },
                                 );
                             }
                         },
@@ -1357,7 +1328,7 @@ var Rest = function (SPOO, OBJY, options) {
                                 error: err,
                             });
                             return;
-                        }
+                        },
                     );
                 },
                 function (err) {
@@ -1366,10 +1337,9 @@ var Rest = function (SPOO, OBJY, options) {
                         error: err,
                     });
                     return;
-                }
+                },
             );
         });
-
 
     // ADD: one or many, GET: one or many
     router
@@ -1408,7 +1378,7 @@ var Rest = function (SPOO, OBJY, options) {
                     },
                     function (err) {
                         res.json(data);
-                    }
+                    },
                 );
             }
         });
@@ -1422,12 +1392,12 @@ var Rest = function (SPOO, OBJY, options) {
 
             try {
                 token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, messageMapper, options);
-            } catch(err){
+            } catch (err) {
                 res.status(err.code);
-                return res.json(err.message)
+                return res.json(err.message);
             }
 
-            return res.json({message: 'authenticated', token})
+            return res.json({ message: 'authenticated', token });
         });
 
     // REFRESH  A TOKEN
@@ -1437,7 +1407,7 @@ var Rest = function (SPOO, OBJY, options) {
         .post(async function (req, res) {
             OBJY.client(req.params.client);
 
-            if(req.body.grant_type == "client_credentials"){
+            if (req.body.grant_type == 'client_credentials') {
                 let token = null;
 
                 try {
@@ -1481,7 +1451,7 @@ var Rest = function (SPOO, OBJY, options) {
                         options.jwtSecret || defaultSecret,
                         {
                             expiresIn: 20 * 60000,
-                        }
+                        },
                     );
 
                     setTimeout(function () {
@@ -1502,7 +1472,7 @@ var Rest = function (SPOO, OBJY, options) {
                             authorisations: result.authorisations,
                         }),
                         'EX',
-                        1200
+                        1200,
                     );
                     redis.set('rt_' + tokenId, JSON.stringify(result), 'EX', 2592000);
 
@@ -1625,9 +1595,10 @@ var Rest = function (SPOO, OBJY, options) {
                                     (options.userRegistrationMessage || {}).from || 'SPOO',
                                     req.body.email,
                                     (options.userRegistrationMessage || {}).subject || 'your password',
-                                    ((options.userRegistrationMessage || {}).body || '').replace('__KEY__', pw)
-                                    .replace('__USERNAME__', req.body.username)
-                                    .replace('__CLIENT__', req.params.client) || pw
+                                    ((options.userRegistrationMessage || {}).body || '')
+                                        .replace('__KEY__', pw)
+                                        .replace('__USERNAME__', req.body.username)
+                                        .replace('__CLIENT__', req.params.client) || pw,
                                 );
                             }
                         },
@@ -1636,7 +1607,7 @@ var Rest = function (SPOO, OBJY, options) {
                             res.json({
                                 error: err,
                             });
-                        }
+                        },
                     );
                 } catch (e) {
                     console.log(e);
@@ -1717,7 +1688,7 @@ var Rest = function (SPOO, OBJY, options) {
                         res.json({
                             error: err,
                         });
-                    }
+                    },
                 );
             } catch (e) {
                 res.status(400);
@@ -1767,7 +1738,7 @@ var Rest = function (SPOO, OBJY, options) {
                         res.json({
                             error: err,
                         });
-                    }
+                    },
                 );
             } catch (e) {
                 res.status(400);
@@ -1845,7 +1816,7 @@ var Rest = function (SPOO, OBJY, options) {
                         });
                     },
                     req.params.app,
-                    req.params.client
+                    req.params.client,
                 );
             } else {
                 try {
@@ -1876,7 +1847,7 @@ var Rest = function (SPOO, OBJY, options) {
 
                                     res.json(SPOO.deserialize(_data));
                                 },
-                                function (err) {}
+                                function (err) {},
                             );
                         },
                         function (err) {
@@ -1884,7 +1855,7 @@ var Rest = function (SPOO, OBJY, options) {
                             res.json({
                                 error: err,
                             });
-                        }
+                        },
                     );
                 } catch (e) {
                     res.status(400);
@@ -1933,7 +1904,7 @@ var Rest = function (SPOO, OBJY, options) {
                     function (err) {
                         res.status(400);
                         res.json({ error: err });
-                    }
+                    },
                 );
             } catch (e) {
                 res.status(400);
@@ -1960,7 +1931,7 @@ var Rest = function (SPOO, OBJY, options) {
                         res.json({
                             error: err,
                         });
-                    }
+                    },
                 );
             } catch (e) {
                 res.status(400);
@@ -2008,7 +1979,7 @@ var Rest = function (SPOO, OBJY, options) {
                                     res.json({
                                         error: err,
                                     });
-                                }
+                                },
                             );
                         } catch (e) {
                             console.log(e);
@@ -2023,7 +1994,7 @@ var Rest = function (SPOO, OBJY, options) {
                         res.json({
                             error: err,
                         });
-                    }
+                    },
                 );
             } catch (e) {
                 res.status(400);
@@ -2051,7 +2022,7 @@ var Rest = function (SPOO, OBJY, options) {
                             function (_data) {
                                 res.json(SPOO.deserialize(_data));
                             },
-                            function (err) {}
+                            function (err) {},
                         );
                     } catch (e) {
                         res.status(400);
@@ -2063,7 +2034,7 @@ var Rest = function (SPOO, OBJY, options) {
                     res.json({
                         error: 'not found',
                     });
-                }
+                },
             );
         });
 
@@ -2097,7 +2068,7 @@ var Rest = function (SPOO, OBJY, options) {
                     },
                     function (err) {
                         res.json({ error: err });
-                    }
+                    },
                 );
             } catch (e) {
                 res.status(400);
@@ -2135,7 +2106,7 @@ var Rest = function (SPOO, OBJY, options) {
                         res.json({
                             error: err,
                         });
-                    }
+                    },
                 );
             } catch (e) {
                 res.status(400);
@@ -2143,8 +2114,8 @@ var Rest = function (SPOO, OBJY, options) {
             }
         });
 
-    // 
-        /*
+    //
+    /*
     router
         .route(['/client/:client/:entity/observe'])
 

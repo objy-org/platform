@@ -7,7 +7,7 @@ import Redis from 'ioredis';
 import jsonwebtoken from 'jsonwebtoken';
 const { sign, decode, verify } = jsonwebtoken;
 import { jwtDecode } from 'jwt-decode';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import shortid from 'shortid';
 import fileUpload from 'express-fileupload';
 import { Duplex } from 'stream';
