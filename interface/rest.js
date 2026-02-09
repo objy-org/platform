@@ -575,11 +575,15 @@ var Rest = function (SPOO, OBJY, options) {
 
         .get(function (req, res) {
             if (options.oAuth) {
-                OBJY.client(req.params.client);
+                var _OBJY = OBJY.clone();
 
-                OBJY.useUser(null);
+                _OBJY.client(req.params.client);
 
-                OBJY[options.oAuthFamily]({}).get(
+                _OBJY.app(null);
+
+                _OBJY.useUser(null);
+
+                _OBJY[options.oAuthFamily]({}).get(
                     (data) => {
                         var retArr = [];
 
@@ -605,11 +609,15 @@ var Rest = function (SPOO, OBJY, options) {
 
         .get(function (req, res) {
             if (options.oAuth) {
-                OBJY.client(req.params.client);
+                var _OBJY = OBJY.clone();
 
-                OBJY.useUser(null);
+                _OBJY.client(req.params.client);
 
-                OBJY[options.oAuthFamily]({ name: req.params.oAuthService }).get(
+                _OBJY.app(null);
+
+                _OBJY.useUser(null);
+
+                _OBJY[options.oAuthFamily]({ name: req.params.oAuthService }).get(
                     (data) => {
                         if (data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
                         var data = data[0];
@@ -637,7 +645,7 @@ var Rest = function (SPOO, OBJY, options) {
         .route('/client/:client/auth-callback/:oAuthService')
 
         .get(function (req, res) {
-            var oauth_client;
+            var oauth_client = null;
             var _OBJY = OBJY.clone();
 
             if (options.oAuth) {
@@ -723,6 +731,8 @@ var Rest = function (SPOO, OBJY, options) {
                 }
 
                 _OBJY.client(req.params.client);
+
+                _OBJY.app(null);
 
                 _OBJY.useUser(null);
 
