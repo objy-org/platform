@@ -55,6 +55,7 @@ function parseJwt(token) {
 }
 
 async function checkAuth(OBJY, redis, headers, params, body, metaMapper, messageMapper, options) {
+
     let token = null;
     let username = null;
     let password = null;
@@ -119,12 +120,15 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
         user = await new Promise((resolve, reject) => {
             OBJY.users().auth(
                 authQuery,
-                (user) => resolve(user),
+                (user) => {
+                    resolve(user)
+                },
                 (err) => reject(),
                 params.client,
                 params.app,
             );
         });
+
     } catch (err) {
         throw { code: 401, message: 'not authenticated' };
     }
@@ -137,15 +141,20 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
         }
     }
 
+
     // Default checkPassword method can be overwritten
     var checkPassword = bcrypt.compareSync;
     if (options.checkPassword) checkPassword = options.checkPassword;
 
     if (checkPassword(password, user.password)) {
+
+
         var clients = user._clients || [];
         if (clients.indexOf(params.client) == -1) clients.push(params.client);
 
         var _user = JSON.parse(JSON.stringify(user));
+
+
 
         function doTheActualLogin() {
             var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
@@ -210,11 +219,23 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
             };
         }
 
+        
+
+
+
         if (grantType == 'client_credentials') {
             await doTheActualLogin();
         } else {
             try {
+
                 await new Promise((resolve, reject) => {
+
+                    if(!metaMapper.getTwoFAMethod){
+                        doTheActualLogin();
+                        resolve();
+                        return;
+                    }
+
                     metaMapper.getTwoFAMethod(
                         async (method) => {
                             if (method == 'email') {
@@ -313,6 +334,8 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                         (NoTwoFA) => {
                             // No 2FA implemented, proceed with normal login
 
+
+
                             doTheActualLogin();
                             resolve();
                         },
@@ -320,6 +343,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                     );
                 });
             } catch (err) {
+                console.log('err', err)
                 throw err;
             }
         }
@@ -1410,6 +1434,7 @@ var Rest = function (SPOO, OBJY, options) {
         .route(['/client/:client/auth', '/client/:client/app/:app/auth'])
 
         .post(async function (req, res) {
+
             let token = null;
 
             try {
