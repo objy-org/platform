@@ -44,7 +44,7 @@ function propsSerialize(obj) {
     }
 }
 
-async function checkAuth(OBJY, redis, headers, params, body, metaMapper, messageMapper, options) {
+async function checkAuth(OBJY, redis, headers, params, body, metaMapper, messageMapper, options, req) {
     let token = null;
     let username = null;
     let password = null;
@@ -113,6 +113,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                 (err) => reject(),
                 params.client,
                 params.app,
+                req,
             );
         });
     } catch (err) {
@@ -788,16 +789,19 @@ var Rest = function (SPOO, OBJY, options) {
                                     } else if (users.length > 0) {
                                         _OBJY.user(users[0]._id.toString()).get(
                                             (_user) => {
-                                                _user.password = 'oauth:' + user.accessToken;
+                                                //_user.password = 'oauth:' + user.accessToken;
 
-                                                _user.update(
-                                                    (updatedUser) => {
-                                                        authenticateUser(req, updatedUser, state, data.properties);
-                                                    },
-                                                    (err) => {
-                                                        res.status(400).json({ err: err });
-                                                    },
-                                                );
+                                                _OBJY
+                                                    .user(_user)
+                                                    .setPassword('oauth:' + user.accessToken)
+                                                    .update(
+                                                        (updatedUser) => {
+                                                            authenticateUser(req, updatedUser, state, data.properties);
+                                                        },
+                                                        (err) => {
+                                                            res.status(400).json({ err: err });
+                                                        },
+                                                    );
                                             },
                                             (err) => {
                                                 res.status(400).json({ err: err });
@@ -1403,7 +1407,7 @@ var Rest = function (SPOO, OBJY, options) {
             let token = null;
 
             try {
-                token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, messageMapper, options);
+                token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, messageMapper, options, req);
             } catch (err) {
                 res.status(err.code);
                 return res.json(err.message);
@@ -1423,7 +1427,7 @@ var Rest = function (SPOO, OBJY, options) {
                 let token = null;
 
                 try {
-                    token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, messageMapper, options);
+                    token = await checkAuth(OBJY, redis, req.headers, req.params, req.body, metaMapper, messageMapper, options, req);
                 } catch (err) {
                     console.log(err);
 
