@@ -229,8 +229,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
             try {
 
                 await new Promise((resolve, reject) => {
-
-                    if(!metaMapper.getTwoFAMethod){
+                    if (!metaMapper.getTwoFAMethod) {
                         doTheActualLogin();
                         resolve();
                         return;
@@ -343,7 +342,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                     );
                 });
             } catch (err) {
-                console.log('err', err)
+                console.log('err', err);
                 throw err;
             }
         }
@@ -760,9 +759,13 @@ var Rest = function (SPOO, OBJY, options) {
 
                 _OBJY.useUser(null);
 
-                _OBJY[options.oAuthFamily]({ name: req.params.oAuthService }).get((data) => {
+                _OBJY[options.oAuthFamily]({ name: req.params.oAuthService }).get(async (data) => {
                     if (data?.length == 0) return res.status(400).json({ error: 'oauth service error' });
                     var data = data[0];
+                    var entraUser = null;
+                    var userData = null;
+                    var state = req.query.state;
+                    var query = {};
 
                     oauth_client = new ClientOAuth2({
                         clientId: data.properties.clientId.value,
@@ -778,78 +781,85 @@ var Rest = function (SPOO, OBJY, options) {
                         data.properties.userFieldsMapping = { properties: {}, type: 'bag' };
                     }
 
-                    oauth_client.code
-                        .getToken(req.originalUrl)
-                        .then(function (user) {
-                            var userData = jwtDecode(user.accessToken);
-                            var state = req.query.state;
+                    if (req.query.error) {
+                        return res.status(400).send(`OAuth provider returned error: ${req.query.error_description || req.query.error}`);
+                    }
 
-                            var query = {};
+                    if (!req.query.code) {
+                        return res.status(400).send('Missing OAuth code in callback URL');
+                    }
 
-                            Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
-                                query[key] = { $regex: '^' + userData[data.properties.userFieldsMapping.properties[key].value] + '$', $options: 'i' };
-                            });
+                    try {
+                        const callbackUrl = data.properties.redirectUri.value + '?' + new URLSearchParams(req.query).toString();
 
-                            _OBJY.users(query).get(
-                                (users) => {
-                                    if (users.length == 0) {
-                                        var newUser = { inherits: [] };
+                        entraUser = await oauth_client.code.getToken(callbackUrl);
 
-                                        if (data.properties.userFieldsTemplate) {
-                                            try {
-                                                newUser = JSON.parse(JSON.stringify(data.properties.userFieldsTemplate));
-                                            } catch (err) {
-                                                newUser = { inherits: [] };
-                                            }
+                        userData = jwtDecode(entraUser.accessToken);
+                    } catch (err) {
+                        console.error('OAuth callback failed:', err);
+                        return res.status(500).send(err.message || 'OAuth callback failed');
+                    }
 
-                                            if (!newUser.inherits) {
-                                                newUser.inherits = [];
-                                            }
-                                        }
+                    Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
+                        query[key] = { $regex: '^' + userData[data.properties.userFieldsMapping.properties[key].value] + '$', $options: 'i' };
+                    });
 
-                                        Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
-                                            newUser[key] = userData[data.properties.userFieldsMapping.properties[key].value];
-                                        });
+                    _OBJY.users(query).get(
+                        (users) => {
+                            if (users.length == 0) {
+                                var newUser = { inherits: [] };
 
-                                        newUser.password = 'oauth:' + user.accessToken;
-
-                                        if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
-                                        _OBJY.user(newUser).add((_user) => {
-                                            _OBJY.user(_user._id.toString()).get((usr) => {
-                                                authenticateUser(req, usr, state, data.properties);
-                                            });
-                                        });
-                                    } else if (users.length > 0) {
-                                        _OBJY.user(users[0]._id.toString()).get(
-                                            (_user) => {
-                                                //_user.password = 'oauth:' + user.accessToken;
-
-                                                _OBJY
-                                                    .user(_user)
-                                                    .setPassword('oauth:' + user.accessToken)
-                                                    .update(
-                                                        (updatedUser) => {
-                                                            authenticateUser(req, updatedUser, state, data.properties);
-                                                        },
-                                                        (err) => {
-                                                            res.status(400).json({ err: err });
-                                                        },
-                                                    );
-                                            },
-                                            (err) => {
-                                                res.status(400).json({ err: err });
-                                            },
-                                        );
+                                if (data.properties.userFieldsTemplate) {
+                                    try {
+                                        newUser = JSON.parse(JSON.stringify(data.properties.userFieldsTemplate));
+                                    } catch (err) {
+                                        newUser = { inherits: [] };
                                     }
-                                },
-                                (err) => {
-                                    res.status(400).json({ err: err });
-                                },
-                            );
-                        })
-                        .catch((e) => {
-                            res.status(400).json({ err: e });
-                        });
+
+                                    if (!newUser.inherits) {
+                                        newUser.inherits = [];
+                                    }
+                                }
+
+                                Object.keys(data.properties.userFieldsMapping.properties).forEach((key) => {
+                                    newUser[key] = userData[data.properties.userFieldsMapping.properties[key].value];
+                                });
+
+                                newUser.password = 'oauth:' + entraUser.accessToken;
+
+                                if (!newUser.username) newUser.username = newUser.email || SPOO.OBJY.RANDOM();
+                                _OBJY.user(newUser).add((_user) => {
+                                    _OBJY.user(_user._id.toString()).get((usr) => {
+                                        authenticateUser(req, usr, state, data.properties);
+                                    });
+                                });
+                            } else if (users.length > 0) {
+                                _OBJY.user(users[0]._id.toString()).get(
+                                    (_user) => {
+                                        //_user.password = 'oauth:' + entraUser.accessToken;
+
+                                        _OBJY
+                                            .user(_user)
+                                            .setPassword('oauth:' + entraUser.accessToken)
+                                            .update(
+                                                (updatedUser) => {
+                                                    authenticateUser(req, updatedUser, state, data.properties);
+                                                },
+                                                (err) => {
+                                                    res.status(400).json({ err: err });
+                                                },
+                                            );
+                                    },
+                                    (err) => {
+                                        res.status(400).json({ err: err });
+                                    },
+                                );
+                            }
+                        },
+                        (err) => {
+                            res.status(400).json({ err: err });
+                        },
+                    );
                 });
             } else return res.status(400).json({ error: 'oauth not available' });
         });
@@ -858,7 +868,7 @@ var Rest = function (SPOO, OBJY, options) {
     router
         .route(['/client/:client/script', '/client/:client/app/:app/script'])
 
-        .get(checkAuthentication, function (req, res) {
+        .get(checkAuthentication, async function (req, res) {
             OBJY.client(req.params.client);
 
             if (req.params.app) OBJY.app(req.params.app);
@@ -873,6 +883,7 @@ var Rest = function (SPOO, OBJY, options) {
             }
 
             var _context = {
+                console: console,
                 done: done,
                 OBJY: OBJY,
             };
@@ -886,10 +897,14 @@ var Rest = function (SPOO, OBJY, options) {
 
             vm.createContext(_context);
 
-            script.runInContext(_context);
+            try {
+                await script.runInContext(_context);
+            } catch (e) {
+                console.log(e);
+            }
         })
 
-        .post(checkAuthentication, function (req, res) {
+        .post(checkAuthentication, async function (req, res) {
             OBJY.client(req.params.client);
 
             if (req.params.app) OBJY.app(req.params.app);
@@ -904,6 +919,7 @@ var Rest = function (SPOO, OBJY, options) {
             }
 
             var _context = {
+                console: console,
                 done: done,
                 OBJY: OBJY,
             };
@@ -917,7 +933,11 @@ var Rest = function (SPOO, OBJY, options) {
 
             vm.createContext(_context);
 
-            script.runInContext(_context);
+            try {
+                await script.runInContext(_context);
+            } catch (e) {
+                console.log(e);
+            }
         });
 
     router
@@ -1796,6 +1816,39 @@ var Rest = function (SPOO, OBJY, options) {
             }
         });
 
+    // PLUG IN EXTENTIONS
+
+    if (Array.isArray(options.extensions || [])) {
+        (options.extensions || []).forEach((ext) => {
+            if (ext.route) {
+                var modifiedRoute = [];
+
+                // Check if tenancy and app contexts are enabled
+                if (ext.tenancyContext) {
+                    if (!ext.route.includes('client/:client')) modifiedRoute.push('/client/:client' + ext.route);
+                }
+
+                if (ext.appContext) {
+                    if (ext.tenancyContext) {
+                        if (!ext.route.includes('app/:app')) modifiedRoute.push('/client/:client/app/:app' + ext.route);
+                    } else if (!ext.route.includes('app/:app')) modifiedRoute.push('/app/:app' + ext.route);
+                }
+
+                if (modifiedRoute.length > 0) ext.route = modifiedRoute;
+
+                var newRoute = router.route(ext.route);
+
+                Object.keys(ext.methods).forEach((method) => {
+                    if (ext.authable === true) {
+                        newRoute[method](checkAuthentication, ext.methods[method]);
+                    } else {
+                        newRoute[method](ext.methods[method]);
+                    }
+                });
+            }
+        });
+    }
+
     // GET: one, UPDATE: one, DELETE: one
     router
         .route(['/client/:client/:entity/:id/password', '/client/:client/app/:app/:entity/:id/password'])
@@ -1920,7 +1973,6 @@ var Rest = function (SPOO, OBJY, options) {
 
         .get(checkAuthentication, checkObjectFamily, function (req, res) {
             var filterFieldsEnabled;
-
             try {
                 if (req.query.$filterFieldsEnabled) filterFieldsEnabled = JSON.parse(req.query.$filterFieldsEnabled);
             } catch (e) {}
@@ -2186,36 +2238,6 @@ var Rest = function (SPOO, OBJY, options) {
 
         });
         */
-
-    // PLUG IN EXTENTIONS
-    if (Array.isArray(options.extensions || [])) {
-        (options.extensions || []).forEach((ext) => {
-            if (ext.route) {
-                var modifiedRoute = [];
-
-                // Check if tenancy and app contexts are enabled
-                if (ext.tenancyContext) {
-                    if (!ext.route.includes('client/:client')) modifiedRoute.push('/client/:client' + ext.route);
-                }
-
-                if (ext.appContext) {
-                    if (ext.tenancyContext) {
-                        if (!ext.route.includes('app/:app')) modifiedRoute.push('/client/:client/app/:app' + ext.route);
-                    } else if (!ext.route.includes('app/:app')) modifiedRoute.push('/app/:app' + ext.route);
-                }
-
-                if (modifiedRoute.length > 0) ext.route = modifiedRoute;
-
-                var newRoute = router.route(ext.route);
-
-                Object.keys(ext.methods).forEach((method) => {
-                    var authFn = () => {};
-                    if (ext.authable) authFn = checkAuthentication;
-                    newRoute[method](authFn, ext.methods[method]);
-                });
-            }
-        });
-    }
 
     this.run = function () {
         app.use('/api', router);
