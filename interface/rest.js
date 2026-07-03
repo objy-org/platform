@@ -14,6 +14,7 @@ import { Duplex } from 'stream';
 import { isStream } from 'is-stream';
 import timeout from 'connect-timeout';
 import ClientOAuth2 from 'client-oauth2';
+import path from 'path';
 import vm from 'vm';
 
 const saltRounds = 10;
@@ -1616,6 +1617,23 @@ var Rest = function (SPOO, OBJY, options) {
             if (req.files) {
                 var k = Object.keys(req.files)[0];
                 var file = req.files[k];
+
+                var whitelist = options?.fileUploadWhitelist || [];
+
+                var allowedFileTypes = whitelist.map(function (type) {
+                    type = String(type).toLowerCase();
+                    return type[0] === '.' ? type : '.' + type;
+                });
+
+                var fileExt = path.extname(file.name || '').toLowerCase();
+
+                if (allowedFileTypes.length && allowedFileTypes.indexOf(fileExt) === -1) {
+                    res.status(400);
+                    return res.json({
+                        error: 'file type not allowed',
+                        filename: file.name,
+                    });
+                }
 
                 function bufferToStream(buffer) {
                     var stream = new Duplex();
