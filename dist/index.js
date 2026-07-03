@@ -11,6 +11,7 @@ import { Duplex } from 'stream';
 import { isStream } from 'is-stream';
 import timeout from 'connect-timeout';
 import ClientOAuth2 from 'client-oauth2';
+import path from 'path';
 import vm from 'vm';
 import { MailService } from '@sendgrid/mail';
 import mongoose from 'mongoose';
@@ -116,6 +117,7 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                 req,
             );
         });
+
     } catch (err) {
         throw { code: 401, message: 'not authenticated' };
     }
@@ -128,15 +130,20 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
         }
     }
 
+
     // Default checkPassword method can be overwritten
     var checkPassword = bcrypt.compareSync;
     if (options.checkPassword) checkPassword = options.checkPassword;
 
     if (checkPassword(password, user.password)) {
+
+
         var clients = user._clients || [];
         if (clients.indexOf(params.client) == -1) clients.push(params.client);
 
         var _user = JSON.parse(JSON.stringify(user));
+
+
 
         function doTheActualLogin() {
             var tokenId = shortid.generate() + shortid.generate() + shortid.generate();
@@ -201,10 +208,15 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
             };
         }
 
+        
+
+
+
         if (grantType == 'client_credentials') {
             await doTheActualLogin();
         } else {
             try {
+
                 await new Promise((resolve, reject) => {
                     if (!metaMapper.getTwoFAMethod) {
                         doTheActualLogin();
@@ -309,6 +321,8 @@ async function checkAuth(OBJY, redis, headers, params, body, metaMapper, message
                         },
                         (NoTwoFA) => {
                             // No 2FA implemented, proceed with normal login
+
+
 
                             doTheActualLogin();
                             resolve();
@@ -1432,6 +1446,7 @@ var Rest = function (SPOO, OBJY, options) {
         .route(['/client/:client/auth', '/client/:client/app/:app/auth'])
 
         .post(async function (req, res) {
+
             let token = null;
 
             try {
@@ -1590,6 +1605,23 @@ var Rest = function (SPOO, OBJY, options) {
             if (req.files) {
                 var k = Object.keys(req.files)[0];
                 var file = req.files[k];
+
+                var whitelist = options?.fileUploadWhitelist || [];
+
+                var allowedFileTypes = whitelist.map(function (type) {
+                    type = String(type).toLowerCase();
+                    return type[0] === '.' ? type : '.' + type;
+                });
+
+                var fileExt = path.extname(file.name || '').toLowerCase();
+
+                if (allowedFileTypes.length && allowedFileTypes.indexOf(fileExt) === -1) {
+                    res.status(400);
+                    return res.json({
+                        error: 'file type not allowed',
+                        filename: file.name,
+                    });
+                }
 
                 function bufferToStream(buffer) {
                     var stream = new Duplex();
